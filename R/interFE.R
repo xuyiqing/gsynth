@@ -43,7 +43,7 @@ interFE.default <- function(data, # a data frame
                             r = 0, # number of factors
                             force = "none", # additived fixed effects
                             trends = "none", # imposed trends
-                            SE = TRUE, # standard error
+                            se = TRUE, # standard error
                             nboots = 500, # number of bootstrap runs
                             seed = NULL
                             ){ 
@@ -129,9 +129,7 @@ interFE.default <- function(data, # a data frame
                   force = force, trends = trends)
     beta<-as.matrix(out$beta)
     mu <- out$mu
-    residuals <- out$residuals
-    sigma2 <- out$sigma2
-    IC <- out$IC
+    
 
     ##-------------------------------#
     ## Standard Errors
@@ -144,7 +142,7 @@ interFE.default <- function(data, # a data frame
         return(as.numeric(min(a, b)))
     }
     
-    if (SE == TRUE) {
+    if (se == TRUE) {
         if (is.null(seed) == FALSE) {
             set.seed(seed)
         }
@@ -165,11 +163,11 @@ interFE.default <- function(data, # a data frame
         ## T*2: lower,upper
         CI<-t(apply(est.boot,2,function(vec)
             quantile(vec,c(0.025,0.975))))
-        se<-apply(est.boot,2,sd)
+        SE<-apply(est.boot,2,sd)
         pvalue <- apply(est.boot, 2, get.pvalue)
          
         ## estimate table
-        est.table<-cbind(c(beta,mu), se, CI, pvalue)
+        est.table<-cbind(c(beta,mu), SE, CI, pvalue)
         colnames(est.table) <- c("Coef","S.E.","CI.lower","CI.upper", "p.value")
         rownames(est.table) <- c(xname,"_const")
     } 
@@ -183,7 +181,7 @@ interFE.default <- function(data, # a data frame
                      Y = yname,
                      X = xname,
                      index = c(id,time)))
-    if (SE == TRUE) {
+    if (se == TRUE) {
         out <- c(out,list(est.table = est.table,
                           est.boot = est.boot # bootstrapped coef.
                           ))

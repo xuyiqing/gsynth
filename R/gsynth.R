@@ -62,8 +62,7 @@ gsynth.default <- function(data, # a data frame (long-form)
                            cluster = NULL, #  clustering variable for block bootstrap
                            parallel = TRUE, # parallel computing
                            cores = NULL, # number of cores
-                           tol = 0.01, # tolerance level
-                           AR1 = FALSE, # calculate accumulative effectm
+                           tol = 0.001, # tolerance level
                            seed = NULL # set seed
                            ){  
     
@@ -215,23 +214,24 @@ gsynth.default <- function(data, # a data frame (long-form)
     }
     
     ## for AR1, burn the first period
-    if (AR1 == TRUE) {
-        Y.first <- Y[1,]
-        Y.lag <- Y[1:(T-1),]
-        Y <- Y[2:T,]
-        D <- D[2:T,]
-        if (p == 0) {
-            X <- array(NA, dim=c((T-1),N,1))
-            X[,,1] <- Y.lag
-        } else {
-            X.first <- X[1,,]
-            X.sav <- X[2:T,,]
-            X <- array(NA,dim=c((T-1),N,(p+1)))
-            X[,,1] <- Y.lag
-            X[,,2:(p+1)] <- X.sav
-        }
-        T <- T-1
-    }
+    AR1 <- FALSE
+    ## if (AR1 == TRUE) {
+    ##     Y.first <- Y[1,]
+    ##     Y.lag <- Y[1:(T-1),]
+    ##     Y <- Y[2:T,]
+    ##     D <- D[2:T,]
+    ##     if (p == 0) {
+    ##         X <- array(NA, dim=c((T-1),N,1))
+    ##         X[,,1] <- Y.lag
+    ##     } else {
+    ##         X.first <- X[1,,]
+    ##         X.sav <- X[2:T,,]
+    ##         X <- array(NA,dim=c((T-1),N,(p+1)))
+    ##         X[,,1] <- Y.lag
+    ##         X[,,2:(p+1)] <- X.sav
+    ##     }
+    ##     T <- T-1
+    ## }
 
     ## for block bootstrap
     if (is.null(cluster) == TRUE) {
@@ -1578,7 +1578,7 @@ plot.gsynth <- function(out, # a gsynth object
                         type = "gap", # type of the plot
                         xlim = NULL, ylim = NULL, # axes limits
                         xlab = NULL, ylab = NULL, # axes labels
-                        legend = "bottom", # ("none" shuts off legend)
+                        legendOff = FALSE,
                         raw = "band", # show raw data in "counterfactual" mode
                                         # ("none","region","all")
                         main = NULL, # whether to show the title
@@ -1640,7 +1640,7 @@ plot.gsynth <- function(out, # a gsynth object
     nT <- length(show) 
 
     ## legend on/off
-    if (legend == "none") {
+    if (legendOff == TRUE) {
         legend.pos <- "none"
     } else {
         legend.pos <- "bottom"
@@ -1682,9 +1682,13 @@ plot.gsynth <- function(out, # a gsynth object
         ## theme
         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
             theme(legend.position = legend.pos,
-                  plot.title = element_text(size=20, face="bold",
+                  plot.title = element_text(size=20,
+                                            hjust = 0.5,
+                                            face="bold",
                                             margin = margin(10, 0, 10, 0)))
 
+        
+        
         if (out$DID==TRUE) {
             p <- p + geom_vline(xintercept=time.bf,colour="white",size = 2) +
                 annotate("rect", xmin= time.bf, xmax= Inf,
@@ -1790,7 +1794,9 @@ plot.gsynth <- function(out, # a gsynth object
                 ##          fill = "yellow") +
                 xlab(xlab) +  ylab(ylab) +
                 theme(legend.position = legend.pos,
-                      plot.title = element_text(size=20, face="bold",
+                      plot.title = element_text(size=20,
+                                                hjust = 0.5,
+                                                face="bold",
                                                 margin = margin(10, 0, 10, 0)))
            
             
@@ -1858,7 +1864,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0))) 
                     ## main
                     p <- p + geom_line(aes(time, outcome,
@@ -1903,7 +1911,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0)))
 
                     ## main
@@ -1956,7 +1966,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0)))
                     
                     ## main
@@ -2002,7 +2014,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0)))
                     ## main
                     p <- p + geom_line(aes(time, outcome,
@@ -2050,7 +2064,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0)))
                     ## main
                     p <- p + geom_line(aes(time, outcome,
@@ -2108,7 +2124,9 @@ plot.gsynth <- function(out, # a gsynth object
                         annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
                         theme(legend.position = legend.pos,
-                              plot.title = element_text(size=20, face="bold",
+                              plot.title = element_text(size=20,
+                                                        hjust = 0.5,
+                                                        face="bold",
                                                         margin = margin(10, 0, 10, 0))) 
                     ## main
                     p <- p + geom_line(aes(time, outcome,
@@ -2189,7 +2207,9 @@ plot.gsynth <- function(out, # a gsynth object
             p <- ggplot(data) + xlab(xlab) +  ylab(ylab) + ggtitle(main) +
                 geom_hline(yintercept=0,colour="white",size = 2) +
                 theme(legend.position = legend.pos,
-                      plot.title = element_text(size=20, face="bold",
+                      plot.title = element_text(size=20,
+                                                hjust = 0.5,
+                                                face="bold",
                                                 margin = margin(10, 0, 10, 0)))  
             ## main plot
             p <- p + geom_line(aes(time, factor,
@@ -2272,7 +2292,8 @@ plot.gsynth <- function(out, # a gsynth object
                                  columns = 1:nfactors,
                                  columnLabels = Llabel[1:nfactors],
                                  diag = list(continuous = my_dens),
-                                 title = main)
+                                 title = main) +
+                        theme(plot.title = element_text(hjust = 0.5))
                 }
             } 
             print(p) 

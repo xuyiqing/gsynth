@@ -1,36 +1,25 @@
 \name{gsynth-package}
 \alias{gsynth-package}
-\alias{gsynth}
 \docType{package}
-\title{
-\packageTitle{gsynth}
-}
-\description{
-\packageDescription{gsynth}
-}
+\title{Generalized Synthetic Control Method}
+\description{Implements the generalized synthetic control method based on interactive fixed effect models.}
 \details{
+  Implements the generalized synthetic control method. It imputes
+  counterfactuals for each treated unit using control group
+  information based on a linear interactive fixed effects model that
+  incorporates unit-specific intercepts interacted with time-varying
+  coefficients.
 
-The DESCRIPTION file:
-\packageDESCRIPTION{gsynth}
-\packageIndices{gsynth}
-~~ An overview of how to use the package, including the most important ~~
-~~ functions ~~
+  See \code{\link{gsynth}} for details.
 }
 \author{
-\packageAuthor{gsynth}
-
-Maintainer: \packageMaintainer{gsynth}
+  Yiqing Xu <yiqingxu@ucsd.edu>, University of California, San Diego
 }
 \references{
-~~ Literature or other references for background information ~~
-}
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in ~~
-~~ the R documentation directory ~~
-\keyword{ package }
-\seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
-}
-\examples{
-~~ simple examples of the most important functions ~~
+  Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
+  with Interactive Fixed Effects Models." Political Analysis,
+  forthcoming. Available at:
+  \url{http://dx.doi.org/10.1017/pan.2016.2}. 
+
+  For more details, see \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html}.
 }
