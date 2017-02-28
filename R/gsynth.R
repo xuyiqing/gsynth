@@ -51,6 +51,7 @@ gsynth.default <- function(data, # a data frame (long-form)
                            Y, # outcome
                            D, # treatment 
                            X = NULL, # time-varying covariates
+                           na.rm = FALSE, # remove missing values
                            index, # c(unit, time) indicators
                            force = "unit", # fixed effects demeaning
                            r = 0, # nubmer of factors
@@ -70,6 +71,9 @@ gsynth.default <- function(data, # a data frame (long-form)
     ## Checking Parameters
     ##-------------------------------##  
 
+    if (is.data.frame(data) == FALSE) {
+        stop("Not a data frame.")
+    }
     ## index
     if (length(index) != 2 | sum(index %in% colnames(data)) != 2) {
         stop("\"index\" option misspecified. Try, for example, index = c(\"unit.id\", \"time\").")
@@ -91,6 +95,7 @@ gsynth.default <- function(data, # a data frame (long-form)
     if (r[1] < 0) {
         stop("\"r\" option misspecified. The number of factors must be non-negative.")
     }
+    ## CV
     if (CV == TRUE) {
         if (length(r) == 2 & r[1] > r[2]) {
             stop("\"r\" option misspecified.")
@@ -105,6 +110,14 @@ gsynth.default <- function(data, # a data frame (long-form)
     } else {
         r.end <- r[2]; r <- r[1]
     }
+    ## EM
+    if (is.logical(EM) == FALSE & is.numeric(EM)==FALSE) {
+        stop("EM is not a logical flag.")
+    }
+    ## se
+    if (is.logical(se) == FALSE & is.numeric(se)==FALSE) {
+        stop("se is not a logical flag.")
+    } 
     ## inference
     if (inference == "para") {
         inference <- "parametric"
@@ -116,7 +129,13 @@ gsynth.default <- function(data, # a data frame (long-form)
         stop("\"inference\" option misspecified; choose from c(\"parametric\", \"nonparametric\").")
     }
     if (se == TRUE & nboots <= 0) {
-        stop("\"nboots\" option misspecified. Try, for example, nboots = 500.")
+        stop("\"nboots\" option misspecified. Try, for example, nboots = 200.")
+    }
+    ## cluster
+    if (is.null(cluster) == FALSE) {
+        if (!cluster %in% colnames(data)) {
+            stop(paste("\"cluster\" option misspecified: varible", cluster, "not found."))
+        }    
     }
     ## parallel & cores
     if (parallel == TRUE) {
@@ -125,18 +144,24 @@ gsynth.default <- function(data, # a data frame (long-form)
                 stop("\"cores\" option misspecified. Try, for example, cores = 2.")
             }
         }
-    }
+    } 
     ## tol
     if (tol <= 0) {
         stop("\"tol\" option misspecified. Try using the default option.")
     }
-    ## cluster
-    if (is.null(cluster) == FALSE) {
-        if (!cluster %in% colnames(data)) {
-            stop(paste("\"cluster\" option misspecified: varible", cluster, "not found."))
-        }    
+    ## seed
+    if (is.null(seed)==FALSE) {
+        if (is.numeric(seed)==FALSE) {
+            stop("seed should be a number.")
+        }
     }
-    
+    ## remove missing values
+    if (is.logical(na.rm) == FALSE & is.numeric(na.rm)==FALSE) {
+        stop("na.rm is not a logical flag.")
+    } 
+    if (na.rm == TRUE) {
+        data <- na.omit(data[,c(Y, D, X, Z, FE)])
+    } 
     ##-------------------------------##
     ## Parsing raw data
     ##-------------------------------##  
@@ -1580,13 +1605,91 @@ plot.gsynth <- function(out, # a gsynth object
                         xlab = NULL, ylab = NULL, # axes labels
                         legendOff = FALSE,
                         raw = "band", # show raw data in "counterfactual" mode
-                                        # ("none","region","all")
+                                        # ("none","band","all")
                         main = NULL, # whether to show the title
                         nfactors = NULL, # whose loadings to be plotted
                         id = NULL # individual plot
-                      ){
-    require(ggplot2)
+                        ){
 
+
+    ##-------------------------------##
+    ## Checking Parameters
+    ##-------------------------------##  
+
+    if (class(out)!="gsynth") {
+        stop("Not a \"gsynth\" object.")
+    }
+    if (!type %in% c("gap","counterfactual","factors","loadings","raw")) {
+        stop("\"type\" option misspecified.")
+    }
+    if (is.null(xlim)==FALSE) {
+        if (is.numeric(xlim)==FALSE) {
+            stop("Some element in \"xlim\" is not numeric.")
+        } else {
+            if (length(xlim)!=2) {
+                stop("xlim must be of length 2.")
+            }
+        }
+    }
+    if (is.null(ylim)==FALSE) {
+        if (is.numeric(ylim)==FALSE) {
+            stop("Some element in \"ylim\" is not numeric.")
+        } else {
+            if (length(ylim)!=2) {
+                stop("ylim must be of length 2.")
+            }
+        }
+    }
+    if (is.null(xlab)==FALSE) {
+        if (is.character(xlab) == FALSE) {
+            stop("\"xlab\" is not a string.")
+        } else {
+            xlab <- xlab[1]
+        }   
+    }
+    if (is.null(ylab)==FALSE) {
+        if (is.character(ylab) == FALSE) {
+            stop("\"ylab\" is not a string.")
+        } else {
+            ylab <- ylab[1]
+        }   
+    }
+    if (is.logical(legendOff) == FALSE & is.numeric(legendOff)==FALSE) {
+        stop("\"legendOff\" is not a logical flag.")
+    }
+    if (type == "counterfactual") {
+        if (! raw %in% c("none","band","all")) {
+            stop("\"raw\" option misspecifed.") 
+        }
+        if (is.null(id)==FALSE) {
+            if (length(id)>1) {
+               stop("More than 1 element in \"id\".") 
+            }
+        } 
+    }
+    if (is.null(main)==FALSE) {
+        if (is.character(main) == FALSE) {
+            stop("\"main\" is not a string.")
+        } else {
+            main <- main[1]
+        }   
+    }
+    if (is.null(nfactors)==FALSE) {
+        if (is.numeric(nfactors)==FALSE) {
+            stop("\"nfactors\" is not a positive integer.")
+        } else {
+            nfactors <- nfactors[1]
+            if (nfactors%%1!=0 | nfactors<=0) {
+                stop("\"nfactors\" is not a positive integer.")
+            }  
+        } 
+    } 
+    
+    ##-------------------------------##
+    ## Plotting
+    ##-------------------------------##  
+
+    require(ggplot2)
     Y.tr <- out$Y.tr
     Y.co <- out$Y.co
     Y.ct <- out$Y.ct
