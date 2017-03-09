@@ -2,12 +2,12 @@
 \alias{plot.gsynth}
 \title{Plotting}
 \description{Visualizes estimation results of the generalized synthetic control method.}
-\usage{plot.gsynth(out, type = "gap", xlim = NULL, ylim = NULL,
+\usage{\method{plot}{gsynth}(x, type = "gap", xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL, legendOff = FALSE, raw = "band",
-            main = NULL, nfactors = NULL, id = NULL)
+            main = NULL, nfactors = NULL, id = NULL, \dots)
 }
 \arguments{
-  \item{out}{a \code{\link{gsynth}} object.}
+  \item{x}{a \code{\link{gsynth}} object.}
   \item{type}{a string that specifies the type of the plot. Must be one
     of the following: "gap" (plotting the average treatment effect on
     the treated; "raw" (plotting the raw data); "counterfactual"
@@ -33,6 +33,7 @@
   \item{id}{a unit identifier of which the predicted counterfactual or
     the difference between actual and predicted counterfactual is to be shown. Ignored if \code{type} is neither
    "counterfactual" nor "gap".}
+  \item{\dots}{other argv.}
 }
 \details{
   \code{plot.gsynth} visualizes the raw data used by, or estimation

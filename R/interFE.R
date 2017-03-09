@@ -3,19 +3,44 @@
 # Yiqing Xu (MIT), 2014.12.8
 
 ## generic function
-interFE <- function(x, ...) {
+interFE <- function(formula=NULL, data, # a data frame
+                            Y, # outcome variable
+                            X, # covariates
+                            index, # id and time indicators
+                            r = 0, # number of factors
+                            force = "none", # additived fixed effects
+                            trends = "none", # imposed trends
+                            se = TRUE, # standard error
+                            nboots = 500, # number of bootstrap runs
+                            seed = NULL) {
     UseMethod("interFE")
 }
 
 ## formula method
-interFE.formula <- function(formula, data, ...) {
+interFE.formula <- function(formula=NULL, data, # a data frame
+                            Y, # outcome variable
+                            X, # covariates
+                            index, # id and time indicators
+                            r = 0, # number of factors
+                            force = "none", # additived fixed effects
+                            trends = "none", # imposed trends
+                            se = TRUE, # standard error
+                            nboots = 500, # number of bootstrap runs
+                            seed = NULL) {
     ## parsing
     varnames <- all.vars(formula)
     Yname <- varnames[1]
     Xname <- varnames[2:length(varnames)]
     
     ## run the model
-    out <- interFE.default(data = data, Y = Yname, X = Xname, ...)
+    out <- interFE.default(formula=NULL, data = data, Y = Yname, X = Xname, 
+                           index, # id and time indicators
+                           r, # number of factors
+                           force, # additived fixed effects
+                           trends, # imposed trends
+                           se, # standard error
+                           nboots, # number of bootstrap runs
+                           seed)
     out$call <- match.call()
     out$formula <- formula
     print(out)
@@ -23,12 +48,12 @@ interFE.formula <- function(formula, data, ...) {
 }
 
 
-print.interFE <- function(out, # a gsynth object
+print.interFE <- function(x, # a gsynth object
                          ...) {
     cat("Call:\n")
-    print(out$call, digits = 4)
+    print(x$call, digits = 4)
     cat("\nEstimated Coefficients:\n")
-    print(out$est.table, digits = 4) 
+    print(x$est.table, digits = 4) 
 }
 
 
@@ -36,7 +61,7 @@ print.interFE <- function(out, # a gsynth object
 # panel interactive fixed effects
 ###################################
 
-interFE.default <- function(data, # a data frame
+interFE.default <- function(formula=NULL, data, # a data frame
                             Y, # outcome variable
                             X, # covariates
                             index, # id and time indicators

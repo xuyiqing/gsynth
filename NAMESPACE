@@ -1,14 +1,30 @@
 useDynLib(gsynth)
 importFrom(Rcpp, evalCpp)
+importFrom("stats", "na.omit", "quantile", "sd", "var")
+importFrom("foreach","foreach","%dopar%")
+importFrom("doParallel","registerDoParallel")
+importFrom("parallel", "detectCores", "stopCluster", "makeCluster")
+importFrom("ggplot2", "geom_boxplot", "geom_density",
+           "geom_hline", "geom_line", "geom_ribbon", "geom_vline",
+           "ggplot", "coord_cartesian", "coord_flip", "element_text",
+           "scale_linetype_manual", "scale_size_manual", "theme",
+           "scale_colour_manual", "aes", "annotate", "ggtitle",
+           "guide_legend", "margin", "guides","xlab","ylab")
+importFrom("abind", "abind")
+importFrom("GGally", "ggpairs")
+
+
+
 
 # exportPattern("^[[:alpha:]]+")
 export(gsynth)
-S3method(gsynth, default)
-S3method(gsynth, formula)
-S3method(print, gsynth)
-S3method(plot, gsynth)
+S3method("gsynth", "default")
+S3method("gsynth", "formula")
+S3method("print", "gsynth")
+S3method("plot", "gsynth")
 export(interFE)
-S3method(interFE, default)
-S3method(interFE, formula)
-S3method(print, interFE)
-# export(inter_fe)
+S3method("interFE", "default")
+S3method("interFE", "formula")
+S3method("print", "interFE")
+##export(inter_fe)
+

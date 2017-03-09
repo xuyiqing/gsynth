@@ -1,11 +1,11 @@
 Package: gsynth
 Type: Package
 Title: Generalized Synthetic Control Method
-Version: 1.0.1
-Date: 2016-10-20
+Version: 1.0.2
+Date: 2017-3-8
 Author: Yiqing Xu, University of California, San Diego
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
-Description: Generalized Synthetic Control Method (Causal Inference with Time-Series Cross-sectional Data with Interactive Fixed-effect Models)
+Description: Generalized synthetic control method: causal inference with interactive fixed-effect models.
 License: GPL-2
 Imports: Rcpp (>= 0.12.3), 
          ggplot2 (>= 2.1.0), 
@@ -14,4 +14,5 @@ Imports: Rcpp (>= 0.12.3),
          foreach (>= 1.4.3),
          abind (>= 1.4.5)
 LinkingTo: Rcpp, RcppArmadillo
-
+NeedsCompilation: yes
+Packaged: 2017-03-02 20:55:28 UTC; xyq

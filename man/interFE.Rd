@@ -2,13 +2,15 @@
 \alias{interFE}
 \title{Interactive Fixed Effects Models}
 \description{Estimating interactive fixed effect models.}
-\usage{interFE(formula, data, index, r = 0, force = "unit",
-         trends = "none", se = FALSE, nboots = 200, seed = NULL)
+\usage{interFE(formula = NULL, data, Y, X, index, r = 0, force = "none",
+         trends = "none", se = TRUE, nboots = 500, seed = NULL)
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of the model to be fitted. }
   \item{data}{a data frame (must be a balanced panel with a dichotomous
     treatment).}
+  \item{Y}{outcome.}
+  \item{X}{time-varying covariates.}
   \item{index}{a two-element string vector specifying the unit (group)
     and time indicators. Must be of length 2.}
   \item{r}{an integer specifying the number of factors.}
@@ -54,7 +56,7 @@
   Yiqing Xu <yiqingxu@ucsd.edu>
 }
 \references{Jushan Bai. 2009. "Panel Data Models with Interactive Fixed
-  Effects." Econometrica 77:1229–1279.}
+  Effects." Econometrica 77:1229<e2><80><93>1279.}
 \seealso{
   \code{\link{print.interFE}} and \code{\link{gsynth}}
 }

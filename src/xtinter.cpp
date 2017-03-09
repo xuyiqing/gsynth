@@ -140,7 +140,7 @@ List beta_iter (arma::cube X,
  
   /* Loop */
   int niter = 0 ;
-  while (beta_norm > tolerate & niter < 500) {
+  while ((beta_norm > tolerate) && (niter < 500)) {
     niter++ ;
     beta = panel_beta(X, xxinv, Y, F, L) ;
     beta_norm = arma::norm(beta - beta_old, "fro") ; 

@@ -3,7 +3,7 @@
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
-\usage{gsynth(formula, data, na.rm = FALSE, index, force = "unit", r = 0, 
+\usage{gsynth(formula, data, Y, D, X=NULL, na.rm = FALSE, index, force = "unit", r = 0, 
        CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
        inference = "parametric", cluster = NULL,
        parallel = TRUE, cores = NULL, tol = 0.001, seed = NULL)  
@@ -13,6 +13,9 @@ on interactive fixed effect models.}
   the model to be fitted.}
 \item{data}{a data frame (must be a balanced panel with a dichotomous
   treatment).}
+\item{Y}{outcome.}
+\item{D}{treatment.}
+\item{X}{time-varying covariates.}
 \item{na.rm}{a logical flag indicating whether to list-wise delete
   missing data. The algorithm will report an error if missing data
   exist.}

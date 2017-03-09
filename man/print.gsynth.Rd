@@ -2,9 +2,10 @@
 \alias{print.gsynth}
 \title{Print Results}
 \description{Print results of the generalized synthetic control method.}
-\usage{print.gsynth(out)}
+\usage{\method{print}{gsynth}(x, \dots)} 
 \arguments{
-  \item{out}{a \code{\link{gsynth}} object.}
+  \item{x}{a \code{\link{gsynth}} object.}
+  \item{\dots}{other argv.}
 }
 \author{Yiqing Xu  <yiqingxu@ucsd.edu>}
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
