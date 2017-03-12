@@ -74,8 +74,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // inter_fe
-List inter_fe(arma::mat Y, arma::cube X, int r, int force, arma::mat beta0, double tol, int trends);
-RcppExport SEXP gsynth_inter_fe(SEXP YSEXP, SEXP XSEXP, SEXP rSEXP, SEXP forceSEXP, SEXP beta0SEXP, SEXP tolSEXP, SEXP trendsSEXP) {
+List inter_fe(arma::mat Y, arma::cube X, int r, int force, arma::mat beta0, double tol);
+RcppExport SEXP gsynth_inter_fe(SEXP YSEXP, SEXP XSEXP, SEXP rSEXP, SEXP forceSEXP, SEXP beta0SEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -85,8 +85,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type force(forceSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type beta0(beta0SEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< int >::type trends(trendsSEXP);
-    rcpp_result_gen = Rcpp::wrap(inter_fe(Y, X, r, force, beta0, tol, trends));
+    rcpp_result_gen = Rcpp::wrap(inter_fe(Y, X, r, force, beta0, tol));
     return rcpp_result_gen;
 END_RCPP
 }

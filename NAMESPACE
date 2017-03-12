@@ -1,4 +1,5 @@
-useDynLib(gsynth)
+useDynLib(gsynth, .registration=TRUE)
+##exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
 importFrom("stats", "na.omit", "quantile", "sd", "var")
 importFrom("foreach","foreach","%dopar%")
@@ -16,7 +17,7 @@ importFrom("GGally", "ggpairs")
 
 
 
-# exportPattern("^[[:alpha:]]+")
+
 export(gsynth)
 S3method("gsynth", "default")
 S3method("gsynth", "formula")

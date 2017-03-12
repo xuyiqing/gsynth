@@ -3,7 +3,7 @@
 \title{Interactive Fixed Effects Models}
 \description{Estimating interactive fixed effect models.}
 \usage{interFE(formula = NULL, data, Y, X, index, r = 0, force = "none",
-         trends = "none", se = TRUE, nboots = 500, seed = NULL)
+         se = TRUE, nboots = 500, seed = NULL)
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of the model to be fitted. }
@@ -17,9 +17,6 @@
   \item{force}{a string indicating whether unit or time fixed effects will be
     imposed. Must be one of the following,
     "none", "unit", "time", or "two-way". The default is "unit".}
-  \item{trends}{a string indicating the type of unit-specific time
-    trends to be added to the model. Must be one of the following:
-    "none", "linear", "quadratic", or "cubic".}
   \item{se}{a logical flag indicating whether uncertainty estimates will
     be produced via bootstrapping.}
   \item{nboots}{an integer specifying the number of bootstrap

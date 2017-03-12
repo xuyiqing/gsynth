@@ -25,24 +25,24 @@
 ## generic function
 
 gsynth <- function(formula=NULL,data, # a data frame (long-form)
-                           Y, # outcome
-                           D, # treatment 
-                           X = NULL, # time-varying covariates
-                           na.rm = FALSE, # remove missing values
-                           index, # c(unit, time) indicators
-                           force = "unit", # fixed effects demeaning
-                           r = 0, # nubmer of factors
-                           CV = TRUE, # cross-validation
-                           EM = FALSE, # EM algorithm 
+                   Y, # outcome
+                   D, # treatment 
+                   X = NULL, # time-varying covariates
+                   na.rm = FALSE, # remove missing values
+                   index, # c(unit, time) indicators
+                   force = "unit", # fixed effects demeaning
+                   r = 0, # nubmer of factors
+                   CV = TRUE, # cross-validation
+                   EM = FALSE, # EM algorithm
                    se = FALSE, # report uncertainties
-                           nboots = 200, # number of bootstraps
-                           inference = "parametric", # type of inference
-                           cluster = NULL, #  clustering variable for block bootstrap
-                           parallel = TRUE, # parallel computing
-                           cores = NULL, # number of cores
-                           tol = 0.001, # tolerance level
-                           seed = NULL # set seed
-                           ) {
+                   nboots = 200, # number of bootstraps
+                   inference = "parametric", # type of inference
+                   cluster = NULL, #  clustering variable for block bootstrap
+                   parallel = TRUE, # parallel computing
+                   cores = NULL, # number of cores
+                   tol = 0.001, # tolerance level
+                   seed = NULL # set seed
+                   ) {
     UseMethod("gsynth")
 }
 
@@ -379,6 +379,10 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         stopCluster(para.clusters)
         ##closeAllConnections()
     }
+
+    if (out$validX == 0) {
+        warning("Multi-colinearity among covariates. Try removing some of them.")
+    }
     
     
     ##-------------------------------##
@@ -485,14 +489,18 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##
     ## Main Algorithm
     ##-------------------------------##
+
+    validX <- 1 ## no multi-colinearity
     
     if (CV == FALSE) { ## case: CV==0
         
         ## inter.fe on the control group
-        est.co.best<-tryCatch(inter_fe(Y.co, X.co, r, force=force, beta0 = beta0),
-                              error = function(e) {
-                                  stop("Error: Multi-collinearity among covariates. Try dropping (some of) them.")
-                              })
+        est.co.best<-inter_fe(Y.co, X.co, r, force=force, beta0 = beta0)
+        if (p > 0) {
+            if (est.co.best$validX == 0) {
+                est.co.best$beta <- matrix(0, p, 1) 
+            }
+        } 
         r.cv<-r
         
     }  else if (CV == TRUE) { 
@@ -522,8 +530,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             
             ## inter FE based on control, before & after 
             r<-CV.out[i,"r"]
-            est.co<-tryCatch(inter_fe(Y = Y.co, X = X.co, r, force = force, beta0 = beta0),
-                             error = function(e){ stop("Error: Multi-collinearity among covariates. Try dropping (some of) them.")})
+            est.co<-inter_fe(Y = Y.co, X = X.co, r, force = force, beta0 = beta0)
+            if ((p > 0)) {
+                if (est.co$validX == 0) {
+                    est.co$beta <- 0
+                }
+            } 
             sigma2<-est.co$sigma2
             IC<-est.co$IC
             if (r!=0) {
@@ -608,7 +620,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 r.cv<-r
             } else {
                 if (r==r.cv+1) cat("*")
-            }
+            } 
             CV.out[i,2:4]<-c(sigma2,IC,MSPE)
             cat("\n r = ",r,"; sigma2 = ",
                 sprintf("%.5f",sigma2),"; IC = ",
@@ -616,14 +628,16 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 sprintf("%.5f",MSPE),sep="")
             
         } ## end of while: search for r_star over
+         
         
         if (r>(T0.min-1)) {cat(" (r hits maximum)")}
         cat("\n\n r* = ",r.cv, sep="") 
         
-        MSPE.best<-min(CV.out[,"MSPE"])  
+        MSPE.best<-min(CV.out[,"MSPE"])
         
-    } ## End of Cross-Validation  
-    
+    } ## End of Cross-Validation
+
+    validX <- est.co.best$validX
     
     ##-------------------------------##
     ## ATT and Counterfactuals 
@@ -640,7 +654,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         beta<-est.co.best$beta
         for (j in 1:p) {U.tr<-U.tr-X.tr[,,j]*beta[j]}
     }
-   if (force%in%c(1,2,3)) {
+    if (force%in%c(1,2,3)) {
         mu<-est.co.best$mu 
         U.tr<-U.tr-matrix(mu,TT,Ntr) ## grand mean
         Y.fe.bar<-rep(mu,TT)
@@ -781,7 +795,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         sigma2 = sigma2,
         IC = IC,
         beta = beta,
-        est.co = est.co.best
+        est.co = est.co.best,
+        validX = validX
     )
 
     if (sameT0 == FALSE) {
@@ -1010,7 +1025,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         beta = est$beta,
         niter = niter,
         sigma2 = sigma2,
-        IC = IC
+        IC = IC,
+        validX = est$validX
     )
     
     out<-c(out,list(eff.cnt=eff.cnt, ##
@@ -1233,7 +1249,8 @@ synth.boot<-function(Y,
                              force = force, tol=tol, AR1 = AR1)
         }
     }
-    ## output 
+    ## output
+    validX <- out$validX
     eff<-out$eff
     att<-out$att
     att.avg<-out$att.avg
@@ -1377,19 +1394,11 @@ synth.boot<-function(Y,
                 X.pseudo<-X[,id.pseudo,,drop=FALSE]
 
                 ## output
-                tryit <- tryCatch(synth.core(Y = Y.pseudo,
-                                       X = X.pseudo,
-                                       D = D.pseudo,
-                                       force = force,
-                                       r = out$r.cv,
-                                       CV = 0,
-                                       tol = tol,
-                                       AR1 = AR1,
-                                       beta0 = beta),
-                                  error = function(e) {
-                                      stop("Error: Some covariates do not have enough variation after resampling. Try dropping them.")
-                                  }) 
-                return(as.matrix(tryit$eff)) ## T * Ntr
+                output <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
+                                  force = force, r = out$r.cv, CV = 0,
+                                  tol = tol, AR1 = AR1, beta0 = beta)$eff
+                
+                return(as.matrix(output)) ## TT * Ntr
                 
             }
 
@@ -1441,18 +1450,10 @@ synth.boot<-function(Y,
                 D.boot<-D[,id.boot] 
                 
                 ## re-estimate the model 
-                boot <- tryCatch(synth.core(Y.boot,
-                                            X.boot,
-                                            D.boot,
-                                            force = force,
-                                            r = out$r.cv,
-                                            CV = 0,
-                                            tol = tol,
-                                            AR1 = AR1,
-                                            beta0 = beta),
-                                 error = function(e) {
-                                     stop("Error: Some covariates do not have enough variation after resampling. Try dropping them.")
-                                 })
+                boot <- synth.core(Y.boot, X.boot, D.boot,
+                                   force = force, r = out$r.cv,
+                                   CV = 0, tol = tol, AR1 = AR1,
+                                   beta0 = beta)
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
                               att.avg = boot$att.avg + out$att.avg)

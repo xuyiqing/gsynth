@@ -21,7 +21,7 @@ beta_iter <- function(X, xxinv, Y, r, tolerate, beta0) {
     .Call('gsynth_beta_iter', PACKAGE = 'gsynth', X, xxinv, Y, r, tolerate, beta0)
 }
 
-inter_fe <- function(Y, X, r, force, beta0, tol = 1e-5, trends = 0L) {
-    .Call('gsynth_inter_fe', PACKAGE = 'gsynth', Y, X, r, force, beta0, tol, trends)
+inter_fe <- function(Y, X, r, force, beta0, tol = 1e-5) {
+    .Call('gsynth_inter_fe', PACKAGE = 'gsynth', Y, X, r, force, beta0, tol)
 }
 

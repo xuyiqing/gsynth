@@ -3,16 +3,16 @@
 # Yiqing Xu (MIT), 2014.12.8
 
 ## generic function
-interFE <- function(formula=NULL, data, # a data frame
-                            Y, # outcome variable
-                            X, # covariates
-                            index, # id and time indicators
-                            r = 0, # number of factors
-                            force = "none", # additived fixed effects
-                            trends = "none", # imposed trends
-                            se = TRUE, # standard error
-                            nboots = 500, # number of bootstrap runs
-                            seed = NULL) {
+interFE <- function(formula=NULL,
+                    data, # a data frame
+                    Y, # outcome variable
+                    X, # covariates
+                    index, # id and time indicators
+                    r = 0, # number of factors
+                    force = "none", # additived fixed effects
+                    se = TRUE, # standard error
+                    nboots = 500, # number of bootstrap runs
+                    seed = NULL) {
     UseMethod("interFE")
 }
 
@@ -23,7 +23,6 @@ interFE.formula <- function(formula=NULL, data, # a data frame
                             index, # id and time indicators
                             r = 0, # number of factors
                             force = "none", # additived fixed effects
-                            trends = "none", # imposed trends
                             se = TRUE, # standard error
                             nboots = 500, # number of bootstrap runs
                             seed = NULL) {
@@ -37,7 +36,6 @@ interFE.formula <- function(formula=NULL, data, # a data frame
                            index, # id and time indicators
                            r, # number of factors
                            force, # additived fixed effects
-                           trends, # imposed trends
                            se, # standard error
                            nboots, # number of bootstrap runs
                            seed)
@@ -67,7 +65,6 @@ interFE.default <- function(formula=NULL, data, # a data frame
                             index, # id and time indicators
                             r = 0, # number of factors
                             force = "none", # additived fixed effects
-                            trends = "none", # imposed trends
                             se = TRUE, # standard error
                             nboots = 500, # number of bootstrap runs
                             seed = NULL
@@ -93,19 +90,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
     if (!force %in% c(0, 1, 2, 3)) {
         stop("\"force\" option misspecified; choose from c(\"none\", \"unit\", \"time\", \"two-way\").")
     } 
-    if (trends == "none") { # no trend
-        trends <- 0
-    } else if (trends == "linear") { # linear time trends
-        trend <- 1
-    } else if (trends == "quadratic") { #  quadratic time trends
-        trends <- 2
-    } else if (trends == "cubic") { #  cubic time trends
-        trends <- 3
-    }
-    if (!trends %in% c(0, 1, 2, 3)) {
-        trends <- 0
-    }
-    
+  
     ##-------------------------------#
     ## Parsing raw data
     ##-------------------------------#
@@ -151,7 +136,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
 
     ## estimates
     out<-inter_fe(Y = Y, X = X, r = r, beta0 = as.matrix(rep(0,p)),
-                  force = force, trends = trends)
+                  force = force)
     beta<-as.matrix(out$beta)
     mu <- out$mu
     
@@ -179,8 +164,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
             Y.boot<-Y[,smp]
             X.boot<-X[,smp,,drop=FALSE]
             inter.out <- inter_fe(Y=Y.boot, X=X.boot, r=r,
-                                  force=force, trends=trends,
-                                  beta0 = beta)
+                                  force=force, beta0 = beta)
             est.boot[i,]<- c(c(inter.out$beta), inter.out$mu)
             if (i%%100==0) {cat(".")}
         }
@@ -194,9 +178,11 @@ interFE.default <- function(formula=NULL, data, # a data frame
         ## estimate table
         est.table<-cbind(c(beta,mu), SE, CI, pvalue)
         colnames(est.table) <- c("Coef","S.E.","CI.lower","CI.upper", "p.value")
-        rownames(est.table) <- c(xname,"_const")
-    } 
-   
+    } else {
+        est.table <- as.matrix(c(beta,mu))
+    }
+    rownames(est.table) <- c(xname,"_const")
+    
     ##-------------------------------#
     ## Storage
     ##-------------------------------# 
@@ -210,7 +196,9 @@ interFE.default <- function(formula=NULL, data, # a data frame
         out <- c(out,list(est.table = est.table,
                           est.boot = est.boot # bootstrapped coef.
                           ))
-    }  
+    } else {
+        out <- c(out, list(est.table = est.table))
+    }
     class(out) <- "interFE"
     return(out)
 

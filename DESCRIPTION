@@ -5,14 +5,11 @@ Version: 1.0.2
 Date: 2017-3-8
 Author: Yiqing Xu, University of California, San Diego
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
-Description: Generalized synthetic control method: causal inference with interactive fixed-effect models.
-License: GPL-2
-Imports: Rcpp (>= 0.12.3), 
-         ggplot2 (>= 2.1.0), 
-         GGally (>= 1.0.1), 
-         doParallel (>= 1.0.10), 
-         foreach (>= 1.4.3),
-         abind (>= 1.4.5)
-LinkingTo: Rcpp, RcppArmadillo
+Description: Generalized synthetic control method: causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model that incorporates unit-specific intercepts interacted with time-varying coefficients. This method generalizes the synthetic control method to the case of multiple treated units and variable treatment periods, and improves efficiency and interpretability. Data must be in form of a balanced panel with a dichotomous treatment.
+URL: http://yiqingxu.org/software/gsynth/gsynth_examples.html
 NeedsCompilation: yes
-Packaged: 2017-03-02 20:55:28 UTC; xyq
+License: GPL-2
+Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1),
+        doParallel (>= 1.0.10), foreach (>= 1.4.3), abind (>= 1.4.5)
+LinkingTo: Rcpp, RcppArmadillo
+Packaged: 2017-03-12 03:35:42 UTC; lenovo
