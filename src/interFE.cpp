@@ -88,14 +88,14 @@ List panel_factor (arma::mat E, int r) {
   if (T < N) { 
     arma::mat EE = E * E.t() /(N * T) ;
     arma::svd( U, s, V, EE) ;
-    factor = U.head_cols(r) * sqrt(T) ;
+    factor = U.head_cols(r) * sqrt(double(T)) ;
     lambda = E.t() * factor/T ;
     VNT = diagmat(s.head_rows(r)) ;
   } 
   else {
     arma::mat EE = E.t() * E / (N * T) ;
     svd(U, s, V, EE) ;
-    lambda = U.head_cols(r) * sqrt(N) ;
+    lambda = U.head_cols(r) * sqrt(double(N)) ;
     factor = E * lambda / N ;
     VNT = diagmat(s.head_rows(r)) ;
   }
@@ -304,9 +304,9 @@ List inter_fe (arma::mat Y,
   }
 
   /* sigma2 and IC */
-  sigma2 = trace(U * U.t())/ (N * T - r * (N + T) + pow(r,2) - p ) ;
+  sigma2 = trace(U * U.t())/ (N * T - r * (N + T) + pow(double(r),2) - p ) ;
   
-  IC = log(sigma2) + (r * ( N + T ) - pow(r,2)) * log ( N * T ) / ( N * T ) ;
+  IC = log(sigma2) + (r * ( N + T ) - pow(double(r),2)) * log ( double(N * T) ) / ( N * T ) ;
     
   //-------------------------------#
   // Storage

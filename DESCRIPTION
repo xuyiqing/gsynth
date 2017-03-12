@@ -1,7 +1,7 @@
 Package: gsynth
 Type: Package
 Title: Generalized Synthetic Control Method
-Version: 1.0.2
+Version: 1.0.3
 Date: 2017-3-8
 Author: Yiqing Xu, University of California, San Diego
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
@@ -12,4 +12,4 @@ License: GPL-2
 Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1),
         doParallel (>= 1.0.10), foreach (>= 1.4.3), abind (>= 1.4.5)
 LinkingTo: Rcpp, RcppArmadillo
-Packaged: 2017-03-12 03:35:42 UTC; lenovo
+Packaged: 2017-03-12 16:03:56 UTC; lenovo
