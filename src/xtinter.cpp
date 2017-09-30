@@ -88,14 +88,14 @@ List panel_factor (arma::mat E, int r) {
   if (T < N) { 
     arma::mat EE = E * E.t() /(N * T) ;
     arma::svd( U, s, V, EE) ;
-    factor = U.head_cols(r) * sqrt(double(T)) ;
+    factor = U.head_cols(r) * sqrt(T) ;
     lambda = E.t() * factor/T ;
     VNT = diagmat(s.head_rows(r)) ;
   } 
   else {
     arma::mat EE = E.t() * E / (N * T) ;
     svd(U, s, V, EE) ;
-    lambda = U.head_cols(r) * sqrt(double(N)) ;
+    lambda = U.head_cols(r) * sqrt(N) ;
     factor = E * lambda / N ;
     VNT = diagmat(s.head_rows(r)) ;
   }
@@ -178,7 +178,8 @@ List inter_fe (arma::mat Y,
                int r,
                int force,
                arma::mat beta0, 
-               double tol = 1e-5
+               double tol = 1e-5,
+               int trends = 0
                ) {
 
   
@@ -191,7 +192,7 @@ List inter_fe (arma::mat Y,
   arma::mat factor ;
   arma::mat lambda ;
   arma::mat VNT ;
-  arma::mat beta(p, 1, arma::fill::zeros) ; 
+  arma::mat beta ; 
   arma::mat U ;
   double mu ;
   double mu_Y ;
@@ -241,18 +242,34 @@ List inter_fe (arma::mat Y,
       }
     }  
   }
-
-  /* check if XX has enough variation */
-  int validX = 1;
-  for (int i = 0; i < p; i++) {
-    if (arma::accu(abs(XX.slice(i))) < 1e-5) {
-      validX = 0;
-    }
+  
+  /* trends and unit FEs: needs debugging */
+  if (trends == 1) {
+    arma::mat A(T, 1, arma::fill::ones) ; A = cumsum(A) ; 
+    Ftd = DM(T) * A ; 
+  } else if (trends == 2) {
+    arma::mat A(T, 1, arma::fill::ones) ; A = cumsum(A) ;
+    arma::mat AA = join_rows(A, A % A);
+    Ftd  =  DM(T) * AA ;
+  } else if (trends == 3) {
+    arma::mat A(T, 1, arma::fill::ones) ; A = cumsum(A) ;
+    arma::mat AA = join_rows(A, A % A);
+    arma::mat AAA = join_rows(AA, A % A % A) ;
+    Ftd  =  DM(T) * AAA ;
   }
- 
- 
+  if (trends == 1 || trends ==2 || trends ==3) {
+    arma::mat M_td  =  arma::eye<arma::mat>(T,T) -
+      Ftd * inv(crossprod(Ftd, Ftd)) * Ftd.t() ;
+    Y  =  M_td * Y ;
+    if (p > 0) {
+      for (int i = 0; i < p; i++) {
+        X.slice(i) =  M_td * X.slice(i) ;
+      }
+    } 
+  }
+      
   /* Main Algorithm */ 
-  if (p == 0 || validX == 0) {
+  if (p == 0) {
     if (r > 0) {
       List pf = panel_factor(YY, r)  ;
       factor = as<arma::mat>(pf["factor"]) ;
@@ -262,7 +279,7 @@ List inter_fe (arma::mat Y,
     } else {
       U = YY ;
     } 
-  } else {
+  } else { 
     /* starting value:  the OLS/LSDV estimator */
     if (accu(abs(beta0))< 1e-10 || r==0) {  //
       beta0 = panel_est(XX, YY, arma::eye<arma::mat>(T,T)) ; //
@@ -285,7 +302,7 @@ List inter_fe (arma::mat Y,
   } 
     
   /* save fixed effects */
-  if (p == 0 || validX == 0) {
+  if (p == 0) {
     mu =  mu_Y;
     if (force ==1 || force ==3) {
       alpha =  alpha_Y ;
@@ -293,7 +310,7 @@ List inter_fe (arma::mat Y,
     if (force == 2 || force == 3) {
       xi =  xi_Y;
     }   
-  } else { // with valid covariates
+  } else { // with covariates
     mu  =  mu_Y - crossprod(mu_X, beta)(0,0) ;
     if (force ==1 || force == 3) {
       alpha  =  alpha_Y - alpha_X * beta ; 
@@ -304,9 +321,9 @@ List inter_fe (arma::mat Y,
   }
 
   /* sigma2 and IC */
-  sigma2 = trace(U * U.t())/ (N * T - r * (N + T) + pow(double(r),2) - p ) ;
+  sigma2 = trace(U * U.t())/ (N * T - r * (N + T) + pow(r,2) - p - trends * N) ;
   
-  IC = log(sigma2) + (r * ( N + T ) - pow(double(r),2)) * log ( double(N * T) ) / ( N * T ) ;
+  IC = log(sigma2) + (r * ( N + T ) - pow(r,2)) * log ( N * T ) / ( N * T ) ;
     
   //-------------------------------#
   // Storage
@@ -315,19 +332,14 @@ List inter_fe (arma::mat Y,
   List output ;
   output["mu"] = mu ;
   if (p > 0)  {
-    if (validX == 0) {
-      for (int i=0; i<p; i++) {
-        beta(i) = arma::datum::nan;
-      } 
-    } 
-    output["beta"] = beta ; 
-  } 
+    output["beta"] = beta ;
+  }
   if (r > 0) {
     output["factor"] = factor ;
     output["lambda"] = lambda ;
     output["VNT"] = VNT ;
   }
-  if ((p > 0 && validX == 1) && r > 0) {
+  if (p > 0 && r > 0) {
     output["niter"] = niter ;
   }
   if (force ==1 || force == 3) {
@@ -338,8 +350,7 @@ List inter_fe (arma::mat Y,
   }
   output["residuals"] = U ;
   output["sigma2"] = sigma2 ;
-  output["IC"] = IC;
-  output["validX"] = validX;
+  output["IC"] = IC; 
   return(output);
 
  
