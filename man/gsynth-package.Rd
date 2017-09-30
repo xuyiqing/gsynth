@@ -14,6 +14,8 @@
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>, University of California, San Diego
+  
+  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>, Tsinghua University
 }
 \references{
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference

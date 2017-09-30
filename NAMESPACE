@@ -1,21 +1,21 @@
 useDynLib(gsynth, .registration=TRUE)
 ##exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
-importFrom("stats", "na.omit", "quantile", "sd", "var")
+importFrom("stats", "na.omit", "quantile", "sd", "var", "cov")
 importFrom("foreach","foreach","%dopar%")
 importFrom("doParallel","registerDoParallel")
 importFrom("parallel", "detectCores", "stopCluster", "makeCluster")
-importFrom("ggplot2", "geom_boxplot", "geom_density",
+importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
+           "geom_point", "labs", "theme_bw", "scale_fill_manual", 
            "geom_hline", "geom_line", "geom_ribbon", "geom_vline",
            "ggplot", "coord_cartesian", "coord_flip", "element_text",
+           "element_blank", "scale_x_continuous", "scale_y_continuous",
            "scale_linetype_manual", "scale_size_manual", "theme",
-           "scale_colour_manual", "aes", "annotate", "ggtitle",
-           "guide_legend", "margin", "guides","xlab","ylab")
+           "scale_colour_manual", "aes", "annotate", "ggtitle", "scale_color_discrete", "scale_color_manual",
+           "guide_legend", "margin", "guides","xlab","ylab","element_rect")
 importFrom("abind", "abind")
 importFrom("GGally", "ggpairs")
-
-
-
+importFrom("mvtnorm", "rmvnorm")
 
 
 export(gsynth)
@@ -28,4 +28,3 @@ S3method("interFE", "default")
 S3method("interFE", "formula")
 S3method("print", "interFE")
 ##export(inter_fe)
-

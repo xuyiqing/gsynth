@@ -3,12 +3,12 @@
 \title{Interactive Fixed Effects Models}
 \description{Estimating interactive fixed effect models.}
 \usage{interFE(formula = NULL, data, Y, X, index, r = 0, force = "none",
-         se = TRUE, nboots = 500, seed = NULL)
+         se = TRUE, nboots = 500, seed = NULL, normalize = FALSE)
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of the model to be fitted. }
-  \item{data}{a data frame (must be a balanced panel with a dichotomous
-    treatment).}
+  \item{data}{a data frame (must be with a dichotomous treatment but balanced
+    is not reqiored).}
   \item{Y}{outcome.}
   \item{X}{time-varying covariates.}
   \item{index}{a two-element string vector specifying the unit (group)
@@ -23,10 +23,12 @@
     runs. Ignored if \code{se = FALSE}.}
   \item{seed}{an integer that sets the seed in random number
     generation. Ignored if  \code{se = FALSE} and \code{r} is specified.}
+  \item{normalize}{a logic flag indicating whether to scale outcome and 
+    covariates. Useful for accelerating computing speed when magnitude of data is large.The default is \code{normalize=FALSE}.}
 }
 \details{
   \code{interFE} estimates interactive fixed effect models proposed by
-  Bai (2009). Data must be in form of a balanced panel. 
+  Bai (2009).
 }
 \value{
   \item{beta}{estimated coefficients.}
@@ -39,7 +41,8 @@
   \item{xi}{estimated time fixed effect (if \code{force} is "time" or "two-way").}
   \item{residuals}{residuals of the estimated interactive fixed effect model.}
   \item{sigma2}{mean squared error of the residuals.}
-  \item{IC}{The information criterion.}
+  \item{IC}{the information criterion.}
+  \item{ValidX}{a bool value specifying whether there are valid covariates.}
   \item{dat.Y}{a matrix storing data of the outcome variable.}
   \item{dat.X}{an array storing data of the independent variables.}
   \item{Y}{Name of the outcome variable.}
@@ -51,9 +54,11 @@
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>
+
+  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
 }
 \references{Jushan Bai. 2009. "Panel Data Models with Interactive Fixed
-  Effects." Econometrica 77:1229<e2><80><93>1279.}
+  Effects." Econometrica 77:1229--1279.}
 \seealso{
   \code{\link{print.interFE}} and \code{\link{gsynth}}
 }

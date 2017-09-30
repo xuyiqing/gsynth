@@ -1,6 +1,6 @@
 ## Synthetic Control for Multiple Treated Units
 ## (Causal Inference with Interactive Fixed Effects Models)
-## Version 1.0.3
+## Version 1.03
 ## Author: Yiqing Xu, University of California, San Diego
 ## Date: 2016.7.28
 
@@ -36,12 +36,14 @@ gsynth <- function(formula=NULL,data, # a data frame (long-form)
                    EM = FALSE, # EM algorithm
                    se = FALSE, # report uncertainties
                    nboots = 200, # number of bootstraps
-                   inference = "parametric", # type of inference
-                   cluster = NULL, #  clustering variable for block bootstrap
-                   parallel = TRUE, # parallel computing
+                   inference = "nonparametric", # type of inference
+                   cov.ar = 1,
+                   parallel = FALSE, # parallel computing
                    cores = NULL, # number of cores
                    tol = 0.001, # tolerance level
-                   seed = NULL # set seed
+                   seed = NULL, # set seed
+                   min.T0 = 5,
+                   normalize = FALSE
                    ) {
     UseMethod("gsynth")
 }
@@ -60,12 +62,14 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
                            EM = FALSE, # EM algorithm 
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
-                           inference = "parametric", # type of inference
-                           cluster = NULL, #  clustering variable for block bootstrap
-                           parallel = TRUE, # parallel computing
+                           inference = "nonparametric", # type of inference
+                           cov.ar = 1,
+                           parallel = FALSE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
-                           seed = NULL # set seed
+                           seed = NULL, # set seed
+                           min.T0 = 5,
+                           normalize = FALSE
                            ) {
     ## parsing
     varnames <- all.vars(formula)
@@ -81,8 +85,8 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
                           D = Dname, X = Xname,
                           na.rm, index, force, r,
                           CV, EM, se, nboots, 
-                          inference, cluster, 
-                          parallel, cores, tol, seed)
+                          inference, cov.ar, 
+                          parallel, cores, tol, seed, min.T0, normalize)
     out$call <- match.call()
     out$formula <- formula
     print(out)
@@ -103,20 +107,20 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                            EM = FALSE, # EM algorithm 
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
-                           inference = "parametric", # type of inference
-                           cluster = NULL, #  clustering variable for block bootstrap
-                           parallel = TRUE, # parallel computing
+                           inference = "nonparametric", # type of inference
+                           cov.ar = 1,
+                           parallel = FALSE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
-                           seed = NULL # set seed
+                           seed = NULL, # set seed
+                           min.T0 = 5,
+                           normalize = FALSE
                            ){  
     
     ##-------------------------------##
     ## Checking Parameters
-    ##-------------------------------##  
-
-    Z <- NULL
-    FE <- NULL
+    ##-------------------------------## 
+    ## library(ggplot2)
 
     if (is.data.frame(data) == FALSE) {
         stop("Not a data frame.")
@@ -165,6 +169,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     if (is.logical(se) == FALSE & is.numeric(se)==FALSE) {
         stop("se is not a logical flag.")
     } 
+    ## normalize
+    if (is.logical(normalize) == FALSE & is.numeric(normalize)==FALSE) {
+        stop("normalize is not a logical flag.")
+    } 
+
     ## inference
     if (inference == "para") {
         inference <- "parametric"
@@ -178,12 +187,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     if (se == TRUE & nboots <= 0) {
         stop("\"nboots\" option misspecified. Try, for example, nboots = 200.")
     }
-    ## cluster
-    if (is.null(cluster) == FALSE) {
-        if (!cluster %in% colnames(data)) {
-            stop(paste("\"cluster\" option misspecified: varible", cluster, "not found."))
-        }    
-    }
+
     ## parallel & cores
     if (parallel == TRUE) {
         if (is.null(cores) == FALSE) {
@@ -207,27 +211,52 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         stop("na.rm is not a logical flag.")
     } 
     if (na.rm == TRUE) {
-        data <- na.omit(data[,c(Y, D, X, Z, FE)])
+        data <- na.omit(data)
     } 
     ##-------------------------------##
     ## Parsing raw data
     ##-------------------------------##  
 
     ##store variable names
+    data.old <- data
     Yname <- Y
     Dname <- D
     Xname <- X
+
+    ## normalize
+    norm.para <- NULL
+    if (normalize==TRUE) {
+        sd.Y <- sd(as.matrix(data[,Yname]))
+        data[,c(Yname, Xname)] <- data[,c(Yname, Xname)]/sd.Y
+        ## if (length(Xname)>0) {
+        ##     sd.X <- apply(as.matrix(data[,Xname]),2,sd)
+        ##     data[,Xname] <- as.matrix(data[,Xname])/sd.X
+        ##     norm.para <- c(sd.Y,sd.X)
+        ## } else {
+            norm.para <- sd.Y
+        ## }   
+    }
+    ## else if (normalize==2) {
+    ##     sd.Y <- sd(as.matrix(data[,Yname]))
+    ##     data[,Yname] <- data[,Yname]/sd.Y
+    ##     if (length(Xname)>0) {
+    ##         sd.X <- sd(as.matrix(data[,Xname]))
+    ##         data[,Xname] <- data[,Xname]/sd.X
+    ##         norm.para <- c(sd.Y,sd.X)
+    ##     } else {
+    ##         norm.para <- sd.Y
+    ##     }   
+    ## }
     
-    id <- index[1];
-    time <- index[2];
+    id <- index[1]
+    time <- index[2]
     TT <- length(unique(data[,time]))
     N <- length(unique(data[,id]))
     p <- length(Xname)
-    
-    ## check balanced panel
-    if (var(table(data[,id])) + var(table(data[, time])) > 0) {
-        stop("The panel is not balanced.")
-    }
+    id.series <- unique(sort(data[,id]))
+
+    ## sort data
+    data <- data[order(data[,id], data[,time]), ]
     
     ## check missingness
     if (sum(is.na(data[, Yname])) > 0) {
@@ -250,51 +279,144 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         stop(paste("Missing values in variable \"", time,"\".", sep = ""))
     } 
 
-    ## sort data
-    data <- data[order(data[,id], data[,time]), ]
+    ## check balanced panel
+    if (var(table(data[,id])) + var(table(data[, time])) > 0|TT==N) {
+        
+        data[,time]<-as.numeric(as.factor(data[,time]))
+        ob <- "time_ob_ls"
+        if(ob%in%colnames(data)){
+            ob <- paste(ob,ob,sep="")
+        }
+        data[,ob]<-data[,time]
+        for (i in 1:N) {
+            data[data[,id]==id.series[i],ob] <- data[data[,id]==id.series[i],time]+(i-1)*TT  
+        }
+        variable <- c(Yname,Dname,Xname)
+        data_I <- matrix(0,N*TT,1)
+        data_I[c(data[,ob]),1] <- 1
+        data_ub <- as.matrix(data[,variable])
+        data <- data_ub_adj(data_I,data_ub)
+        ## data <- as.data.frame(data)
+        colnames(data) <- variable
+    }
+    ## index matrix that indicates if data is observed 
+    I <- matrix(1,TT,N)
+    Y.ind <- matrix(data[,Yname],TT,N)
+    I[is.nan(Y.ind)] <- 0
+
+    if (0%in%I) {
+    	data[is.nan(data)] <- 0
+    }
     
     ##treatment indicator
     D<- matrix(data[,Dname],TT,N)
 
     ## once treated, always treated
+    ## careful unbalanced case: calculate treated units
     D <- apply(D, 2, function(vec){cumsum(vec)})
     D <- ifelse(D > 0, 1, 0)
 
     ##outcome variable
     Y<-matrix(data[,Yname],TT,N)
     tr<-D[TT,]==1     # cross-sectional: treated unit
-    pre<-as.matrix(D[,which(tr==1)]==0) # a matrix indicating before treatment
+    pre<-as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
     T0<-apply(pre,2,sum) 
     T0.min<-min(T0)
+    id.tr <- which(tr==1)
     id.co<-which(tr==0)
+    
+    if( (length(r)==1) & (!CV) ) {
+        con1 <- (T0.min < r) & (force%in%c(0,2))
+        con2 <- (T0.min <= r) & (force%in%c(1,3))
+        if (con1) {
+            T0.min.e <- r
+        }
+        if (con2) {
+            T0.min.e <- r + 1
+        }
+        if (con1 | con2) {
+            stop("Some treated units has too few pre-treatment periods. Please set a larger value of min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
+        } 
+    }
 
-    if (T0.min < 5) {
-        stop("Some treated units has too few pre-treatment periods. Try removing them.") 
+    if (T0.min < min.T0) {
+        cat("Some treated units has too few pre-treatment periods. Automatically remove them.\n")
+    }
+
+    rm.tr.id <- rep(0,dim(pre)[2])
+    for (i in 1:dim(pre)[2]) {
+        if(T0[i]<min.T0) {
+            rm.tr.id[i] <- 1
+        }
+    }
+
+    if (sum(rm.tr.id)==dim(pre)[2]) {
+        stop("All treated units have been removed.\n")
+    }
+
+    if (1 %in% rm.tr.id) {
+        tr.id <- which(tr==1)
+        rm.tr.pos <- which(rm.tr.id==1)
+        ## rm.tr.id.s <- rep(0,length(rm.tr.pos))
+        ## for(i in 1:length(rm.tr.pos)) {
+        ##     rm.tr.id.s <- tr.id[rm.tr.pos[i]]    
+        ## }
+        rm.tr.id.s <- tr.id[rm.tr.pos]
+        id.tr <- id.tr[-rm.tr.pos]
     }
     
     ## time-varying covariates
     X <- array(0,dim=c(TT,N,p))
+
     if (p > 0) {
         for (i in 1:p) {
             X[,,i] <- matrix(data[, Xname[i]], TT, N)
-            tot.var.unit <- sum(apply(X[, , i], 2, var))
-            if (tot.var.unit == 0) {
-                stop(paste("Variable \"", Xname[i],"\" is time-invariant.", sep = ""))   
+            if (force %in% c(1,3)) {
+                if (!0%in%I) {
+                    tot.var.unit <- sum(apply(X[, , i], 2, var))
+                } else {
+                    Xi <- X[,,i]
+                    Xi[which(I==0)] <- NA
+                    tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
+                }
+                if (tot.var.unit == 0) {
+                    ## time invariant covar can be removed
+                    cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+                }
             }
             if (force %in% c(2, 3)) {
-                tot.var.time <- sum(apply(X[, , i], 1, var))
+                if (!0%in%I) {
+                    tot.var.time <- sum(apply(X[, , i], 1, var))
+                } else {
+                    Xi <- X[,,i]
+                    Xi[which(I==0)] <- NA
+                    tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
+                }
                 if (tot.var.time == 0) {
-                    stop(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.", sep = ""))
+                    ## can be removed in inter_fe
+                    cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
                 }
             } 
         } 
     }
+
+    if (1 %in% rm.tr.id) {
+        X.old <- X
+        X <- array(0,dim=c(TT,(N - length(rm.tr.id.s)),p))
+        for (i in 1:p) {
+            X[,,i] <- X.old[,-rm.tr.id.s,i]
+        }
+        Y <- Y[,-rm.tr.id.s]
+        D <- D[,-rm.tr.id.s]
+        I.old <- I ## total I
+        I <- I[,-rm.tr.id.s] ## after removing
+    }    
+
     if (is.null(dim(X)[3])==TRUE) {
-        p<-0
+        p <- 0
     } else {
-        p<-dim(X)[3]
+        p <- dim(X)[3]
     }
-    
     ## for AR1, burn the first period
     AR1 <- FALSE
     ## if (AR1 == TRUE) {
@@ -313,19 +435,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ##         X[,,2:(p+1)] <- X.sav
     ##     }
     ##     T <- T-1
-    ## }
-
-    ## for block bootstrap
-    if (is.null(cluster) == TRUE) {
-        cl.id <- NULL    
-    } else {    
-        if (cluster == id) {
-            cl.id <- NULL  
-        } else {
-            cl.id <- matrix(data[,cluster],TT,N)[1,]
-            cl.id <- as.numeric(as.factor(cl.id))
-        }
-    }
+    ## } 
 
     ##-------------------------------##
     ## Register clusters
@@ -338,7 +448,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         }
         para.clusters <- makeCluster(cores)
         registerDoParallel(para.clusters)
-        cat("Parallel computing ... ")
+        cat("Parallel computing ...\n")
     }
     
     ##-------------------------------##
@@ -347,32 +457,37 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
 
     if (se == FALSE) {
         if (EM == FALSE) { # the algorithm suggested in the paper 
-            out<-synth.core(Y = Y, X = X, D = D,
+            out<-synth.core(Y = Y, X = X, D = D, I = I,
                             r = r, r.end = r.end, force = force,
-                            CV = CV, tol = tol, AR1 = AR1) 
+                            CV = CV, tol = tol, 
+                            AR1 = AR1, norm.para = norm.para)
+
         } else { # EM algorithm
             if (CV == FALSE) { 
-                out<-synth.em(Y = Y, X = X, D = D,
+                out<-synth.em(Y = Y, X = X, D = D, I = I,
                               r = r, force = force,
-                              tol = tol, AR1 = AR1)
+                              tol = tol, AR1 = AR1, norm.para = norm.para)
+
                 
             } else { # cross-validation
-                out<-synth.em.cv(Y = Y,X = X, D = D,
+                out<-synth.em.cv(Y = Y,X = X, D = D, I = I,
                                  r = r, r.end = r.end, force = force,
-                                 tol = tol, AR1 = AR1) 
+                                 tol = tol, AR1 = AR1, norm.para = norm.para)
+
             } 
         } 
     } else  {
         if (is.null(seed) == FALSE) {
             set.seed(seed)
         }
-        out<-synth.boot(Y = Y, X = X, D = D, EM = EM,
+        out<-synth.boot(Y = Y, X = X, D = D, I=I, EM = EM,
                         r = r, r.end = r.end, force = force,
                         CV = CV, tol = tol,
                         nboots = nboots, inference = inference,
-                        parallel = parallel, cores = cores,
-                        cl.id = cl.id, 
-                        AR1 = AR1) 
+                        cov.ar = cov.ar,
+                        parallel = parallel, cores = cores,           
+                        AR1 = AR1, norm.para = norm.para)
+
     } 
 
     if (se == TRUE & parallel == TRUE) {
@@ -380,8 +495,8 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         ##closeAllConnections()
     }
 
-    if (out$validX == 0) {
-        warning("Multi-colinearity among covariates. Try removing some of them.")
+    if ( (out$validX == 0) & (p!=0) ) {
+        warning("Multi-colinearity among covariates. Try removing some of them.\r")
     }
     
     
@@ -389,8 +504,36 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ## storage
     ##-------------------------------## 
     
-    iname<-unique(data[,id])
-    tname<-unique(data[,time])
+    iname.old <- iname <- unique(sort(data.old[,id]))
+    tname.old <- tname <- unique(sort(data.old[,time]))
+    
+    if (1%in%rm.tr.id) {
+        tr.remove.id <- iname[rm.tr.id.s]
+        iname <- iname[-rm.tr.id.s]
+    }
+
+    obs.missing <-matrix(1,TT,N) ## control group:1
+    tr.pre <- out$pre
+    tr.pre[which(tr.pre==1)] <- 2 ## pre 2
+    tr.post <- out$post
+    tr.post[which(tr.post==1)] <- 3 ## post 3
+    obs.missing[,id.tr] <- tr.pre + tr.post
+
+    if (1%in%rm.tr.id) {
+        obs.missing[which(I.old==0)] <- 0 ## I: after removing I.old: total
+        obs.missing[,rm.tr.id.s] <- 4 ## removed   
+    } else {
+        obs.missing[which(I==0)] <- 0 ## missing ## I: total    
+    }
+    ## obs.missing[which(obs.missing==1)] <- "control"
+    ## obs.missing[which(obs.missing==2)] <- "pre"
+    ## obs.missing[which(obs.missing==3)] <- "post"
+    ## obs.missing[which(obs.missing==4)] <- "removed"
+    ## obs.missing[which(obs.missing==0)] <- "missing"
+
+    colnames(obs.missing) <- unique(sort(data.old[,id]))
+    rownames(obs.missing) <- unique(sort(data.old[,time]))
+    
     if (AR1 == TRUE) {
         tname <- tname[-1]
     } 
@@ -412,10 +555,17 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                      index = index,
                      id = iname,
                      time = tname,
+                     obs.missing = obs.missing, 
                      id.tr = iname[which(out$tr==1)],
                      id.co = iname[which(out$tr==0)]),
-                out,
-                list(call = match.call()))
+                out)
+                
+    if (1 %in% rm.tr.id) {
+        output <- c(output,list(tr.remove.id = tr.remove.id))
+        cat("list of removed treated units:",tr.remove.id)
+        cat("\n\n")
+    }
+    output <- c(output, list(call = match.call()))
     class(output) <- "gsynth"
     return(output)
     
@@ -425,18 +575,18 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
 ###################################################################
 ## Core Function
 ###################################################################
-
 synth.core<-function(Y, # Outcome variable, (T*N) matrix
                      X, # Explanatory variables:  (T*N*p) array
                      D, #  Indicator for treated unit (tr==1) 
+                     I,
                      r=0, # initial number of factors considered if CV==1
                      r.end,
                      force,
                      CV = 1, # cross-validation
                      tol, # tolerance level
                      AR1 = 0,
-                     beta0 = NULL # starting value 
-                     ){  
+                     beta0 = NULL, # starting value 
+                     norm.para = NULL){  
     
     
     ##-------------------------------##
@@ -449,14 +599,36 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     if (is.null(X)==FALSE) {p<-dim(X)[3]} else {p<-0}
      
     ## treatement indicator
-    tr<-D[TT,]==1  ## cross-sectional: treated unit
-    pre<-as.matrix(D[,which(tr==1)]==0) ## a (TT*Ntr) matrix, time dimension: before treatment
-    
+    tr <- D[TT,] == 1  ## cross-sectional: treated unit
+    co <- D[TT,] == 0
+    I.tr<-I[,tr]
+    I.co<-I[,co]
+
+    if (!0%in%I.tr) {
+        ## a (TT*Ntr) matrix, time dimension: before treatment
+        pre <- as.matrix(D[,which(tr==1)]==0)
+        post <- as.matrix(D[,which(tr==1)]==1)   
+    } else {
+        pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1)
+        post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
+    }
+
+    D.tr <- D[,which(tr==1)]
+    T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+    T0.ub.min<-min(T0.ub) ## unbalanced data
+
     Ntr<-sum(tr)
     Nco<-N-Ntr
+    ## careful: only valid for balanced panel
     T0<-apply(pre,2,sum) 
     T0.min<-min(T0)
-    sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time
+    sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time 
+                                  ## unbalanced case needs more conditions
+    if (!0%in%I.tr) {
+        DID <- sameT0
+    } else {
+        DID <- length(unique(T0.ub))==1
+    }
     
     id<-1:N
     time<-1:TT
@@ -468,8 +640,9 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     time.pre<-split(rep(time,Ntr)[which(pre.v==1)],id.tr.pre.v) ## a list of pre-treatment periods
 
     ## parsing data
-    Y.tr<-as.matrix(Y[,tr])
-    Y.co<-Y[,!tr]
+    Y.tr<-as.matrix(Y[,id.tr])
+    Y.co<-as.matrix(Y[,id.co])
+
     if (p==0) {
         X.tr<-array(0,dim=c(TT,Ntr,0))
         X.co<-array(0,dim=c(TT,Nco,0)) 
@@ -477,8 +650,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         X.tr<-array(NA,dim=c(TT,Ntr,p))
         X.co<-array(NA,dim=c(TT,Nco,p))
         for (j in 1:p) {
-            X.tr[,,j]<-X[,tr,j]
-            X.co[,,j]<-X[,!tr,j]
+            X.tr[,,j]<-X[,id.tr,j]
+            X.co[,,j]<-X[,id.co,j]
         }
     } 
 
@@ -495,11 +668,19 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     if (CV == FALSE) { ## case: CV==0
         
         ## inter.fe on the control group
-        est.co.best<-inter_fe(Y.co, X.co, r, force=force, beta0 = beta0)
+        if(!0%in%I.co){
+            est.co.best<-inter_fe(Y.co, X.co, r, force=force, beta0 = beta0)    
+        } else {
+            est.co.best<-inter_fe_ub(Y.co, X.co, I.co, r, force=force, beta0 = beta0)
+        }
+                
         if (p > 0) {
             if (est.co.best$validX == 0) {
                 est.co.best$beta <- matrix(0, p, 1) 
             }
+            na.pos <- is.nan(est.co.best$beta)
+            est.co.best$beta[is.nan(est.co.best$beta)] <- 0 ## time invariant covar
+            
         } 
         r.cv<-r
         
@@ -510,7 +691,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         ##-------------------------------##
         
         ## starting r    
-        if (r>(T0.min-1)) {
+        if ((r>(T0.min-1)&force%in%c(0,2))|(r>(T0.min-2)&force%in%c(1,3))) {
             cat("Warning: r is too big compared with T0; reset to 0.\n")
             r<-0
         }
@@ -519,43 +700,70 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         cat("Cross-validating ...","\r")
         
         ## store all MSPE
-        r.max<-min((T0.min-1),r.end)
+        if (force%in%c(0,2)) {
+            r.max<-min((T0.min-1),r.end)
+        } else {
+            r.max<-min((T0.min-2),r.end)
+        }
         CV.out<-matrix(NA,(r.max-r+1),4)
         colnames(CV.out)<-c("r","sigma2","IC","MSPE")
         CV.out[,"r"]<-c(r:r.max)
-        CV.out[,"MSPE"]<-1e7
-        
+        CV.out[,"MSPE"]<-1e20
         
         for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts 
-            
+
             ## inter FE based on control, before & after 
             r<-CV.out[i,"r"]
-            est.co<-inter_fe(Y = Y.co, X = X.co, r, force = force, beta0 = beta0)
-            if ((p > 0)) {
+            if (!0%in%I.co) {
+                est.co<-inter_fe(Y = Y.co, X = X.co, r,
+                                 force = force, beta0 = beta0)
+            } else {
+                est.co<-inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
+                                    force = force, beta0 = beta0)
+            }       
+   
+            if (p > 0) {
                 if (est.co$validX == 0) {
                     est.co$beta <- 0
                 }
+                na.pos <- is.nan(est.co$beta)
+                est.co$beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
             } 
-            sigma2<-est.co$sigma2
-            IC<-est.co$IC
+            
+            if (is.null(norm.para)) {
+                sigma2<-est.co$sigma2
+                IC<-est.co$IC
+            } else {
+                sigma2<-est.co$sigma2*(norm.para[1]^2)
+                IC <- est.co$IC-log(est.co$sigma2) + log(sigma2)
+            }
+            
             if (r!=0) {
+                ## factor T*r
                 F.hat<-as.matrix(est.co$factor)
-                if (force%in%c(1,3)) {F.hat<-cbind(F.hat,rep(1,TT))} ## the last column is for alpha_i
+                ## the last column is for alpha_i
+                if (force%in%c(1,3)) {F.hat<-cbind(F.hat,rep(1,TT))}  
             }      
             
             ## take out the effect of X (nothing to do with CV)
-            U.tr<-Y.tr
-            if (p>0) {for (j in 1:p) {
-                          U.tr<-U.tr-X.tr[,,j]*est.co$beta[j]}
+            U.tr <- Y.tr
+            
+            if (p>0) {
+                for (j in 1:p) {
+                    U.tr<-U.tr-X.tr[,,j]*est.co$beta[j]
+                }
             }
             
             ## take out grant mean and time fixed effects (nothing to do with CV)
-            if (force%in%c(1,2,3)) {
-                U.tr<-U.tr-matrix(est.co$mu,TT,Ntr)
-            } ## grand mean
+            U.tr<-U.tr-matrix(est.co$mu,TT,Ntr) ## grand mean
             if (force%in%c(2,3)) {
                 U.tr<-U.tr-matrix(est.co$xi,TT,Ntr,byrow=FALSE)
             } ## time fixed effects
+
+            ## reset unbalanced data
+            if (0%in%I.tr) {
+                U.tr[which(I.tr==0)] <- 0
+            }
             
             ## save for the moment       
             U.sav<-U.tr
@@ -566,45 +774,90 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
 
                 U.tr<-U.sav
                 ## take out lv from U.tr.pre
-                if (max(T0)==T0.min) {
-                    U.lv<-as.matrix(U.tr[setdiff(c(1:T0.min),lv),])
+                if ( max(T0)==T0.min & (!0%in%I.tr) ) {
+                    U.lv<-as.matrix(U.tr[setdiff(c(1:T0.min),lv),]) ## setdiff : x
                 } else {
                     U.tr.pre.v<-as.vector(U.tr)[which(pre.v==1)]    ## pre-treatment residual in a vector
                     U.tr.pre<-split(U.tr.pre.v, id.tr.pre.v) ##  a list of pretreatment residuals
-                    U.lv<-lapply(U.tr.pre,function(vec){return(vec[-lv])}) ## a list      
+                    if (!0%in%I.tr) {
+                        U.lv<-lapply(U.tr.pre,function(vec){return(vec[-lv])}) ## a list    
+                    } else {
+                        ## U.tr.pre.sav <- U.tr.pre
+                        for (i.tr in 1:Ntr) {
+                            U.tmp <- U.tr.pre[[i.tr]]
+                            U.tr.pre[[i.tr]] <- U.tmp[!time.pre[[i.tr]]==lv]
+                        }                        
+                        U.lv <- U.tr.pre
+                        ## U.tr.pre <- U.tr.pre.sav    
+                    }        
                 }
 
                 if (r==0) {            
                     if (force%in%c(1,3)) { ## take out unit fixed effect
-                        if (max(T0)==T0.min) {
+                        if ( max(T0)==T0.min & (!0%in%I.tr) ) {
                             alpha.tr.lv<-colMeans(U.lv)
                             U.tr<-U.tr-matrix(alpha.tr.lv,TT, Ntr,byrow=TRUE)
                         } else {
                             alpha.tr.lv<-sapply(U.lv,mean)
                             U.tr<-U.tr-matrix(alpha.tr.lv,TT,Ntr,byrow=TRUE)
+                            ######
+                            ## if (0%in%I.tr) {
+                            ##     U.tr[which(I.tr==0)] <- 0
+                            ## }
+                            ###### not necessary
                         }
                     } 
                     e<-U.tr[which(time==lv),] ## that period
                 } else {  ## case: r>0
                     ## take out the effect of factors
                     F.lv<-as.matrix(F.hat[which(time!=lv),])
-                    if (max(T0)==T0.min) {
+                    if ( max(T0)==T0.min & (!0%in%I.tr) ) {
                         F.lv.pre<-F.hat[setdiff(c(1:T0.min),lv),]
-                        lambda.lv<-solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%U.lv
+                        lambda.lv<-try(
+                            solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%U.lv,
+                            silent=TRUE)
+                        if('try-error' %in% class(lambda.lv)) {
+                            break
+                        }
+                        ## lamda.lv r*N matrix
                     } else {
-                        lambda.lv<-as.matrix(sapply(U.lv,function(vec){
-                            F.lv.pre<-as.matrix(F.lv[1:length(vec),])
-                            l.lv.tr<-solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%vec 
-                            return(l.lv.tr) ## a vector of each individual lambdas
-                        }))
+                        if (!0%in%I.tr) {
+                            lambda.lv<-try(as.matrix(sapply(U.lv,function(vec){
+                                F.lv.pre<-as.matrix(F.lv[1:length(vec),])
+                                l.lv.tr<-solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%vec 
+                                return(l.lv.tr) ## a vector of each individual lambdas
+                            })), silent=TRUE)
+                            if('try-error' %in% class(lambda.lv)) {
+                                break
+                            } else {
+                                if( (r==1) & (force%in%c(0,2)) ){
+                                    lambda.lv <- t(lambda.lv)
+                                }    
+                            }
+                        } else { ## unbalanced data r*N
+                            if (force%in%c(1,3)) {
+                                lambda.lv <- matrix(NA,(r+1),Ntr)
+                            } else {
+                                lambda.lv <- matrix(NA,r,Ntr)
+                            }
+                            test <- try(
+                                for (i.tr in 1:Ntr) {
+                                    ## F.lv.pre <- as.matrix(F.lv[unlist(time.pre[i.tr]),])
+                                    F.lv.pre <- as.matrix(F.hat[setdiff(time.pre[[i.tr]],lv),])
+                                    lambda.lv[,i.tr] <- solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%as.matrix(U.lv[[i.tr]])
+                                }, silent = TRUE)
+                            if('try-error' %in% class(test)) {
+                                break
+                            }
+                        } 
                     }
-                    if (r>1|(r==1&force%in%c(1,3))) {
-                        lambda.lv<-t(lambda.lv)
-                    }
+                    ##if (r>1|(r==1&force%in%c(1,3))) {
+                        lambda.lv<-t(lambda.lv) ## N*r
+                    ##}
                     ## error term (the left-out period)
                     e<-U.tr[which(time==lv),] - c(F.hat[which(time==lv),]%*%t(lambda.lv)) 
                 }
-                if (sameT0 == FALSE) { # those who are actually not treated
+                if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
                     e<-e[which(pre[which(time==lv),]==TRUE)]    
                 }
                 ## sum up
@@ -613,7 +866,11 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 
             } ## end of leave-one-out
             
-            MSPE<-sum.e2/num.y
+            MSPE<-ifelse(num.y==0,Inf,sum.e2/num.y)
+            if(!is.null(norm.para)){
+                MSPE <- MSPE*(norm.para[1]^2)
+            }
+
             if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
                 ## at least 5% improvement for MPSE
                 est.co.best<-est.co  ## interFE result with the best r
@@ -631,7 +888,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
          
         
         if (r>(T0.min-1)) {cat(" (r hits maximum)")}
-        cat("\n\n r* = ",r.cv, sep="") 
+        cat("\n\n r* = ",r.cv, sep="")
+        cat("\n\n") 
         
         MSPE.best<-min(CV.out[,"MSPE"])
         
@@ -644,29 +902,43 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##
     
     ## variance of the error term
-    sigma2<-est.co.best$sigma2
-    IC<-est.co.best$IC
-
-    
+    if (is.null(norm.para)) {
+        sigma2<-est.co.best$sigma2   
+        IC<-est.co.best$IC
+    } else {
+        sigma2<-est.co.best$sigma2*(norm.para[1]^2)
+        IC <- est.co.best$IC-log(est.co.best$sigma2) + log(sigma2)       
+    }
+ 
     ## ## take out the effect of X
     U.tr<-Y.tr
+    res.co<-est.co.best$residuals
+
+
     if (p>0) {
         beta<-est.co.best$beta
+        beta[is.nan(beta)] <- 0
+        ## if (!is.null(norm.para)) {
+        ##     est.co.best$beta <- est.co.best$beta/norm.para[2]    
+        ## }
         for (j in 1:p) {U.tr<-U.tr-X.tr[,,j]*beta[j]}
+    } else {
+        beta <- NA
     }
-    if (force%in%c(1,2,3)) {
-        mu<-est.co.best$mu 
-        U.tr<-U.tr-matrix(mu,TT,Ntr) ## grand mean
-        Y.fe.bar<-rep(mu,TT)
-    }
+    
+    mu<-est.co.best$mu 
+    U.tr<-U.tr-matrix(mu,TT,Ntr) ## grand mean
+    Y.fe.bar<-rep(mu,TT)
+    
     if (force%in%c(2,3)) {
         xi<-est.co.best$xi ## a (TT*1) matrix
-        U.tr<-U.tr-matrix(c(xi),TT,Ntr,byrow=FALSE)
+        U.tr<-U.tr-matrix(c(xi),TT,Ntr,byrow=FALSE) ## will be adjusted at last
         Y.fe.bar<-Y.fe.bar+xi
     }
-    if (max(T0)==T0.min) {
+    if ( max(T0)==T0.min & (!0%in%I.tr) ) {
         U.tr.pre<-as.matrix(U.tr[1:T0.min,])
     } else {
+        ## not necessary to reset utr for ub data for pre.v doesn't include them
         U.tr.pre.v<-as.vector(U.tr)[which(pre.v==1)] # pre-treatment residual in a vector
         U.tr.pre<-split(U.tr.pre.v, id.tr.pre.v) ##  a list of pretreatment residuals
     }
@@ -675,7 +947,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## the error structure
     if (r.cv==0) {
         if (force%in%c(1,3)) { ## take out unit fixed effect
-            if (max(T0)==T0.min) {
+            if (max(T0)==T0.min&(!0%in%I.tr)) {
                 alpha.tr<-colMeans(U.tr.pre)
                 U.tr<-U.tr-matrix(alpha.tr,TT,Ntr,byrow=TRUE)
             } else {
@@ -684,31 +956,57 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             }
         }     
         eff<-U.tr  ## and that's it!
-        
+
     } else { ## r.cv>0
-        
         ## Factors
         F.hat<-as.matrix(est.co.best$factor)
         if (force%in%c(1,3)) {F.hat<-cbind(F.hat,rep(1,TT))}
-                                        # the last column is for alpha_i
+                                    # the last column is for alpha_i
          
         ## Lambda_tr (Ntr*r) or (Ntr*(r+1))
-        if (max(T0)==T0.min) {
+        if ( max(T0)==T0.min & (!0%in%I.tr)) {
             F.hat.pre<-F.hat[1:T0.min,]
-            lambda.tr<-solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%U.tr.pre
+            lambda.tr<-try(solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%U.tr.pre,
+                           silent = TRUE)
+            if('try-error' %in% class(lambda.tr)) {
+                stop("Please set a smaller number of factors.")
+            }
         } else {
-            lambda.tr<-as.matrix(sapply(U.tr.pre,function(vec){
-                F.hat.pre<-as.matrix(F.hat[1:length(vec),])
-                l.tr<-solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%vec
-                return(l.tr) ## a vector of each individual lambdas
-            }))
+            if(!0%in%I.tr) {
+                lambda.tr<-try(as.matrix(sapply(U.tr.pre,function(vec){
+                    F.hat.pre<-as.matrix(F.hat[1:length(vec),])
+                    l.tr<-solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%vec
+                    return(l.tr) ## a vector of each individual lambdas
+                })), silent =TRUE)
+                if('try-error' %in% class(lambda.tr)) {
+                    stop("Please set a smaller number of factors.")
+                }
+                if ( (r.cv==1) & (force%in%c(0,2)) ) {
+                    lambda.tr <- t(lambda.tr)    
+                }
+            } else {
+                if (force%in%c(1,3)) {
+                    lambda.tr <- matrix(NA,(r.cv+1),Ntr)
+                } else {
+                    lambda.tr <- matrix(NA,r.cv,Ntr)
+                }
+                test <- try(
+                    for (i.tr in 1:Ntr) {
+                        F.hat.pre <- as.matrix(F.hat[time.pre[[i.tr]],])
+                        lambda.tr[,i.tr] <- solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%as.matrix(U.tr.pre[[i.tr]])
+                    }, silent =TRUE
+                )
+                if('try-error' %in% class(lambda.tr)) {
+                    stop("Please set a smaller number of factors.")
+                }
+            }
         }
-        if ((r.cv>1) | (r.cv==1 & force%in%c(1,3))) {
+        ## if ((r.cv>1) | (r.cv==1 & force%in%c(1,3))) {
             lambda.tr<-t(lambda.tr) ## Ntr * r
-        }
+        ## }
 
         ## predicting the treatment effect
-        eff<-U.tr-F.hat%*%t(lambda.tr)   
+        eff<-U.tr-F.hat%*%t(lambda.tr) 
 
         ## for storage
         if (force%in%c(1,3)) {
@@ -718,6 +1016,61 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
 
     } ## end of r!=0 case
 
+    if (0%in%I.tr) {
+        eff[which(I.tr==0)] <- 0 ## adjust    
+    } ## missing data will be adjusted to NA finally
+   
+    ##-------------------------------##
+    ## Summarize
+    ##-------------------------------##  
+    
+    ## counterfactuals and averages
+    Y.ct <- as.matrix(Y.tr-eff)
+    
+    if (!0%in%I) {
+        Y.tr.bar <- rowMeans(Y.tr)
+        Y.ct.bar <- rowMeans(Y.ct)
+        Y.co.bar <- rowMeans(Y.co)  
+    } else {
+        Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
+        Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+        Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+    }
+
+    ##Y.tr and Y.ct
+    Y.bar <- cbind(Y.tr.bar,Y.ct.bar,Y.co.bar)
+    colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
+    
+    ## ATT and average outcomes
+    if (sameT0 == TRUE & (!0%in%I.tr)) { ## diff-in-diffs: same timing
+        att <- rowMeans(eff)
+    }  else { ## diff timing, centered the att
+        if (!0%in%I.tr) {
+            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT,j]  
+                Y.tr.center[1:(TT+T0.min-T0[j]),j] <- Y.tr[(T0[j]-T0.min+1):TT,j]
+            }
+            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
+            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
+            Y.ct.cnt <- Y.tr.cnt-att
+        } else {
+            T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+            T0.ub.min<-min(T0.ub)
+            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
+            eff[which(I.tr==0)] <- NA
+            Y.tr[which(I.tr==0)] <- NA
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT,j]  
+                Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT,j]
+            }
+            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
+            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
+            Y.ct.cnt <- Y.tr.cnt-att
+        }
+    }
+    eff[which(is.na(eff))] <- 0 ## to calulate att
+    att.avg<-sum(eff * post)/sum(post)
 
     ## AR1: calculate accumulative effect
     if (AR1 == TRUE) {
@@ -732,37 +1085,54 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 eff.acc[t,] <- eff.acc[t,]+eff.tmp[t-i,]*(rho^i)
             }
         }      
-    }  
-
-   
-    ##-------------------------------##
-    ## Summarize
-    ##-------------------------------##  
+    } 
     
-    ## counterfactuals and averages
-    Y.ct <- as.matrix(Y.tr-eff)
-    Y.tr.bar <- rowMeans(Y.tr)
-    Y.ct.bar <- rowMeans(Y.ct)
-    Y.co.bar <- rowMeans(Y.co)
-
-    ##Y.tr and Y.ct
-    Y.bar <- cbind(Y.tr.bar,Y.ct.bar,Y.co.bar)
-    colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
-    
-    ## ATT and average outcomes
-    if (sameT0 == TRUE) { ## diff-in-diffs: same timing
-        att <- rowMeans(eff)
-    }  else { ## diff timing, centered the att
-        eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
-        for (j in 1:Ntr) {
-            eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT,j]  
-            Y.tr.center[1:(TT+T0.min-T0[j]),j] <- Y.tr[(T0[j]-T0.min+1):TT,j]
-        }
-        att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
-        Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
-        Y.ct.cnt <- Y.tr.cnt-att
+    ## final adjust unbalanced output
+    if(0%in%I){
+        eff[which(I.tr==0)] <- NA
+        Y.ct[which(I.tr==0)] <- NA
+        Y.tr[which(I.tr==0)] <- NA
+        res.co[which(I.co==0)] <- NA
+        Y.co[which(I.co==0)] <- NA
     }
-    att.avg<-sum(eff * (1 - pre))/sum(1 - pre)
+    ## adjust beta: invariant covar
+    if(p>0){
+        if(sum(na.pos)>0){
+            beta[na.pos] <- NA
+        }
+    }
+
+    ## final adjustment
+    if (!is.null(norm.para)) {
+        mu <- mu*norm.para[1]
+        ## if (p>0) {
+        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
+        ## }
+        if (r>0) {
+            est.co.best$lambda <- est.co.best$lambda*norm.para[1]
+            lambda.tr <- lambda.tr*norm.para[1]
+        }
+        if (force%in%c(1,3)) {
+            est.co.best$alpha <- est.co.best$alpha*norm.para[1]
+            alpha.tr <- alpha.tr*norm.para[1]
+        }
+        if (force%in%c(2,3)) {
+            xi <- xi*norm.para[1]
+        }
+        res.co <- res.co*norm.para[1] 
+        Y.tr <- Y.tr*norm.para[1] 
+        Y.ct <- Y.ct*norm.para[1]
+        Y.co <- Y.co*norm.para[1]
+        eff <- eff*norm.para[1]
+        Y.bar <- Y.bar*norm.para[1]
+        att <- att*norm.para[1]
+        att.avg <- att.avg*norm.para[1]
+        if ( sameT0 == FALSE | 0%in%I.tr ) {
+            eff.cnt <- eff.cnt*norm.para[1]
+            Y.tr.cnt <- Y.tr.cnt*norm.para[1]
+            Y.ct.cnt <- Y.ct.cnt*norm.para[1]
+        }
+    }
 
     
     ##-------------------------------##
@@ -772,6 +1142,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ##control group residuals
     out<-list(
         ## main results
+        ## D.tr = D.tr,
+        ## I.tr = I.tr,
         Y.tr = Y.tr,
         Y.ct = Y.ct,
         Y.co = Y.co, 
@@ -781,25 +1153,29 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         att.avg = att.avg,
         ## supporting
         force = force,
-        DID = sameT0,
+        DID = DID,
         T = TT,
         N = N,
         p = p,
         Ntr = Ntr,
         Nco = Nco,
         T0 = T0,
+        T0.ub = T0.ub,
         tr = tr,
         pre = pre,
-        r.cv = r.cv,
-        res.co = est.co.best$res,  
-        sigma2 = sigma2,
+        post = post,
+        r.cv = r.cv, 
         IC = IC,
         beta = beta,
         est.co = est.co.best,
+        mu = mu,
         validX = validX
     )
 
-    if (sameT0 == FALSE) {
+    out <- c(out,list(sigma2 = sigma2, res.co=res.co))
+    
+
+    if ( sameT0 == FALSE | 0%in%I.tr ) {
         out<-c(out,list(eff.cnt = eff.cnt,
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
@@ -817,13 +1193,13 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                    )) 
     } 
     if (force==1) {
-        out<-c(out, list(mu = mu,
+        out<-c(out, list(
                          alpha.tr = alpha.tr,
                          alpha.co = est.co.best$alpha))
     } else if (force == 2) {
-        out<-c(out,list(mu = mu,xi = xi))
+        out<-c(out,list(xi = xi))
     } else if (force == 3) {
-        out<-c(out,list(mu = mu,
+        out<-c(out,list(
                         alpha.tr = alpha.tr,
                         alpha.co = est.co.best$alpha,
                         xi = xi))
@@ -832,10 +1208,9 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         out<-c(out,list(rho = rho,
                         eff.acc = eff.acc))
     }
+
     return(out)
 } ## Core functions ends
-
-
 
 ###################################################################
 ## EM Algorithm
@@ -844,35 +1219,56 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
 synth.em<-function(Y, # Outcome variable, (T*N) matrix
                    X, # Explanatory variables:  (T*N*p) array
                    D, # indicator for treated unit (tr==1) 
+                   I,
                    r = 0, # number of factors
                    force, # specifying fixed effects
                    tol=1e-5,
-                   AR1 = 0
+                   AR1 = 0,
+                   norm.para
                    ){
 
     
     ##-------------------------------##
     ## Parsing data
     ##-------------------------------##  
-
+    
     ## unit id and time
-    TT<-dim(Y)[1]
+    TT <-dim(Y)[1]
     N<-dim(Y)[2]
-    if (is.null(X)==FALSE) {
-        p<-dim(X)[3]
-    } else {
-        p<-0
-    }
-
+    if (is.null(X)==FALSE) {p<-dim(X)[3]} else {p<-0}
+     
     ## treatement indicator
     tr<-D[TT,]==1  ## cross-sectional: treated unit
-    pre<-as.matrix(D[,which(tr==1)]==0) ## a (T*Ntr) matrix, time dimension: before treatment
+    co<-D[TT,]==0
+    I.tr<-I[,tr]
+    I.co<-I[,co]
+
+    if (!0%in%I.tr) {
+        ## a (TT*Ntr) matrix, time dimension: before treatment
+        pre <- as.matrix(D[,which(tr==1)]==0)
+        post <- as.matrix(D[,which(tr==1)]==1)   
+    } else {
+        pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1)
+        post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
+    }
     
     Ntr<-sum(tr)
     Nco<-N-Ntr
+    ## careful: only valid for balanced panel
     T0<-apply(pre,2,sum) 
     T0.min<-min(T0)
-    sameT0 <- length(unique(T0))==1 ## treatment kicks in at the same time
+    sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time 
+
+    D.tr <- D[,which(tr==1)]
+    T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+    T0.ub.min<-min(T0.ub) ## unbalanced data
+
+    if (!0%in%I.tr) {
+        DID <- sameT0
+    } else {
+        DID <- length(unique(T0.ub))==1
+    }
+
     
     id<-1:N
     time<-1:TT
@@ -892,15 +1288,23 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     ## Main Algorithm
     ##-------------------------------##
 
-    init<-synth.core(Y = Y, X = X, D = D,
+    init<-synth.core(Y = Y, X = X, D = D, I = I,
                      r = r, force = force,
-                     CV = 0, tol = tol, AR1 = AR1)
-
+                     CV = 0, tol = tol, AR1 = AR1, norm.para=NULL)
+    
+    ## throw out error: may occur during bootstrap
+    if(length(init)==2||length(init)==3) {
+        return(init)
+    }
     
     eff0 <- init$eff
+    eff0[is.na(eff0)]<-0
     Y.ct <- init$Y.ct
+    Y.ct[is.na(Y.ct)]<-0
+
     if (p > 0) {
         beta0 <- init$beta
+        beta0[is.na(beta0)] <- 0
     } else {
         beta0 <- matrix(0, 0, 0)
     }
@@ -913,60 +1317,90 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 
         ## E step
         Y.e <- Y  # T*N
-        Y.e[which(D==1)] <- Y.ct[which(pre==0)]  
+        Y.e.tr.tmp <- Y.e[,id.tr]
+        Y.e.tr.tmp[which(post==1)] <- Y.ct[which(post==1)]
+        Y.e[,id.tr] <- Y.e.tr.tmp 
 
         ## M step
-        est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0)
+        if (!0%in%I) {
+            est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0)
+        } else {
+            est<-inter_fe_ub(Y.e, X, I, r, force=force, beta0 = beta0)
+        }
         Y.ct <- as.matrix(Y.e[,id.tr] - est$residuals[,id.tr]) # T * Ntr
-        eff <- as.matrix(Y.tr - Y.ct)  # T * Ntr
 
-        ## difference
+        eff <- as.matrix(Y.tr - Y.ct)  # T * Ntr
         diff <- norm(eff0-eff, type="F")
+
         eff0 <- eff
+
         trace.diff <- c(trace.diff,diff)
-        niter <- niter + 1
-        
+        niter <- niter + 1  
     }
+    
+
     ## variance of the error term
-    sigma2<-est$sigma2
-    IC<-est$IC
+    if (is.null(norm.para)) {
+        sigma2<-est$sigma2   
+        IC<-est$IC
+    } else {
+        sigma2<-est$sigma2*(norm.para[1]^2)
+        IC <- est$IC-log(est$sigma2) + log(sigma2)       
+    }
+
 
     ##-------------------------------##
     ## Summarize
     ##-------------------------------##  
     
     ## counterfactuals and averages
-    Y.tr.bar<-rowMeans(Y.tr)
-    Y.ct.bar<-rowMeans(Y.ct)
-    Y.co.bar<-rowMeans(Y.co)
-
+    if (!0%in%I) {
+        Y.tr.bar <- rowMeans(Y.tr)
+        Y.ct.bar <- rowMeans(Y.ct)
+        Y.co.bar <- rowMeans(Y.co)  
+    } else {
+        Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
+        Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+        Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+    }
     ##Y.tr and Y.ct
     Y.bar <- cbind(Y.tr.bar,Y.ct.bar,Y.co.bar)
     colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
 
-    
     ## ATT and average outcomes
-    if (sameT0==TRUE) { ## diff-in-diffs: same timing
-        att<-rowMeans(eff)
-        eff.cnt <- eff
-        Y.tr.cnt <- Y.tr.bar
-        Y.ct.cnt <- Y.ct.bar
+    if (sameT0 == TRUE & (!0%in%I.tr)) { ## diff-in-diffs: same timing
+        att <- rowMeans(eff)
     }  else { ## diff timing, centered the att
-        eff.cnt<-Y.tr.center<-matrix(NA,TT,Ntr)
-        for (j in 1:Ntr) {
-            eff.cnt[1:(TT+T0.min-T0[j]),j]<-eff[(T0[j]-T0.min+1):TT,j]  
-            Y.tr.center[1:(TT+T0.min-T0[j]),j]<-Y.tr[(T0[j]-T0.min+1):TT,j]  
+        if (!0%in%I.tr) {
+            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT,j]  
+                Y.tr.center[1:(TT+T0.min-T0[j]),j] <- Y.tr[(T0[j]-T0.min+1):TT,j]
+            }
+            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
+            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
+            Y.ct.cnt <- Y.tr.cnt-att
+        } else {
+            T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+            T0.ub.min<-min(T0.ub)
+            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
+            eff[which(I.tr==0)] <- NA
+            Y.tr[which(I.tr==0)] <- NA
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT,j]  
+                Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT,j]
+            }
+            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
+            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
+            Y.ct.cnt <- Y.tr.cnt-att
         }
-        att<-apply(eff.cnt,1,mean,na.rm=TRUE)
-        Y.tr.cnt<-apply(Y.tr.center,1,mean,na.rm=TRUE)
-        Y.ct.cnt<-Y.tr.cnt-att
     }
-    att.avg<-sum(eff*(1-pre))/sum(1-pre)
+    eff[which(is.na(eff))] <- 0 ## to calulate att
+    att.avg<-sum(eff * post)/sum(post)
 
     ## fixed effects
-    if (force%in%c(1,2,3)) {
-        mu<-est$mu
-    }
+    mu<-est$mu
+    
     if (force%in%c(1,3)) {
         alpha <- est$alpha
         alpha.tr <- alpha[id.tr]
@@ -986,7 +1420,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         rho<-est$beta[1]
         if (length(beta)>1) {
             beta<-beta[-1]
-        } 
+        }  
         eff.tmp<-eff*D[,id.tr]
         eff.acc<-matrix(0,TT,Ntr)
         for (t in (T0.min+1):TT) {
@@ -994,7 +1428,58 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                 eff.acc[t,]<-eff.acc[t,]+eff.tmp[t-i,]*(rho^i)
             }
         }      
-    }  
+    } 
+
+    if (p > 0) {
+        beta <- est$beta
+        beta[is.nan(beta)] <- NA
+    } else {
+        beta <- NA
+    }
+    
+    res.co <- est$residuals[,id.co]
+    
+    
+    if (0%in%I) {
+        eff[which(I.tr==0)] <- NA 
+        Y.ct[which(I.tr==0)] <- NA
+        Y.tr[which(I.tr==0)] <- NA
+        res.co[which(I.co==0)] <- NA
+        Y.co[which(I.co==0)] <- NA
+    }
+
+        ## final adjustment
+    if (!is.null(norm.para)) {
+        mu <- mu*norm.para[1]
+        ## if (p>0) {
+        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
+        ## }
+        if (r>0) {
+            lambda.tr <- lambda.tr*norm.para[1]
+            lambda.co <- lambda.co*norm.para[1]
+        }
+        if (force%in%c(1,3)) {
+            alpha.tr <- alpha.tr*norm.para[1]
+            alpha.co <- alpha.co*norm.para[1]
+        }
+        if (force%in%c(2,3)) {
+            xi <- xi*norm.para[1]
+        }
+        res.co <- res.co*norm.para[1] 
+        Y.tr <- Y.tr*norm.para[1] 
+        Y.ct <- Y.ct*norm.para[1]
+        Y.co <- Y.co*norm.para[1]
+        eff <- eff*norm.para[1]
+        Y.bar <- Y.bar*norm.para[1]
+        att <- att*norm.para[1]
+        att.avg <- att.avg*norm.para[1]
+        if ( sameT0 == FALSE | 0%in%I.tr ) {
+            eff.cnt <- eff.cnt*norm.para[1]
+            Y.tr.cnt <- Y.tr.cnt*norm.para[1]
+            Y.ct.cnt <- Y.ct.cnt*norm.para[1]
+        }
+    }
+
     
     ##-------------------------------##
     ## Storage 
@@ -1002,6 +1487,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     
     out<-list(
         ## main results
+        D.tr = D.tr,
+        I.tr = I.tr,
         Y.tr=Y.tr,
         Y.ct=Y.ct,
         Y.co=Y.co, 
@@ -1011,27 +1498,34 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         att.avg=att.avg,
         ## supporting
         force=force,
-        DID=sameT0,
+        DID=DID,
         T=TT,
         N=N,
         p=p,
         Ntr=Ntr,
         Nco=Nco,
         T0=T0,
+        T0.ub = T0.ub,
         tr=tr,
         pre=pre,
+        post = post,
         r.cv=r,
-        res.co=est$residuals[,id.co],  ##control group residuals 
-        beta = est$beta,
+       ## res.co=res.co,  ##control group residuals 
+        beta = beta,
         niter = niter,
-        sigma2 = sigma2,
         IC = IC,
+        mu = mu,
         validX = est$validX
     )
+
+    out <- c(out,list(sigma2 = sigma2, res.co = res.co))
     
-    out<-c(out,list(eff.cnt=eff.cnt, ##
-                    Y.tr.cnt=Y.tr.cnt, ##
-                    Y.ct.cnt=Y.ct.cnt)) ##
+    
+    if(!sameT0) {
+        out<-c(out,list(eff.cnt=eff.cnt, ##
+                        Y.tr.cnt=Y.tr.cnt, ##
+                        Y.ct.cnt=Y.ct.cnt)) ##
+    }
     
     if (r > 0) {
         out<-c(out,list(factor=as.matrix(est$factor),
@@ -1040,13 +1534,13 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                         )) 
     } 
     if (force == 1) {
-        out<-c(out,list(mu=mu,
+        out<-c(out,list(
                         alpha.tr=alpha.tr,
                         alpha.co=alpha.co))
     } else if (force == 2) {
-        out<-c(out,list(mu = mu, xi = xi))
+        out<-c(out,list(xi = xi))
     } else if (force == 3) {
-        out<-c(out,list(mu = mu,
+        out<-c(out,list(
                         alpha.tr = alpha.tr,
                         alpha.co = alpha.co,
                         xi = xi))
@@ -1065,36 +1559,47 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 ## EM Algorithm
 ###################################################################
 
-synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
+synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                       X, # Explanatory variables:  (T*N*p) array
                       D, # indicator for treated unit (tr==1) 
+                      I,
                       r = 0, # number of factors: starting point
                       r.end = 5, # end point
                       force, # specifying fixed effects
-                      tol=1e-5, AR1 = 0){
+                      tol=1e-5,
+                      AR1 = 0,
+                      norm.para){
     
     ##-------------------------------##
     ## Parsing data
     ##-------------------------------##  
-
+    
+    
     ## unit id and time
-    TT<-dim(Y)[1]
+    TT <-dim(Y)[1]
     N<-dim(Y)[2]
-    if (is.null(X)==FALSE) {
-        p<-dim(X)[3]
-    } else {
-        p<-0
-    }
-
+    if (is.null(X)==FALSE) {p<-dim(X)[3]} else {p<-0}
+     
     ## treatement indicator
     tr<-D[TT,]==1  ## cross-sectional: treated unit
-    pre<-as.matrix(D[,which(tr==1)]==0) ## a (T*Ntr) matrix, time dimension: before treatment
+    co<-D[TT,]==0
+    I.tr<-I[,tr]
+    I.co<-I[,co]
+    D.tr<-D[,tr]
+
+    if (!0%in%I.tr) {
+        ## a (TT*Ntr) matrix, time dimension: before treatment
+        pre <- as.matrix(D[,which(tr==1)]==0)   
+    } else {
+        pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1)
+    }
     
     Ntr<-sum(tr)
     Nco<-N-Ntr
+    ## careful: only valid for balanced panel
     T0<-apply(pre,2,sum) 
-    T0.min <- min(T0)
-    sameT0 <- length(unique(T0))==1 ## treatment kicks in at the same time
+    T0.min<-min(T0)
+    sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time 
     
     id<-1:N
     time<-1:TT
@@ -1106,8 +1611,8 @@ synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
     time.pre<-split(rep(time,Ntr)[which(pre.v==1)],id.tr.pre.v) ## a list of pre-treatment periods
 
     ## parsing data
-    Y.tr<-as.matrix(Y[,tr])
-    Y.co<-Y[,!tr]
+    Y.tr<-as.matrix(Y[,id.tr])
+    Y.co<-Y[,id.co]
 
     ##-------------------------------##
     ## Cross-validation of r
@@ -1118,20 +1623,23 @@ synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
         cat("Warning: r is too big compared with T0; reset to 0.\n")
         r <- 0
     }
-    
-    ## store all MSPE
-    r.max<-min((T0.min-1),r.end)
+
+    ## store all MSPE 
+    if (force%in%c(0,2)) {
+        r.max<-min((T0.min-1),r.end)
+    } else {
+        r.max<-min((T0.min-2),r.end)
+    }
     CV.out<-matrix(NA,(r.max-r+1),4)
     colnames(CV.out)<-c("r","sigma2","IC","MSPE")
     CV.out[,"r"]<-c(r:r.max)
-    CV.out[,"MSPE"]<-1e7
+    CV.out[,"MSPE"]<-1e20
     cat("Cross-validating ...","\r")
-    
     for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts
       
         r <- CV.out[i,"r"]
-        est<-synth.em(Y = Y,X = X, D = D, r = r, force = force,
-                      tol = tol, AR1 = AR1)
+        est<-synth.em(Y = Y,X = X, D = D, I = I, r = r, force = force,
+                      tol = tol, AR1 = AR1, norm.para = norm.para)
         sigma2<-est$sigma2
         IC<-est$IC
         
@@ -1141,11 +1649,16 @@ synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
 
             D.cv <- D
             D.cv[which(time == lv), id.tr] <- 1 # set the left-out period to treated
-            out<-synth.em(Y = Y,X = X, D = D.cv, r = r, force = force,
-                          tol = tol, AR1 = AR1)
+            ###########################
+            ## if (0%in%I.tr) {
+            ##     D.cv[which(I==0)] <- 0
+            ## } not necessary! synth.em can detect pre and post period for ub data
+            out <- synth.em(Y = Y, X = X, D = D.cv, I = I, r = r, force = force,
+                            tol = tol, AR1 = AR1, norm.para = norm.para)
 
             e <- out$eff[which(time == lv),]
-            if (sameT0 == FALSE) { # those who are actually not treated
+            
+            if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
                 e<-e[which(pre[which(time==lv),]==TRUE)]    
             }
             ## sum up
@@ -1171,10 +1684,11 @@ synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
     if (r>(T0.min-1)) {
         cat(" (r hits maximum)")
     }
-    cat("\n\n r* = ", r.cv, sep="")  
-    MSPE.best <- min(CV.out[,"MSPE"])  
-
+    cat("\n\n r* = ", r.cv, sep="") 
+    cat("\n\n") 
+    MSPE.best <- min(CV.out[,"MSPE"])
     
+
     ##-------------------------------##
     ## Storage 
     ##-------------------------------##  
@@ -1185,23 +1699,24 @@ synth.em.cv<-function(Y, # Outcome variable, (T*N) matrix
 } ## EM cross validation ends
 
 
-
 ###############################################
 ## Inference 
 ###############################################
 
 synth.boot<-function(Y,
                      X,
-                     D, # input
-                     EM, # EM algorithm
+                     D, ## input
+                     I,
+                     EM, ## EM algorithm
                      r=0, r.end,
                      force,
-                     CV, # cross validation
+                     CV, ## cross validation
                      nboots,
                      tol,
-                     inference, # c("parametric","nonparametric")
+                     inference, ## c("parametric","nonparametric")
+                     cov.ar=1, 
                      AR1 = FALSE,
-                     cl.id = NULL,  # a vector of cluster id,
+                     norm.para,
                      parallel = TRUE,
                      cores = NULL){
     
@@ -1215,15 +1730,24 @@ synth.boot<-function(Y,
     }
 
     ## treatement indicator
-    tr<-D[TT,]==1    ## cross-sectional: indicating the treated units
-    pre<-as.matrix(D[,which(tr==1)]==0)
+    tr<-D[TT,]==1  ## cross-sectional: treated unit
+    co <- D[TT,] == 0 
+    I.tr<-I[,tr]
+    I.co<-I[,co]
+    D.tr<-D[,tr]
+    pre<-as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]!=0)
+    post<-as.matrix(D[,which(tr==1)]!=0&I[,which(tr==1)]!=0)
                                          
     Ntr<-sum(tr)
     Nco<-N-Ntr
     T0<-apply(pre,2,sum) 
     T0.min<-min(T0)
     sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time
-    
+
+    ## to calculate treated numbers
+    T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+    T0.ub.min<-min(T0.ub)
+
     id<-1:N
     time<-1:TT
     id.tr<-which(tr==1) ## treated id
@@ -1238,15 +1762,17 @@ synth.boot<-function(Y,
     
     ## estimation
     if (EM == FALSE) {
-        out<-synth.core(Y = Y,X = X, D = D, r = r, r.end = r.end,
-                        force = force, CV = CV, tol=tol, AR1 = AR1)
+        out<-synth.core(Y = Y, X = X, D = D, I=I, r = r, r.end = r.end, 
+                        force = force, CV = CV, tol=tol,
+                        AR1 = AR1, norm.para= norm.para)
     } else { # the case with EM
         if (CV == FALSE) {
-            out<-synth.em(Y = Y,X = X, D = D, r = r, force = force,
-                          tol = tol, AR1 = AR1)
+            out<-synth.em(Y = Y,X = X, D = D, I=I, r = r, force = force,
+                          tol = tol, AR1 = AR1, norm.para = norm.para)
         } else {
-            out<-synth.em.cv(Y = Y,X = X, D = D, r = r, r.end = r.end,
-                             force = force, tol=tol, AR1 = AR1)
+            out<-synth.em.cv(Y = Y, X = X, D = D, I=I, r = r, r.end = r.end,
+                             force = force, tol=tol,
+                             AR1 = AR1, norm.para = norm.para)
         }
     }
     ## output
@@ -1255,73 +1781,57 @@ synth.boot<-function(Y,
     att<-out$att
     att.avg<-out$att.avg
     if (p > 0) {
-        beta<-out$beta
+        beta <- out$beta
+        na.pos <- is.na(beta)
+        beta[na.pos] <- 0
     } else {
         beta<-matrix(0,0,1)
     }
-    error.co<-out$res.co ## error terms (T*Nco)
-   
+    
+    error.co<-out$res.co ## error terms (T*Nco) contains NA unbalanced data
+    
+
     Y.tr.bar=out$Y.bar[,1]
     Y.ct.bar=out$Y.bar[,2]
     Y.co.bar=out$Y.bar[,3]
     
-    ## cluster structure
-    if (is.null(cl.id)==FALSE) { 
-        cl.tr <- unique(cl.id[id.tr])
-        cl.co <- unique(cl.id[id.co])
-        cl.all <- unique(cl.id)
-        Ntr.cl <- length(cl.tr)  ## number of treated clusters
-        Nco.cl <- length(cl.co)  ## number of control clusters
-        N.cl <- length(cl.all)
-        cl.list <- split(id,cl.id)
-    }
-    
     ## bootstrapped estimates
-    eff.boot<-array(NA,dim=c(TT,Ntr,nboots))  ## to store results
-    att.boot<-matrix(NA,TT,nboots)
-    att.avg.boot<-matrix(NA,nboots,1)
+    eff.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+    att.boot<-matrix(0,TT,nboots)
+    att.avg.boot<-matrix(0,nboots,1)
     if (p>0) {
-        beta.boot<-matrix(NA,p,nboots)
+        beta.boot<-matrix(0,p,nboots)
     }
     
     if (inference=="nonparametric") { ## nonparametric bootstrap
 
-        cat("\rBootstrapping ...")
+        cat("\rBootstrapping ...\n")
         if (EM == FALSE) {
             one.nonpara <- function(){
-                if (is.null(cl.id)==FALSE) { ## cluster structure,
-                    boot.cl<-c(sample(cl.tr,Ntr.cl,replace=TRUE),
-                               sample(cl.co, Nco.cl, replace=TRUE))
-                    ## bootstrapped clusters
-                    boot.id<-unlist(cl.list[boot.cl])
-                } else {
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
-                               sample(id.co,Nco, replace=TRUE))
-                }
+
+                boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
+                           sample(id.co,Nco, replace=TRUE))
+                
                 X.boot<-X[,boot.id,,drop=FALSE]
-                boot<-synth.core(Y[,boot.id], X.boot,D[,boot.id],
+                boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
                                  force = force, r = out$r.cv, CV=0,
                                  tol = tol, AR1 = AR1,
-                                 beta0 = beta)
+                                 beta0 = beta, norm.para = norm.para)
                 return(boot)
+                
             } 
         } else { # the case of EM
             one.nonpara <- function(){
-                if (is.null(cl.id)==FALSE) { ## cluster structure,
-                    boot.cl<-c(sample(cl.tr,Ntr.cl,replace=TRUE),
-                               sample(cl.co, Nco.cl, replace=TRUE))
-                    ## bootstrapped clusters
-                    boot.id<-unlist(cl.list[boot.cl])
-                } else {
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
-                               sample(id.co,Nco, replace=TRUE))
-                }
+                
+                boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
+                           sample(id.co,Nco, replace=TRUE))
+                
                 X.boot<-X[,boot.id,,drop=FALSE]
-                boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id],
-                               force = force, r = out$r.cv, 
-                               tol = tol, AR1 = AR1
-                               )
+                boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
+                               force = force, r = out$r.cv,
+                               tol = tol, AR1 = AR1, norm.para = norm.para)
                 return(boot)
+                
             } 
         }
         ## computing
@@ -1334,7 +1844,7 @@ synth.boot<-function(Y,
                                     return(one.nonpara())
                                 }
 
-            for (j in 1:nboots) {
+            for (j in 1:nboots) { 
                 att.boot[,j]<-boot.out[[j]]$att
                 att.avg.boot[j,]<-boot.out[[j]]$att.avg  
                 if (p>0) {
@@ -1353,40 +1863,40 @@ synth.boot<-function(Y,
                 if (j%%100==0)  {
                     cat(".")   
                 }  
-            } 
+            }  
         } 
         ## end of bootstrapping
         cat("\r")
         
     } else if (inference=="parametric") { ## end of non-parametric
-
+        
+        ## library("mvtnorm") ## generate multivariate normal distribution residual
         if (EM == FALSE) { # the case without EM
-            
             ## y fixed
-            error.co<-out$res.co
-            Y.fixed<-Y
-            Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
-            Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+            if (is.null(norm.para)) {
+                error.co<-out$res.co ## contains NA unbalanced data 
+                Y.fixed<-Y
+                Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
+                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+            } else {
+                error.co<-out$res.co/norm.para[1]
+                Y.fixed<-Y
+                Y.fixed[,id.tr]<-as.matrix(out$Y.ct/norm.para[1])
+                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+            }
+            
+            Y.fixed[which(I==0)] <- 0
 
-            draw.error <- function(){
+            draw.error <- function() {
                 ## draw 1 prediction error at a time      
-                if (is.null(cl.id)==TRUE) { 
-                    fake.tr<-sample(id.co,1,replace=FALSE)
-                    id.co.rest<-id.co[which(!id.co%in%fake.tr)]
-                    ## resample control, to smooth CV prediction error
-                    id.co.pseudo<-sample(id.co.rest,Nco,replace=TRUE)
-                    
-                } else { # clustered 
-                    ## sample a unit
-                    fake.tr<-sample(id.co,1,replace=FALSE)
-                    cl.rest<-setdiff(cl.co, which(sapply(cl.list, function(vec)
-                        fake.tr%in%vec)==TRUE))  
-                    ## resample the rest of the clusters
-                    cl.pseudo<-sample(cl.rest,Nco.cl,replace=TRUE)
-                    ## resample control, to smooth CV prediction error
-                    id.co.pseudo<-unlist(cl.list[cl.pseudo]) 
-                }     
+            
+                fake.tr<-sample(id.co,1,replace=FALSE)
+                id.co.rest<-id.co[which(!id.co%in%fake.tr)]
+                ## resample control, to smooth CV prediction error
+                id.co.pseudo<-sample(id.co.rest,Nco,replace=TRUE)
+                      
                 id.pseudo<-c(rep(fake.tr,Ntr),id.co.pseudo)  ## Ntr + ...
+                I.id.pseudo<-I[,id.pseudo] 
                 
                 ## obtain the prediction eror
                 D.pseudo<-D[,c(id.tr,id.co.pseudo)]  ## fake.tr + control left
@@ -1394,10 +1904,17 @@ synth.boot<-function(Y,
                 X.pseudo<-X[,id.pseudo,,drop=FALSE]
 
                 ## output
-                output <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
-                                  force = force, r = out$r.cv, CV = 0,
-                                  tol = tol, AR1 = AR1, beta0 = beta)$eff
-                
+                synth.out <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
+                                        I = I.id.pseudo,
+                                        force = force, r = out$r.cv, CV = 0,
+                                        tol = tol, AR1 = AR1, beta0 = beta,
+                                        norm.para = norm.para)
+                if (is.null(norm.para)) {
+                    output <- synth.out$eff
+                } else {
+                    output <- synth.out$eff/norm.para[1]
+                }
+                           
                 return(as.matrix(output)) ## TT * Ntr
                 
             }
@@ -1420,40 +1937,61 @@ synth.boot<-function(Y,
                         cat(".")
                     }
                 }
-            }
- 
+            }            
             
+            if (0%in%I) {
+                ## calculate vcov of ep_tr
+                error.tr.adj <- array(NA,dim=c(TT,nboots,Ntr))
+                for(i in 1:Ntr){
+                    error.tr.adj[,,i]<-error.tr[,i,]
+                }
+                vcov_tr<-array(NA,dim=c(TT,TT,Ntr))
+                for(i in 1:Ntr){
+                    vcov_tr[,,i]<-res.vcov(res=error.tr.adj[,,i],
+                                           cov.ar=cov.ar)
+                }
+                
+                ## calculate vcov of e_co
+                vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
+            }
+
             one.boot <- function(){
                 ## boostrap ID
-                if (is.null(cl.id)==TRUE) {
-                    id.boot<-c(id.tr,sample(id.co,Nco,replace=TRUE))
-                } else { # cluster structure
-                    boot.cl<-sample(cl.co,Nco.cl,replace=TRUE)
-                    ## bootstrapped clusters for controls
-                    id.boot.co<-unlist(cl.list[boot.cl])
-                    id.boot<-c(id.tr,id.boot.co)
-                }
+                id.boot<-c(id.tr,sample(id.co,Nco,replace=TRUE))
+                
                 ## get the error for the treated and control
                 error.tr.boot<-matrix(NA,TT,Ntr)
-                for (w in 1:Ntr) {
-                    error.tr.boot[,w]<-error.tr[,w,sample(1:nboots,1,replace=TRUE)]
+                if (0%in%I) {
+                    for (w in 1:Ntr) {
+                        error.tr.boot[,w]<-t(rmvnorm(n=1,rep(0,TT),vcov_tr[,,w],method="svd"))
+                    }
+                    error.co.boot <- 
+                        t(rmvnorm(n=Nco,rep(0,TT),vcov_co,method="svd"))
+                    
+                } else {
+                    for (w in 1:Ntr) {
+                        error.tr.boot[,w]<-error.tr[,w,sample(1:nboots,1,replace=TRUE)]
+                    }
+                    error.co.boot<-error.co[,sample(1:Nco,Nco,replace=TRUE)] 
+                    
                 }
-                error.co.boot<-error.co[,sample(1:Nco,(length(id.boot)-Ntr),
-                                                replace=TRUE)] 
-                
+
                 Y.boot<-Y.fixed[,id.boot]
                 Y.boot[,1:Ntr]<- as.matrix(Y.boot[,1:Ntr] + error.tr.boot)
                 ## new treated: conterfactual+effect+ (same) new error
                 Y.boot[,(Ntr+1):length(id.boot)]<-
-                    Y.boot[,(Ntr+1):length(id.boot)] + error.co.boot
+                Y.boot[,(Ntr+1):length(id.boot)] + error.co.boot
+                
                 X.boot<-X[,id.boot,,drop=FALSE] 
                 D.boot<-D[,id.boot] 
+                I.boot<-I[,id.boot]
                 
                 ## re-estimate the model 
-                boot <- synth.core(Y.boot, X.boot, D.boot,
+                boot <- synth.core(Y.boot, X.boot, D.boot, I=I.boot,
                                    force = force, r = out$r.cv,
                                    CV = 0, tol = tol, AR1 = AR1,
-                                   beta0 = beta)
+                                   beta0 = beta, norm.para = norm.para)
+
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
                               att.avg = boot$att.avg + out$att.avg)
@@ -1461,33 +1999,44 @@ synth.boot<-function(Y,
                     b.out <- c(b.out, list(beta = boot$beta))
                 }
                 return(b.out)
-            }  
-            
+            }     
         } else { # the case of EM
-
             ## y fixed
-            error.co<-out$res.co
-            Y.fixed <- Y
-            Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
-            Y.fixed[,id.co]<-Y.fixed[,id.co] - out$res.co
+            if (is.null(norm.para)) {
+                error.co<-out$res.co ## contains NA unbalanced data 
+                Y.fixed<-Y
+                Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
+                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+            } else {
+                error.co<-out$res.co/norm.para[1]
+                Y.fixed<-Y
+                Y.fixed[,id.tr]<-as.matrix(out$Y.ct/norm.para[1])
+                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+            }
+        
+            Y.fixed[which(I==0)] <- 0
 
+            if (0%in%I) {
+                vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
+            }
+            
             one.boot <- function(){
 
                 ## sample errors
-                if (is.null(cl.id)==TRUE) {
-                    error.id <- sample(1:Nco, N, replace = TRUE)
-                } else { # cluster structure
-                    boot.cl <- sample(cl.co, Nco.cl*2, replace=TRUE)
-                    ## bootstrapped clusters for controls
-                    error.id <- unlist(cl.list[boot.cl])[1:N] 
-                }
+                error.id <- sample(1:Nco, N, replace = TRUE)
                 
                 ## produce the new outcome data
-                Y.boot<-Y.fixed + error.co[,error.id]
-                
+                if (0%in%I) {
+                    error.boot <- 
+                        t(rmvnorm(n=N,rep(0,TT),vcov_co,method="svd"))
+                    Y.boot <- Y.fixed + error.boot   
+                } else {
+                    Y.boot<-Y.fixed + error.co[,error.id]
+                }
+                                
                 ## re-estimate the model
-                boot<-synth.em(Y.boot, X, D, force=force, r=out$r.cv,
-                               tol=tol, AR1 = AR1)
+                boot<-synth.em(Y.boot, X, D, I=I, force=force, r=out$r.cv,
+                               tol=tol, AR1 = AR1, norm.para = norm.para)
 
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
@@ -1499,14 +2048,15 @@ synth.boot<-function(Y,
             }
              
         } # the end of the EM case
-        
+
         ## computing
-        cat("\rBootstrapping ...")
+        cat("\rBootstrapping ...\n")
         if (parallel == TRUE) { 
             boot.out <- foreach(k=1:nboots,
                                 .inorder = FALSE,
                                 .export = c("synth.core","synth.em"),
-                                .packages = c("gsynth")) %dopar% {
+                                .packages = c("gsynth")
+                                ) %dopar% {
                                     return(one.boot())
                                 }
             for (j in 1:nboots) {
@@ -1532,29 +2082,50 @@ synth.boot<-function(Y,
             }
         } 
         cat("\r")
-        
-    }  ## end of parametric bootstrap
+    }
+     
    
     ####################################
     ## Variance and CIs
     ####################################
 
     ## function to get two-sided p-values
-    get.pvalue <- function(vec){
-        a <- sum(vec >= 0)/nboots * 2
-        b <- sum(vec <= 0)/nboots * 2
-        return(as.numeric(min(a, b)))
+    get.pvalue <- function(vec) {
+        if (NaN%in%vec|NA%in%vec) {
+            nan.pos <- is.nan(vec)
+            na.pos <- is.na(vec)
+            pos <- c(which(nan.pos),which(na.pos))
+            vec.a <- vec[-pos]
+            a <- sum(vec.a >= 0)/(length(vec)-sum(nan.pos|na.pos)) * 2
+            b <- sum(vec.a <= 0)/(length(vec)-sum(nan.pos|na.pos)) * 2  
+        } else {
+            a <- sum(vec >= 0)/length(vec) * 2
+            b <- sum(vec <= 0)/length(vec) * 2  
+        }
+        return(min(as.numeric(min(a, b)),1))
     }
     
     ## ATT estimates
-    CI.att <- t(apply(att.boot, 1, function(vec) quantile(vec,c(0.025,0.975))))
-    se.att <- apply(att.boot, 1, sd)
+    CI.att <- t(apply(att.boot, 1, function(vec) quantile(vec,c(0.025,0.975), na.rm=TRUE)))
+    se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
     pvalue.att <- apply(att.boot, 1, get.pvalue)
-    if (sameT0 == TRUE) {
-        ntreated <- apply((1 - pre), 1, sum)
+
+    if (sameT0 == TRUE & !0%in%I) {
+        ntreated <- apply(post, 1, sum)
     } else {
-        rawcount <- apply((1 - pre), 1, sum)
-        ntreated <- c(rep(0, T0.min), rev(rawcount[(T0.min + 1): TT]))
+        if (!0%in%I) {
+            rawcount <- apply(1-pre, 1, sum)
+            ntreated <- c(rep(0, T0.min), rev(rawcount[(T0.min + 1): TT]))
+        } else {
+            Itr.sub <- I.tr[(T0.ub.min+1):TT,]
+            Itr.count <- matrix(0,(TT-T0.ub.min),Ntr)
+            for(i in 1:Ntr){
+                Itr.count[1:(TT-T0.ub[i]),i] <- Itr.sub[(T0.ub[i]+1-T0.ub.min):(TT-T0.ub.min),i]
+            }
+            rawcount <- apply(Itr.count, 1, sum)
+            ## ntreated <- c(rep(0, T0.ub.min), rev(rawcount[(T0.ub.min + 1): TT]))
+            ntreated <- c(rep(0, T0.ub.min), rawcount)
+        }
     }
     est.att <- cbind(att, se.att, CI.att, pvalue.att, ntreated)
     colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper",
@@ -1566,8 +2137,8 @@ synth.boot<-function(Y,
     }
     
     ## average (over time) ATT
-    CI.avg <- quantile(att.avg.boot, c(0.025,0.975))
-    se.avg <- sd(att.avg.boot)
+    CI.avg <- quantile(att.avg.boot, c(0.025,0.975), na.rm=TRUE)
+    se.avg <- sd(att.avg.boot, na.rm=TRUE)
     pvalue.avg <- get.pvalue(att.avg.boot)
     est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
     colnames(est.avg) <- c("ATT.avg", "S.E.", "CI.lower", "CI.upper", "p.value")
@@ -1575,7 +2146,7 @@ synth.boot<-function(Y,
     ## individual effects
     if (inference == "parametric") {
         CI.ind <- apply(eff.boot,c(1,2),function(vec)
-            quantile(vec,c(0.025,0.975))) ## 2*T*Ntr
+            quantile(vec,c(0.025,0.975), na.rm=TRUE)) ## 2*T*Ntr
         est.ind <- array(NA,dim=c(TT, 5, Ntr)) ## eff, se, CI.lower, CI.upper
         est.ind[,1,] <- eff
         est.ind[,2,] <- apply(eff.boot,c(1,2),sd)
@@ -1588,19 +2159,23 @@ synth.boot<-function(Y,
     ## regression coefficents
     if (p>0) {
         CI.beta<-t(apply(beta.boot, 1, function(vec)
-            quantile(vec,c(0.025, 0.975))))
-        se.beta<-apply(beta.boot, 1, sd)
+            quantile(vec,c(0.025, 0.975), na.rm=TRUE)))
+        se.beta<-apply(beta.boot, 1, function(vec)sd(vec,na.rm=TRUE))
         pvalue.beta <- apply(beta.boot, 1, get.pvalue)
+        beta[na.pos] <- NA
         est.beta<-cbind(beta, se.beta, CI.beta, pvalue.beta)
         colnames(est.beta)<-c("beta", "S.E.", "CI.lower", "CI.upper", "p.value")
     }
-    
   
     ##storage
     result<-list(inference = inference,
                  est.att = est.att,
-                 est.avg = est.avg
+                 est.avg = est.avg,
+                 att.boot = att.boot
                  )
+    if (p>0) {
+        result <- c(result,list(beta.boot = beta.boot))
+    }
     
     if (inference == "parametric") {
         result<-c(result,list(est.ind = est.ind,
@@ -1609,7 +2184,9 @@ synth.boot<-function(Y,
     if (p>0) {
         result<-c(result,list(est.beta = est.beta))
     } 
+
     return(c(out,result))
+
     
 } ## end of synth.boot()
 
@@ -1621,8 +2198,8 @@ synth.boot<-function(Y,
 ##########
 ## Print
 ##########
-
-print.gsynth <- function(x, # a gsynth object
+## a gsynth object
+print.gsynth <- function(x,  
                          ...) {
     cat("Call:\n")
     print(x$call, digits = 4)
@@ -1654,17 +2231,23 @@ print.gsynth <- function(x, # a gsynth object
 ##########
 ## Plot
 ##########
-
-plot.gsynth <- function(x, # a gsynth object
-                        type = "gap", # type of the plot
-                        xlim = NULL, ylim = NULL, # axes limits
-                        xlab = NULL, ylab = NULL, # axes labels
+#x a gsynth object
+# type of the plot; axes limits; axes labels; 
+# show raw data in "counterfactual" mode # ("none","band","all")
+# main: whether to show the title;
+# nfactors: whose loadings to be plotted 
+# id: individual plot
+plot.gsynth <- function(x,  
+                        type = "gap", 
+                        xlim = NULL, 
+                        ylim = NULL,
+                        xlab = NULL, 
+                        ylab = NULL,
                         legendOff = FALSE,
-                        raw = "band", # show raw data in "counterfactual" mode
-                                        # ("none","band","all")
-                        main = NULL, # whether to show the title
-                        nfactors = NULL, # whose loadings to be plotted
-                        id = NULL, # individual plot
+                        raw = "band", 
+                        main = NULL,
+                        nfactors = NULL, 
+                        id = NULL,
                         ...){
 
 
@@ -1686,7 +2269,7 @@ plot.gsynth <- function(x, # a gsynth object
     if (class(x)!="gsynth") {
         stop("Not a \"gsynth\" object.")
     }
-    if (!type %in% c("gap","counterfactual","factors","loadings","raw")) {
+    if (!type %in% c("gap","counterfactual","factors","missing","loadings","raw")) {
         stop("\"type\" option misspecified.")
     }
     if (is.null(xlim)==FALSE) {
@@ -1756,7 +2339,8 @@ plot.gsynth <- function(x, # a gsynth object
     ## Plotting
     ##-------------------------------##  
 
-   
+    I.tr <- x$I.tr
+    D.tr <- x$D.tr
     Y.tr <- x$Y.tr
     Y.co <- x$Y.co
     Y.ct <- x$Y.ct
@@ -1764,10 +2348,13 @@ plot.gsynth <- function(x, # a gsynth object
     Yb <- x$Y.bar[,1:2] ## treated average and counterfactual average
     tr <- x$tr
     pre <- x$pre
+    post <- x$post
+    # I.tr <- x$I.tr
     TT <- x$T
-    T0 <- x$T0
+    T0 <- x$T0 ## notice
+    T0.ub <- x$T0.ub
     p <- x$p
-    m <- x$m
+    ## m <- x$m
     Ntr <- x$Ntr
     Nco <- x$Nco
     N <- x$N 
@@ -1787,26 +2374,57 @@ plot.gsynth <- function(x, # a gsynth object
     line.width <- c(1.2,0.5)
   
     ## type of plots
-    if (type == "raw"| type == "counterfactual" | type == "factors" |
+    if (type == "raw"| type == "counterfactual" | type == "factors" |  
         x$DID == TRUE | length(id) == 1) {
         time <- x$time
-        if (length(id) == 1) {
-            time.bf <- time[T0[which(id == x$id.tr)]]
-        } else {
-            time.bf <- time[unique(T0)]
+        if (!is.numeric(time[1])) {
+            time <- 1:TT
         }
-       
-    } else if (type == "gap")  { ## variable treatment timing
-        time <- c(1:TT) - min(T0)
-        time.bf <- 0 ## before treatment
+        
+        if (length(id) == 1) {
+            if (!0%in%I.tr) {
+                time.bf <- time[T0[which(id == x$id.tr)]]
+            } else {
+                time.bf <- time[T0.ub[which(id==x$id.tr)]]
+            }
+        } else {
+            if (!0%in%I.tr) {
+                time.bf <- time[unique(T0)]
+            } else {
+                time.bf <- time[unique(T0.ub)]
+            }
+        }
+
+        ## periods to show
+        if (length(xlim) != 0) {
+            if(is.numeric(time[1])){
+                show <- which(time>=xlim[1]& time<=xlim[2])
+            } else {
+                xlim[1] <- which(x$time>=xlim[1])[1]
+                xlim[2] <- which(x$time<=xlim[2])[length(which(x$time<=xlim[2]))]
+                show <- which(time>=xlim[1]& time<=xlim[2])
+            }
+        } else {
+            show <- 1:length(time)
+        }     
     }
 
-    ## periods to show
-    if (length(xlim) != 0) {
-        show <- which(time>=xlim[1]& time<=xlim[2])
-    } else {
-        show <- 1:length(time)
+    if (type == "gap")  { ## variable treatment timing
+        if(!0%in%I.tr){
+            time <- c(1:TT) - min(T0)
+            time.bf <- 0 ## before treatment
+        } else {
+            time <- c(1:TT) - min(T0.ub)
+            time.bf <- 0
+        }
+
+        if (length(xlim) != 0) {
+            show <- which(time>=xlim[1]& time<=xlim[2])     
+        } else {
+            show <- 1:length(time)    
+        }
     }
+
     nT <- length(show) 
 
     ## legend on/off
@@ -1830,9 +2448,16 @@ plot.gsynth <- function(x, # a gsynth object
         } else if (ylab == "") {
             ylab <- NULL
         }
-        pst <- (1 - x$pre)
-        for (i in 1:Ntr){
-            pst[T0[i],i] <- 1 ## paint the period right before treatment
+        if (!0%in%I.tr) {
+            pst <- (1 - x$pre)
+            for (i in 1:Ntr){
+                pst[T0[i],i] <- 1 ## paint the period right before treatment
+            }
+        } else {
+            pst <- D.tr
+            for(i in 1:Ntr){
+                pst[T0.ub[i],i] <- 1 ## unbalanced treated units
+            }
         }
         time.pst <- c(pst[show,] * time[show])
         time.pst <- time.pst[which(c(pst[show,])==1)]
@@ -1892,7 +2517,8 @@ plot.gsynth <- function(x, # a gsynth object
                               values = set.linewidth) +
             guides(linetype = guide_legend(title=NULL, ncol=3),
                    colour = guide_legend(title=NULL, ncol=3),
-                   size = guide_legend(title=NULL, ncol=3))
+                   size = guide_legend(title=NULL, ncol=3)) 
+            ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b])
 
         ## title
         if (is.null(main) == TRUE) {
@@ -1905,7 +2531,7 @@ plot.gsynth <- function(x, # a gsynth object
         if (is.null(ylim) == FALSE) {
             p <- p + coord_cartesian(ylim = ylim)
         }
-        print(p)
+        suppressWarnings(print(p))
         
     } else if (type == "gap") { 
         
@@ -1949,7 +2575,11 @@ plot.gsynth <- function(x, # a gsynth object
                 if (length(id) == 1) { ## id specified
                     id <- which(x$id.tr == id)
                     tb <- x$est.ind[,,id]
-                    time.bf <- time[T0[id]] 
+                    if (!0%in%I.tr) {
+                        time.bf <- time[T0[id]] 
+                    } else {
+                        time.bf <- time[T0.ub[id]]
+                    }
                     colnames(tb) <- c("ATT", "S.E.", "CI.lower", "CI.upper","p.value") 
                 }
                 data <- cbind.data.frame(time, tb)[show,]
@@ -1989,7 +2619,7 @@ plot.gsynth <- function(x, # a gsynth object
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
             }
-            print(p)
+            suppressWarnings(print(p))
         }  ## end of "gap" (in case of no id error)
        
         
@@ -2061,10 +2691,11 @@ plot.gsynth <- function(x, # a gsynth object
                         guides(linetype = guide_legend(title=NULL, ncol=2),
                                colour = guide_legend(title=NULL, ncol=2),
                                size = guide_legend(title=NULL, ncol=2)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b]) 
                     
                 } else if  (raw == "band") {
 
-                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95))) 
+                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95), na.rm = TRUE)) 
                     data <- cbind.data.frame("time" = rep(time[show],2),
                                              "outcome" = c(tr.info[show],
                                                            ct.info[show]),
@@ -2115,7 +2746,8 @@ plot.gsynth <- function(x, # a gsynth object
                                           values = set.linewidth) +
                         guides(linetype = guide_legend(title=NULL, ncol=3),
                                colour = guide_legend(title=NULL, ncol=3),
-                               size = guide_legend(title=NULL, ncol=3))  
+                               size = guide_legend(title=NULL, ncol=3)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b]) 
                     
                 } else if (raw == "all") { ## plot all the raw data
                     
@@ -2166,7 +2798,8 @@ plot.gsynth <- function(x, # a gsynth object
                                           values = set.linewidth) +
                         guides(linetype = guide_legend(title=NULL, ncol=3),
                                colour = guide_legend(title=NULL, ncol=3),
-                               size = guide_legend(title=NULL, ncol=3))
+                               size = guide_legend(title=NULL, ncol=3)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b])
                      
                 } 
                 
@@ -2196,7 +2829,7 @@ plot.gsynth <- function(x, # a gsynth object
 
                     ## legend
                     set.limits = c("tr","co")
-                    set.labels = c("Treated Avaerge",
+                    set.labels = c("Treated Average",
                                    "Estimated Y(0) Average")
                     set.colors = c("red","steelblue")
                     set.linetypes = c("solid","longdash")
@@ -2213,11 +2846,12 @@ plot.gsynth <- function(x, # a gsynth object
                         guides(linetype = guide_legend(title=NULL, ncol=2),
                                colour = guide_legend(title=NULL, ncol=2),
                                size = guide_legend(title=NULL, ncol=2)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b])
                     
                 } else if  (raw == "band") {
                     
-                    Y.tr.90 <- t(apply(Y.tr, 1, quantile, prob=c(0.05,0.95)))
-                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95)))
+                    Y.tr.90 <- t(apply(Y.tr, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
+                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
                     
                     data <- cbind.data.frame("time" = rep(time[show],2),
                                              "outcome" = c(Yb[show,1],
@@ -2252,7 +2886,7 @@ plot.gsynth <- function(x, # a gsynth object
                                     alpha = 0.15, fill = "steelblue")
 
                     set.limits = c("tr","co","tr.band","co.band")
-                    set.labels = c("Treated Avaerge",
+                    set.labels = c("Treated Average",
                                    "Estimated Y(0) Average",
                                    "Treated 5-95% Quantiles",
                                    "Controls 5-95% Quantiles")
@@ -2272,6 +2906,7 @@ plot.gsynth <- function(x, # a gsynth object
                         guides(linetype = guide_legend(title=NULL, ncol=2),
                                colour = guide_legend(title=NULL, ncol=2),
                                size = guide_legend(title=NULL, ncol=2)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b]) 
                     
                 } else if (raw == "all") { ## plot all the raw data
                     
@@ -2306,7 +2941,7 @@ plot.gsynth <- function(x, # a gsynth object
                                            group = id))
                     ## legend
                     set.limits = c("tr","co","raw.tr","raw.co")
-                    set.labels = c("Treated Avaerge",
+                    set.labels = c("Treated Average",
                                    "Estimated Y(0) Average",
                                    "Treated Raw Data",
                                    "Controls Raw Data")
@@ -2326,6 +2961,7 @@ plot.gsynth <- function(x, # a gsynth object
                         guides(linetype = guide_legend(title=NULL, ncol=2),
                                colour = guide_legend(title=NULL, ncol=2),
                                size = guide_legend(title=NULL, ncol=2)) 
+                        ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b])
                 }
 
                 
@@ -2343,7 +2979,7 @@ plot.gsynth <- function(x, # a gsynth object
                 p <- p + coord_cartesian(ylim = ylim)
             }
         }
-        print(p)
+        suppressWarnings(print(p))
 
     } else if (type=="factors") {
         
@@ -2386,13 +3022,14 @@ plot.gsynth <- function(x, # a gsynth object
                                    colour = group,
                                    group = group), size = 1.2)
             ## legend
-            p <- p + guides(colour = guide_legend(title="Factor(s)", ncol=4))
+            p <- p + guides(colour = guide_legend(title="Factor(s)", ncol=4)) 
+            ## + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = x$time[T.b])
            
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
             }
-            print(p)
+            suppressWarnings(print(p))
         }
         
     } else if (type=="loadings") {
@@ -2466,11 +3103,188 @@ plot.gsynth <- function(x, # a gsynth object
                         theme(plot.title = element_text(hjust = 0.5))
                 }
             } 
-            print(p) 
+            suppressWarnings(print(p))
         }
            
-    }## fig: loadings
+    } else if (type=="missing") {
+        m <- x$obs.missing
+        all <- unique(c(m))
+        col2 <- NA
+        if (length(all)==3) { ## only control pre post
+            col<-c("#B0C4DE", "#4671D5", "#06266F")
+            breaks <- c(1,2,3)
+            label <- c("Control", "Treated-pre", "Treated-post") 
+        }
+        else if ((length(all)==4)&(!4%in%all)) { ## contains missing
+            col<-c("#FFFFFF", "#B0C4DE", "#4671D5", "#06266F")
+            breaks <- c(0,1,2,3)
+            label <- c("Missing", "Control", "Treated-pre",
+                       "Treated-post") 
+        }
+        else if ((length(all)==4)&(4%in%all)) {
+            col<-c("#B0C4DE", "#4671D5", "#06266F", "#A9A9A9")
+            col2 <- c("1" = NA, "2" = NA, "3" = NA, "4" = "red")
+            breaks <- c(1,2,3,4)
+            label <- c("Control", "Treated-pre", "Treated-post", 
+                       "Treated-removed")
+        }
+        else if(length(all)==5) {
+            col<-c("#FFFFFF", "#B0C4DE", "#4671D5", "#06266F", "#A9A9A9")
+            col2 <- c("0" = NA, "1" = NA, "2" = NA, "3" = NA, "4" = "red")
+            breaks <- c(0,1,2,3,4)
+            label <- c("Missing", "Control", "Treated-pre",
+                       "Treated-post", "Treated-removed")
+        }
+        T <- dim(m)[1]
+        N <- dim(m)[2]
+        units <- rep(1:N, each = T)
+        period <- rep(1:T, N)
+        res <- c(m)
+        data <- cbind.data.frame(units=units, period=period, res=res)
+        data[,"res"] <- as.factor(data[,"res"])
 
-   
+        if (T>10) {
+            T.n <- (T-1)%/%9
+            T.res <- (T-1)%%9
+            T.b <- seq(from=1,to=T.n*9+1,by=T.n)
+            if (T.res!=0) {
+                T.j <- 1
+                for(i in (10-T.res+1):10) {
+                    T.b[i] <- T.b[i] + T.j
+                    T.j <- T.j + 1
+                }
+            }
+        } else {
+            T.b <- 1:T
+        }
+
+        if (N>10) {
+            N.n <- (N-1)%/%9
+            N.res <- (N-1)%%9
+            N.b <- seq(from=1,to=N.n*9+1,by=N.n)
+            if (N.res!=0) {
+                N.j <- 1
+                for (i in (10-N.res+1):10) {
+                    N.b[i] <- N.b[i] + N.j
+                    N.j <- N.j + 1
+                }
+            }
+        } else {
+            N.b <- 1:N
+        }
+        
+        p <- ggplot(data, aes(x = period, y = units,
+                              fill = res), position = "identity") 
+        p <- p + geom_tile(colour="gray90", size=1, stat="identity") 
+  
+        p <- p +
+            labs(x = x$index[2], y = x$index[1], 
+                ## fill = "Value", 
+                title="Observations") +
+            theme_bw() + 
+            scale_fill_manual(NA, breaks = breaks, values = col, labels=label)
+
+        if(4%in%all) {
+            p <- p + geom_point(aes(colour=res),size=0.5)
+            p <- p + scale_color_manual(NA, breaks=breaks,
+                                        values=col2, labels=label)
+        }
+
+        p <- p +
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.border = element_rect(fill=NA,color="gray90", size=0.5, linetype="solid"),
+              axis.line = element_blank(),
+              axis.ticks = element_blank(),
+              axis.text = element_text(color="black", size=14),
+              axis.title=element_text(size=14,face="bold"),
+              axis.text.x = element_text(size = 10),
+              axis.text.y = element_text(size = 10),
+              plot.background = element_rect(fill = "grey90"),
+              legend.background = element_rect(fill = "grey90"),
+              legend.position = "bottom",
+              legend.title=element_blank(),
+              plot.title = element_text(size=20,
+                                        hjust = 0.5,
+                                        face="bold",
+                                        margin = margin(10, 0, 10, 0))) +
+        scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = rownames(m)[T.b]) +
+        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = colnames(m)[N.b])
+        
+        if(length(all)>=4) {
+            p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))
+        }
+        suppressWarnings(print(p))
+    }
     
 }
+
+###################################
+## parametric bootstrap for ub data
+###################################
+remove_na <- function(a, b) {
+    c1 <- which(is.na(a))
+    c2 <- which(is.na(b))
+    return(unique(c(c1,c2)))
+}
+
+res.vcov <- function(res, 
+                     cov.ar = 1) {
+    T <- dim(res)[1]
+    k <- cov.ar
+    vcov <- matrix(0, T, T)
+
+    if (k==0) { ## no serial correlation
+        for (i in 1:T) {
+            vcov[i,i] <- var(res[i,], na.rm = TRUE)
+        }
+    }  
+    else if (k>=T) {
+        for (i in 1:T) {
+            for (j in 1:T) {
+                if (j==i) {
+                    vcov[i,i] <- var(res[i,], na.rm = TRUE)
+                }
+                else if (j>i) {
+                    if(NA%in%res[i,]|NA%in%res[j,]) {
+                        vcov[i,j] <- 
+                            cov(res[i,-remove_na(res[i,], res[j,])], res[j,-remove_na(res[i,], res[j,])])
+                    } else {
+                        vcov[i,j] <- cov(res[i,],res[j,])
+                    }
+                }
+                else { ## j < i
+                    vcov[i,j] <- vcov[j,i]
+                }        
+            }
+        }    
+    }
+    else { ## ar(k) process
+        for (i in 1:T) {
+            r1 <- max(1,(i-k))
+            r2 <- min(T,(i+k))
+            for(j in r1:r2) {
+                if (j==i) {
+                    vcov[i,i] <- var(res[i,], na.rm = TRUE)
+                }
+                else if (j>i) {
+                    if(NA%in%res[i,]|NA%in%res[j,]) {
+                        vcov[i,j] <- 
+                            cov(res[i,-remove_na(res[i,], res[j,])], res[j,-remove_na(res[i,], res[j,])])
+                    } else {
+                        vcov[i,j] <- cov(res[i,],res[j,])
+                    }
+                }                
+                else { ## j < i
+                    vcov[i,j] <- vcov[j,i]
+                }
+            }
+        }
+
+    }
+
+    return(vcov)
+}
+
+
+
