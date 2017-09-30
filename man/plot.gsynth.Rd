@@ -10,10 +10,10 @@
   \item{x}{a \code{\link{gsynth}} object.}
   \item{type}{a string that specifies the type of the plot. Must be one
     of the following: "gap" (plotting the average treatment effect on
-    the treated; "raw" (plotting the raw data); "counterfactual"
-    (plotting predicted Y(0)'s); "factors" (plotting estimated factors); and
+    the treated; "raw" (plotting the raw data); "counterfactual"    
+    (plotting predicted Y(0)'s); "factors" (plotting estimated factors);    
     "loadings" (plotting the distribution of estimated factor
-    loadings).}
+    loadings); "missing" (plotting status of each unit at each time point).}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis.}
   \item{ylim}{a two-element numeric vector specifying the range of y-axis.}
   \item{xlab}{a string indicating the label of the x-axis.}
@@ -41,6 +41,8 @@
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>
+  
+  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
 }
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis,
