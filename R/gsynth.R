@@ -1,6 +1,6 @@
 ## Synthetic Control for Multiple Treated Units
 ## (Causal Inference with Interactive Fixed Effects Models)
-## Version 1.03
+## Version 1.0.3
 ## Author: Yiqing Xu, University of California, San Diego
 ## Date: 2016.7.28
 
