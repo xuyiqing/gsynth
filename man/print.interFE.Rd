@@ -7,9 +7,13 @@
   \item{x}{an \code{\link{interFE}} object.}
   \item{\dots}{other argv.}
 }
-\author{Yiqing Xu  <yiqingxu@ucsd.edu>}
+\author{
+  Yiqing Xu  <yiqingxu@ucsd.edu>
+  
+  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
+}
 \references{Jushan Bai. 2009. "Panel Data Models with Interactive Fixed
-  Effects." Econometrica 77:1229<e2><80><93>1279.}
+  Effects." Econometrica 77:1229--1279.}
 \seealso{\code{\link{interFE}} and \code{\link{gsynth}}}
 
 
