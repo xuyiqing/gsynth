@@ -3,16 +3,16 @@
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
-\usage{gsynth(formula=NULL, data, Y, D, X=NULL, na.rm = FALSE, index, 
-       force = "unit", r = 0, CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
-       inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
-       cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, normalize = FALSE)  
+\usage{gsynth(formula, data, Y, D, X=NULL, na.rm = FALSE, index, force = "unit", r = 0, 
+       CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
+       inference = "parametric", cluster = NULL,
+       parallel = TRUE, cores = NULL, tol = 0.001, seed = NULL)  
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of
   the model to be fitted.}
-\item{data}{a data frame (must be with a dichotomous treatment but balanced
-  is not reqiored).}
+\item{data}{a data frame (must be a balanced panel with a dichotomous
+  treatment).}
 \item{Y}{outcome.}
 \item{D}{treatment.}
 \item{X}{time-varying covariates.}
@@ -39,9 +39,8 @@ on interactive fixed effect models.}
 \item{inference}{a string specifying which type of inferential method
   will be used, either "parametric" or "non-parametric". "parametric" is
   recommended when the number of treated units is small.}
-\item{cov.ar}{an integer specifying order of the auto regression process
-  that the residuals follow. Used for parametric bootstrap procedure when data
-  is in the form of unbalanced panel.}
+\item{cluster}{a string indicating the clustering variable to be blocked
+  on during bootstrapping.}
 \item{parallel}{a logical flag indicating whether parallel computing
   will be used in bootstrapping and/or cross-validation. Ignored if
   \code{se = FALSE}.}
@@ -52,10 +51,6 @@ on interactive fixed effect models.}
 \item{tol}{a positive number indicating the tolerance level.}
 \item{seed}{an integer that sets the seed in random number
   generation. Ignored if  \code{se = FALSE} and \code{r} is specified.}
-\item{min.T0}{an integer specifying the minimum value of pre-treatment 
-  periods. Treated units with pre-treatment periods less than that will be removed automatically.}
-\item{normalize}{a logic flag indicating whether to scale outcome and 
-  covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It
@@ -68,8 +63,8 @@ on interactive fixed effect models.}
   correlated with unobserved unit and time heterogeneities under
   reasonable modelling assumptions. With a built-in cross-validation
   procedure, it avoids specification searches and thus is easy to
-  implement. Data must be with a dichotomous treatment but not necessarily
-  in form of a balanced panel data. 
+  implement. Data must be in form of a balanced panel with a dichotomous
+  treatment. 
 }
 \value{
   \item{Y.dat}{a matrix storing data of the outcome variable.}
@@ -79,7 +74,6 @@ on interactive fixed effect models.}
   \item{index}{name of the unit and time indicators.}
   \item{id}{a vector of unit IDs.}
   \item{time}{a vector of time periods.}
-  \item{obs.missing}{a matrix of indicators of observations.}
   \item{id.tr}{a vector of IDs for the treatment units.}
   \item{id.co}{a vector of IDs for the control units.}
   \item{Y.tr}{data of the treated unit outcome.}
@@ -87,8 +81,8 @@ on interactive fixed effect models.}
   \item{Y.co}{data of the control unit outcome.}
   \item{eff}{difference between actual outcome and predicted Y(0).}
   \item{Y.bar}{average values of Y.tr, Y.ct, and Y.co over time.}
-  \item{att}{average treatment effect on the treated over time (it is averaged 
-    based on the timing of the treatment if it is different for each unit).}
+  \item{att}{average treatment effect on the treated over time (it is averaged based on
+    the timing of the treatment if it is different for each unit).}
   \item{att.avg}{average treatment effect on the treated.}
   \item{force}{user specified \code{force} option.}
   \item{DID}{TRUE if the timing of the treatment is the same.}
@@ -97,14 +91,9 @@ on interactive fixed effect models.}
   \item{p}{the number of time-varying observables.}
   \item{Ntr}{the number of treated units.}
   \item{Nco}{the number of control units.}
-  \item{T0}{a vector that stores the timing of the treatment for balanced panel
-    data or pre-treatment periods of each treated unit for unbalanced panel
-    data.}
-  \item{T0.ub}{a vector that stores the timing of the treatment for 
-    unbalanced panel data.}
+  \item{T0}{a vector that stores the timing of the treatment.}
   \item{tr}{a vector indicating treatment status for each unit.}
   \item{pre}{a matrix indicating the pre-treatment/non-treatment status.}
-  \item{post}{a matrix indicating the post-treatment status.}
   \item{r.cv}{the number of factors included in the model -- either
     supplied by users or automatically chosen via cross-validation.}
   \item{res.co}{residuals of the control group units.}
@@ -128,14 +117,10 @@ on interactive fixed effect models.}
   \item{mu}{estimated ground mean. }
   \item{xi}{estimated time fixed effects. }
   \item{alpha.tr}{estimated unit fixed effects for the treated units.}
-  \item{alpha.co}{estimated unit fixed effects for the control units.}
-  \item{obs.missing}{a matrix stroing status of each unit at each time point. 
-    \code{0} for missing, \code{1} for control group units, \code{2} for treat group units at pre-treatment period, \code{3} for treat group units at post-treatment period, and \code{4} for removed treated group units. Useful for unbalanced panel data.} 
+  \item{alpha.co}{estimated unit fixed effects for the control units.} 
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>
-
-  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
 }
 \references{
   Laurent Gobillon and Thierry Magnac, 2016.
