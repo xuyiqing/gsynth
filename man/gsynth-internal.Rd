@@ -29,7 +29,8 @@
 \alias{synth.em}
 \alias{synth.em.cv} 
 \alias{remove_na}
-\alias{res.vcov}      
+\alias{res.vcov}   
+\alias{ct.adjsut}   
 \title{Internal Gsynth Functions}
 \description{
  Internal Gsynth functions

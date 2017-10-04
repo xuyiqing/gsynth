@@ -2266,6 +2266,7 @@ plot.gsynth <- function(x,
     tr95 <- NULL
     group <- NULL
     L1 <- NULL
+    out <- NULL
 
     if (class(x)!="gsynth") {
         stop("Not a \"gsynth\" object.")
@@ -2411,8 +2412,9 @@ plot.gsynth <- function(x,
     line.width <- c(1.2,0.5)
   
     ## type of plots
-    if (type == "raw"| type == "counterfactual" | type == "factors" |  
-        x$DID == TRUE | length(id) == 1 | type =="missing" | type=="loadings") {
+    if (type == "raw"| type == "counterfactual" | 
+        type == "factors" |  length(id) == 1 | type =="missing" | 
+        type=="loadings") {
         time <- x$time
         if (!is.numeric(time[1])) {
             time <- 1:TT
@@ -2466,28 +2468,28 @@ plot.gsynth <- function(x,
     nT <- length(show)
     time.label <- x$time[show]
 
-    if (axis.adjust==FALSE) {
-        n.period <- length(show)
-    } else {
-        n.period <- length(show) ## min(length(show),20)
-    }
+    ## if (axis.adjust==FALSE) {
+    ##     n.period <- length(show)
+    ## } else {
+    ##     n.period <- length(show) ## min(length(show),20)
+    ## }
 
-    if (axis.adjust==TRUE) {
-        n.period <- n.period - 1
-        T.n <- (nT-1)%/%n.period
-        T.res <- (nT-1)%%n.period
-        T.b <- seq(from=1,to=T.n*n.period+1,by=T.n)
-        if (T.res!=0) {
-            T.j <- 1
-            for(i in (n.period-T.res+2):(n.period+1)) {
-                T.b[i] <- T.b[i] + T.j
-                T.j <- T.j + 1
-            }
-        }
+    ## if (axis.adjust==TRUE) {
+    ##     n.period <- n.period - 1
+    ##     T.n <- (nT-1)%/%n.period
+    ##     T.res <- (nT-1)%%n.period
+    ##     T.b <- seq(from=1,to=T.n*n.period+1,by=T.n)
+    ##     if (T.res!=0) {
+    ##         T.j <- 1
+    ##         for(i in (n.period-T.res+2):(n.period+1)) {
+    ##             T.b[i] <- T.b[i] + T.j
+    ##             T.j <- T.j + 1
+    ##         }
+    ##     }
         ## T.b <- show[T.b]
-    } else {
+    ## } else {
         T.b <- 1:length(show)
-    }
+    ## }
  
 
     ## legend on/off
@@ -2697,379 +2699,577 @@ plot.gsynth <- function(x,
         }  ## end of "gap" (in case of no id error)
        
         
-    } else if (type=="counterfactual") {
+    } else if (type=="counterfactual") { 
 
-         ## axes labels
-        if (is.null(xlab)==TRUE) {
-            xlab <- x$index[2]
-        } else if (xlab == "") {
-            xlab <- NULL
-        }
-        if (is.null(ylab)==TRUE) {
-            ylab <- x$Yname
-        } else if (ylab == "") {
-            ylab <- NULL
-        } 
-
-        if (length(id)==1 & !(id[1]%in%x$id.tr)) { ## error
+        if (length(id) == 1|length(x$id.tr) == 1|x$DID==TRUE) { 
+            if (length(id)==1 & !(id[1]%in%x$id.tr)) { ## error
             
-            cat(paste(id,"not in the treatment group"))
+                cat(paste(id,"not in the treatment group"))
             
-        } else { ## one treated unit case
+            } else { ## one treated unit case
 
+                ## axes labels
+                if (is.null(xlab)==TRUE) {
+                    xlab <- x$index[2]
+                } else if (xlab == "") {
+                    xlab <- NULL
+                }
+                if (is.null(ylab)==TRUE) {
+                    ylab <- x$Yname
+                } else if (ylab == "") {
+                    ylab <- NULL
+                }
              
-            if (length(id) == 1 | length(x$id.tr) == 1) { ## one treated unit
-
-                if (is.null(id) == TRUE) {
-                    id <- x$id.tr
-                }
-                maintext <- paste("Treated and Counterfactual (",id,")",sep="") 
-                tr.info <- Y.tr[,which(id==x$id.tr)]
-                ct.info <- Y.ct[,which(id==x$id.tr)] 
-                if (raw == "none") { 
-                    data <- cbind.data.frame("time" = rep(time[show],2),
-                                             "outcome" = c(tr.info[show],
-                                                           ct.info[show]),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("ct",nT)))
-                    ## theme
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0))) 
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type)) 
-                    ## legend
-                    set.limits = c("tr","ct")
-                    set.labels = c("Treated", "Estimated Y(0)")
-                    set.colors = c("red","steelblue")
-                    set.linetypes = c("solid","longdash")
-                    set.linewidth = rep(line.width[1],2)
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
-                                              labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=2),
-                               colour = guide_legend(title=NULL, ncol=2),
-                               size = guide_legend(title=NULL, ncol=2))
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
-                    } 
-
-                    
-                } else if  (raw == "band") {
-
-                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95), na.rm = TRUE)) 
-                    data <- cbind.data.frame("time" = rep(time[show],2),
-                                             "outcome" = c(tr.info[show],
-                                                           ct.info[show]),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("ct",nT)))
-
-                    data.band <- cbind.data.frame(time, Y.co.90)[show,]
-                    colnames(data.band) <- c("time","co5","co95")
-
-                    
-                    ## theme 
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0)))
-
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type))
-
-                    ## band
-                    p <- p + geom_ribbon(data = data.band,
-                                    aes(ymin = co5, ymax = co95, x=time),
-                                    alpha = 0.15, fill = "steelblue")
-
-                    set.limits = c("tr","co.band","ct")
-                    set.labels = c("Treated", "Controls (5-95% Quantiles)",
-                                   "Estimated Y(0)")
-                    set.colors = c("red","#4682B480","steelblue")
-                    set.linetypes = c("solid","solid","longdash")
-                    set.linewidth = c(line.width[1],4,line.width[1])
-
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
-                                              labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=3),
-                               colour = guide_legend(title=NULL, ncol=3),
-                               size = guide_legend(title=NULL, ncol=3)) 
-
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b])
+                if (length(id) == 1 | length(x$id.tr) == 1) { ## one treated unit
+  
+                    if (is.null(id) == TRUE) {
+                        id <- x$id.tr
                     }
-                    
-                } else if (raw == "all") { ## plot all the raw data
-                    
-                    data <- cbind.data.frame("time" = rep(time[show],(2 + Nco)),
-                                             "outcome" = c(tr.info[show],
-                                                           ct.info[show],
-                                                           c(Y.co[show,])),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("ct",nT),
-                                                        rep("raw.co",(Nco * nT))),
-                                             "id" = c(rep("tr",nT),
-                                                      rep("ct",nT),
-                                                      rep(c(x$id.co), each = nT)))
-                    
-                    ## theme
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0)))
-                    
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type,
-                                           group = id))
-
-                    ## legend
-                    set.limits = c("tr","raw.co","ct")
-                    set.labels = c("Treated","Controls","Estimated Y(0)")
-                    set.colors = c("red","#99999950","steelblue")
-                    set.linetypes = c("solid","solid","longdash")
-                    set.linewidth = c(line.width[1],line.width[2],line.width[1])
-                    
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
+                    maintext <- paste("Treated and Counterfactual (",id,")",sep="") 
+                    tr.info <- Y.tr[,which(id==x$id.tr)]
+                    ct.info <- Y.ct[,which(id==x$id.tr)] 
+                    if (raw == "none") { 
+                        data <- cbind.data.frame("time" = rep(time[show],2),
+                                                 "outcome" = c(tr.info[show],
+                                                               ct.info[show]),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("ct",nT)))
+                        ## theme
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0))) 
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type)) 
+                        ## legend
+                        set.limits = c("tr","ct")
+                        set.labels = c("Treated", "Estimated Y(0)")
+                        set.colors = c("red","steelblue")
+                        set.linetypes = c("solid","longdash")
+                        set.linewidth = rep(line.width[1],2)
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
                                               labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=3),
-                               colour = guide_legend(title=NULL, ncol=3),
-                               size = guide_legend(title=NULL, ncol=3)) 
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=2),
+                                   colour = guide_legend(title=NULL, ncol=2),
+                                   size = guide_legend(title=NULL, ncol=2))
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        } 
 
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
-                    }                        
+                    
+                    } else if  (raw == "band") {
+
+                        Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95), na.rm = TRUE)) 
+                        data <- cbind.data.frame("time" = rep(time[show],2),
+                                                 "outcome" = c(tr.info[show],
+                                                               ct.info[show]),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("ct",nT)))
+
+                        data.band <- cbind.data.frame(time, Y.co.90)[show,]
+                        colnames(data.band) <- c("time","co5","co95")
+
+                    
+                        ## theme 
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0)))
+
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type))
+
+                        ## band
+                        p <- p + geom_ribbon(data = data.band,
+                                        aes(ymin = co5, ymax = co95, x=time),
+                                        alpha = 0.15, fill = "steelblue")
+
+                        set.limits = c("tr","co.band","ct")
+                        set.labels = c("Treated", "Controls (5-95% Quantiles)",
+                                       "Estimated Y(0)")
+                        set.colors = c("red","#4682B480","steelblue")
+                        set.linetypes = c("solid","solid","longdash")
+                        set.linewidth = c(line.width[1],4,line.width[1])
+
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
+                                              labels = set.labels,
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=3),
+                                   colour = guide_legend(title=NULL, ncol=3),
+                                   size = guide_legend(title=NULL, ncol=3)) 
+
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b])
+                        }
+                    
+                    } else if (raw == "all") { ## plot all the raw data
+                    
+                        data <- cbind.data.frame("time" = rep(time[show],(2 + Nco)),
+                                                 "outcome" = c(tr.info[show],
+                                                               ct.info[show],
+                                                               c(Y.co[show,])),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("ct",nT),
+                                                            rep("raw.co",(Nco * nT))),
+                                                 "id" = c(rep("tr",nT),
+                                                          rep("ct",nT),
+                                                          rep(c(x$id.co), each = nT)))
+                    
+                        ## theme
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0)))
+                    
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type,
+                                               group = id))
+
+                        ## legend
+                        set.limits = c("tr","raw.co","ct")
+                        set.labels = c("Treated","Controls","Estimated Y(0)")
+                        set.colors = c("red","#99999950","steelblue")
+                        set.linetypes = c("solid","solid","longdash")
+                        set.linewidth = c(line.width[1],line.width[2],line.width[1])
+                    
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
+                                              labels = set.labels,
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=3),
+                                   colour = guide_legend(title=NULL, ncol=3),
+                                   size = guide_legend(title=NULL, ncol=3)) 
+
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        }                        
                      
-                } 
+                    } 
                 
-            } else { # begin multiple treated unit case
-                maintext <- "Treated and Counterfactual Averages"
-                if (raw == "none") {
-                    data <- cbind.data.frame("time" = rep(time[show],2),
-                                             "outcome" = c(Yb[show,1],
-                                                           Yb[show,2]),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("co",nT))) 
-                    ## theme 
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0)))
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type))
+                } else { # begin multiple treated unit case
+                    maintext <- "Treated and Counterfactual Averages"
+                    if (raw == "none") {
+                        data <- cbind.data.frame("time" = rep(time[show],2),
+                                                 "outcome" = c(Yb[show,1],
+                                                               Yb[show,2]),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("co",nT))) 
+                        ## theme 
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0)))
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type))
 
-                    ## legend
-                    set.limits = c("tr","co")
-                    set.labels = c("Treated Average",
-                                   "Estimated Y(0) Average")
-                    set.colors = c("red","steelblue")
-                    set.linetypes = c("solid","longdash")
-                    set.linewidth = rep(line.width[1],2)
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
+                        ## legend
+                        set.limits = c("tr","co")
+                        set.labels = c("Treated Average",
+                                       "Estimated Y(0) Average")
+                        set.colors = c("red","steelblue")
+                        set.linetypes = c("solid","longdash")
+                        set.linewidth = rep(line.width[1],2)
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
                                               labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=2),
-                               colour = guide_legend(title=NULL, ncol=2),
-                               size = guide_legend(title=NULL, ncol=2)) 
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=2),
+                                   colour = guide_legend(title=NULL, ncol=2),
+                                   size = guide_legend(title=NULL, ncol=2)) 
 
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
-                    }
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        }
                     
-                } else if  (raw == "band") {
+                    } else if  (raw == "band") {
                     
-                    Y.tr.90 <- t(apply(Y.tr, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
-                    Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
+                        Y.tr.90 <- t(apply(Y.tr, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
+                        Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
                     
-                    data <- cbind.data.frame("time" = rep(time[show],2),
-                                             "outcome" = c(Yb[show,1],
-                                                           Yb[show,2]),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("co",nT)))
+                        data <- cbind.data.frame("time" = rep(time[show],2),
+                                                 "outcome" = c(Yb[show,1],
+                                                               Yb[show,2]),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("co",nT)))
 
-                    data.band <- cbind.data.frame(time, Y.tr.90, Y.co.90)[show,]
-                    colnames(data.band) <- c("time","tr5","tr95","co5","co95")
+                        data.band <- cbind.data.frame(time, Y.tr.90, Y.co.90)[show,]
+                        colnames(data.band) <- c("time","tr5","tr95","co5","co95")
                     
-                    ## theme 
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0)))
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type))
-                    ## band
-                    p <- p + geom_ribbon(data = data.band,
-                                         aes(ymin = tr5, ymax = tr95, x=time),
-                                         alpha = 0.15, fill = "red") +
-                        geom_ribbon(data = data.band,
-                                    aes(ymin = co5, ymax = co95, x=time),
-                                    alpha = 0.15, fill = "steelblue")
+                        ## theme 
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0)))
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type))
+                        ## band
+                        p <- p + geom_ribbon(data = data.band,
+                                             aes(ymin = tr5, ymax = tr95, x=time),
+                                             alpha = 0.15, fill = "red") +
+                            geom_ribbon(data = data.band,
+                                        aes(ymin = co5, ymax = co95, x=time),
+                                        alpha = 0.15, fill = "steelblue")
 
-                    set.limits = c("tr","co","tr.band","co.band")
-                    set.labels = c("Treated Average",
-                                   "Estimated Y(0) Average",
-                                   "Treated 5-95% Quantiles",
-                                   "Controls 5-95% Quantiles")
-                    set.colors = c("red","steelblue","#FF000030","#4682B480")
-                    set.linetypes = c("solid","longdash","solid","solid")
-                    set.linewidth = c(rep(line.width[1],2),4,4)
+                        set.limits = c("tr","co","tr.band","co.band")
+                        set.labels = c("Treated Average",
+                                       "Estimated Y(0) Average",
+                                       "Treated 5-95% Quantiles",
+                                       "Controls 5-95% Quantiles")
+                        set.colors = c("red","steelblue","#FF000030","#4682B480")
+                        set.linetypes = c("solid","longdash","solid","solid")
+                        set.linewidth = c(rep(line.width[1],2),4,4)
 
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
                                               labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=2),
-                               colour = guide_legend(title=NULL, ncol=2),
-                               size = guide_legend(title=NULL, ncol=2)) 
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=2),
+                                   colour = guide_legend(title=NULL, ncol=2),
+                                   size = guide_legend(title=NULL, ncol=2)) 
 
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
-                    }
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        }
                     
-                } else if (raw == "all") { ## plot all the raw data
+                    } else if (raw == "all") { ## plot all the raw data
                     
-                    data <- cbind.data.frame("time" = rep(time[show],(2 + N)),
-                                             "outcome" = c(Yb[show,1],
-                                                           Yb[show,2],
-                                                           c(Y.tr[show,]),
-                                                           c(Y.co[show,])),
-                                             "type" = c(rep("tr",nT),
-                                                        rep("co",nT),
-                                                        rep("raw.tr",(Ntr * nT)),
-                                                        rep("raw.co",(Nco * nT))),
-                                             "id" = c(rep("tr",nT),
-                                                      rep("co",nT),
-                                                      rep(c(x$id.tr,x$id.co),
-                                                          each = nT))) 
-                    ## theme
-                    p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                        geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                        annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
-                        theme(legend.position = legend.pos,
-                              axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
-                              plot.title = element_text(size=20,
-                                                        hjust = 0.5,
-                                                        face="bold",
-                                                        margin = margin(10, 0, 10, 0))) 
-                    ## main
-                    p <- p + geom_line(aes(time, outcome,
-                                           colour = type,
-                                           size = type,
-                                           linetype = type,
-                                           group = id))
-                    ## legend
-                    set.limits = c("tr","co","raw.tr","raw.co")
-                    set.labels = c("Treated Average",
-                                   "Estimated Y(0) Average",
-                                   "Treated Raw Data",
-                                   "Controls Raw Data")
-                    set.colors = c("red","steelblue","#FC8D6280","#99999950")
-                    set.linetypes = c("solid","longdash","solid","solid")
-                    set.linewidth = rep(line.width,each=2)
+                        data <- cbind.data.frame("time" = rep(time[show],(2 + N)),
+                                                 "outcome" = c(Yb[show,1],
+                                                               Yb[show,2],
+                                                               c(Y.tr[show,]),
+                                                               c(Y.co[show,])),
+                                                 "type" = c(rep("tr",nT),
+                                                            rep("co",nT),
+                                                            rep("raw.tr",(Ntr * nT)),
+                                                            rep("raw.co",(Nco * nT))),
+                                                 "id" = c(rep("tr",nT),
+                                                          rep("co",nT),
+                                                          rep(c(x$id.tr,x$id.co),
+                                                              each = nT))) 
+                        ## theme
+                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                            annotate("rect", xmin= time.bf, xmax= Inf,
+                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            theme(legend.position = legend.pos,
+                                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                                  plot.title = element_text(size=20,
+                                                            hjust = 0.5,
+                                                            face="bold",
+                                                            margin = margin(10, 0, 10, 0))) 
+                        ## main
+                        p <- p + geom_line(aes(time, outcome,
+                                               colour = type,
+                                               size = type,
+                                               linetype = type,
+                                               group = id))
+                        ## legend
+                        set.limits = c("tr","co","raw.tr","raw.co")
+                        set.labels = c("Treated Average",
+                                       "Estimated Y(0) Average",
+                                       "Treated Raw Data",
+                                       "Controls Raw Data")
+                        set.colors = c("red","steelblue","#FC8D6280","#99999950")
+                        set.linetypes = c("solid","longdash","solid","solid")
+                        set.linewidth = rep(line.width,each=2)
                     
-                    p <- p + scale_colour_manual(limits = set.limits,
-                                                 labels = set.labels,
-                                                 values =set.colors) +
-                        scale_linetype_manual(limits = set.limits,
+                        p <- p + scale_colour_manual(limits = set.limits,
+                                                     labels = set.labels,
+                                                     values =set.colors) +
+                            scale_linetype_manual(limits = set.limits,
+                                                  labels = set.labels,
+                                                  values = set.linetypes) +
+                            scale_size_manual(limits = set.limits,
                                               labels = set.labels,
-                                              values = set.linetypes) +
-                        scale_size_manual(limits = set.limits,
-                                          labels = set.labels,
-                                          values = set.linewidth) +
-                        guides(linetype = guide_legend(title=NULL, ncol=2),
-                               colour = guide_legend(title=NULL, ncol=2),
-                               size = guide_legend(title=NULL, ncol=2)) 
+                                              values = set.linewidth) +
+                            guides(linetype = guide_legend(title=NULL, ncol=2),
+                                   colour = guide_legend(title=NULL, ncol=2),
+                                   size = guide_legend(title=NULL, ncol=2)) 
 
-                    if (!is.numeric(time.label)) {
-                        p <- p + 
-                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        if (!is.numeric(time.label)) {
+                            p <- p + 
+                            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                        }
                     }
+
+                } # end multiple treated unit case
+
+                ## title
+                if (is.null(main) == TRUE) {
+                    p <- p + ggtitle(maintext)
+                } else if (main!="") {
+                    p <- p + ggtitle(main)
                 }
+            
+                ## ylim
+                if (is.null(ylim) == FALSE) {
+                    p <- p + coord_cartesian(ylim = ylim)
+                }
+                suppressWarnings(print(p))
+            }
+        } else {
+            maintext <- "Treated and Counterfactual Averages"
 
-                
-            } # end multiple treated unit case
+            ## axes labels
+            if (is.null(xlab)==TRUE) {
+                xlab <- paste("Time relative to Treatment")
+            } else if (xlab == "") {
+                xlab <- NULL
+            }
+            if (is.null(ylab)==TRUE) {
+                ylab <- x$Yname
+            } else if (ylab == "") {
+                ylab <- NULL
+            }
+            
+            if (!0%in%I.tr) {
+                xx <- ct.adjsut(x$Y.tr, x$Y.ct, x$T0)
+            } else {
+                xx <- ct.adjsut(x$Y.tr, x$Y.ct, x$T0.ub)
+            }
+
+            time <- xx$timeline
+            Yb <- xx$Yb
+            Y.tr.aug <- xx$Y.tr.aug
+            ## Y.ct.aug <- xx$Y.ct.aug
+            time.bf <- 0 ## before treatment
+
+            if (!is.null(xlim)) {
+                show <- which(time>=xlim[1]& time<=xlim[2])
+            } else {
+                show <- 1:length(time)
+            }
+            nT <- length(show)
+
+            if (raw == "none") {
+                data <- cbind.data.frame("time" = rep(time[show],2),
+                                         "outcome" = c(Yb[show,1],
+                                                       Yb[show,2]),
+                                         "type" = c(rep("tr",nT),
+                                                    rep("co",nT))) 
+                ## theme 
+                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                    annotate("rect", xmin= time.bf, xmax= Inf,
+                                ymin=-Inf, ymax=Inf, alpha = .3) +
+                    theme(legend.position = legend.pos,
+                          axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                          plot.title = element_text(size=20,
+                                                    hjust = 0.5,
+                                                    face="bold",
+                                                    margin = margin(10, 0, 10, 0)))
+                ## main
+                p <- p + geom_line(aes(time, outcome,
+                                       colour = type,
+                                       size = type,
+                                       linetype = type))
+
+                ## legend
+                set.limits = c("tr","co")
+                set.labels = c("Treated Average",
+                               "Estimated Y(0) Average")
+                set.colors = c("red","steelblue")
+                set.linetypes = c("solid","longdash")
+                set.linewidth = rep(line.width[1],2)
+                p <- p + scale_colour_manual(limits = set.limits,
+                                             labels = set.labels,
+                                             values =set.colors) +
+                    scale_linetype_manual(limits = set.limits,
+                                          labels = set.labels,
+                                          values = set.linetypes) +
+                    scale_size_manual(limits = set.limits,
+                                      labels = set.labels,
+                                      values = set.linewidth) +
+                    guides(linetype = guide_legend(title=NULL, ncol=2),
+                            colour = guide_legend(title=NULL, ncol=2),
+                            size = guide_legend(title=NULL, ncol=2)) 
+                    
+            } else if  (raw == "band") {
+                    
+                Y.tr.90 <- t(apply(Y.tr.aug, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
+                ## Y.co.90 <- t(apply(Y.co, 1, quantile, prob=c(0.05,0.95),na.rm=TRUE))
+                    
+                data <- cbind.data.frame("time" = rep(time[show],2),
+                                         "outcome" = c(Yb[show,1],
+                                                       Yb[show,2]),
+                                         "type" = c(rep("tr",nT),
+                                                    rep("co",nT)))
+
+                data.band <- cbind.data.frame(time, Y.tr.90)[show,]
+                colnames(data.band) <- c("time","tr5","tr95")
+                    
+                ## theme 
+                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                    annotate("rect", xmin= time.bf, xmax= Inf,
+                             ymin=-Inf, ymax=Inf, alpha = .3) +
+                    theme(legend.position = legend.pos,
+                          axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                          plot.title = element_text(size=20,
+                                                    hjust = 0.5,
+                                                    face="bold",
+                                                    margin = margin(10, 0, 10, 0)))
+                ## main
+                p <- p + geom_line(aes(time, outcome,
+                                       colour = type,
+                                       size = type,
+                                       linetype = type))
+                ## band
+                p <- p + geom_ribbon(data = data.band,
+                                     aes(ymin = tr5, ymax = tr95, x=time),
+                                         alpha = 0.15, fill = "red")
+
+                set.limits = c("tr","co","tr.band")
+                set.labels = c("Treated Average",
+                               "Estimated Y(0) Average",
+                                "Treated 5-95% Quantiles")
+                set.colors = c("red","steelblue","#FF000030")
+                set.linetypes = c("solid","longdash","solid")
+                set.linewidth = c(rep(line.width[1],2),4)
+
+                p <- p + scale_colour_manual(limits = set.limits,
+                                             labels = set.labels,
+                                             values =set.colors) +
+                    scale_linetype_manual(limits = set.limits,
+                                          labels = set.labels,
+                                          values = set.linetypes) +
+                    scale_size_manual(limits = set.limits,
+                                      labels = set.labels,
+                                      values = set.linewidth) +
+                    guides(linetype = guide_legend(title=NULL, ncol=2),
+                           colour = guide_legend(title=NULL, ncol=2),
+                           size = guide_legend(title=NULL, ncol=2)) 
+                    
+            } else if (raw == "all") { ## plot all the raw data
+                    
+                data <- cbind.data.frame("time" = rep(time[show],(2 + Ntr)),
+                                         "outcome" = c(Yb[show,1],
+                                                       Yb[show,2],
+                                                       c(Y.tr.aug[show,])),
+                                         "type" = c(rep("tr",nT),
+                                                    rep("co",nT),
+                                                    rep("raw.tr",(Ntr * nT))),
+                                          "id" = c(rep("tr",nT),
+                                                  rep("co",nT),
+                                                  rep(c(x$id.tr),
+                                                      each = nT))) 
+                ## theme
+                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                    annotate("rect", xmin= time.bf, xmax= Inf,
+                             ymin=-Inf, ymax=Inf, alpha = .3) +
+                    theme(legend.position = legend.pos,
+                          axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
+                          plot.title = element_text(size=20,
+                                                    hjust = 0.5,
+                                                    face="bold",
+                                                    margin = margin(10, 0, 10, 0))) 
+                ## main
+                p <- p + geom_line(aes(time, outcome,
+                                       colour = type,
+                                       size = type,
+                                       linetype = type,
+                                       group = id))
+                ## legend
+                set.limits = c("tr","co","raw.tr")
+                set.labels = c("Treated Average",
+                               "Estimated Y(0) Average",
+                               "Treated Raw Data")
+                set.colors = c("red","steelblue","#FC8D6280")
+                set.linetypes = c("solid","longdash","solid")
+                set.linewidth = c(rep(line.width[1],2),line.width[2])
+                    
+                p <- p + scale_colour_manual(limits = set.limits,
+                                             labels = set.labels,
+                                             values =set.colors) +
+                    scale_linetype_manual(limits = set.limits,
+                                          labels = set.labels,
+                                          values = set.linetypes) +
+                    scale_size_manual(limits = set.limits,
+                                      labels = set.labels,
+                                      values = set.linewidth) +
+                    guides(linetype = guide_legend(title=NULL, ncol=2),
+                           colour = guide_legend(title=NULL, ncol=2),
+                           size = guide_legend(title=NULL, ncol=2)) 
+            }
 
             ## title
             if (is.null(main) == TRUE) {
@@ -3077,13 +3277,13 @@ plot.gsynth <- function(x,
             } else if (main!="") {
                 p <- p + ggtitle(main)
             }
-            
+
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
             }
+            suppressWarnings(print(p))
         }
-        suppressWarnings(print(p))
 
     } else if (type=="factors") {
         
@@ -3259,19 +3459,19 @@ plot.gsynth <- function(x,
             col <- c(col,"#4671D5")
             col2 <- c(col2, "2"=NA)
             breaks <- c(breaks,2)
-            label <- c(label,"Treated(pre)")
+            label <- c(label,"Treated (Pre)")
         }
         if (3%in%all) {
             col <- c(col,"#06266F")
             col2 <- c(col2, "3"=NA)
             breaks <- c(breaks,3)
-            label <- c(label,"Treated(post)")
+            label <- c(label,"Treated (Post)")
         }
         if (4%in%all) {
             col <- c(col,"#A9A9A9")
             col2 <- c(col2, "4"="red")
             breaks <- c(breaks,4)
-            label <- c(label,"Treated(removed)")
+            label <- c(label,"Treated (Removed)")
         }
 
 
@@ -3358,10 +3558,34 @@ plot.gsynth <- function(x,
             p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))
         }
         suppressWarnings(print(p))
-    }
-    
+    }    
 }
 
+## counterfactual adjust
+ct.adjsut <- function (Y.tr,
+                       Y.ct, 
+                       T0) {
+    T <- dim(Y.tr)[1]
+    N <- dim(Y.tr)[2]
+    ## T.end <- T - min(T0)
+    ## T.start <-
+    T.m <- matrix(rep(1:T,N),T,N) - matrix(rep(T0,each=T),T,N)
+    timeline <- min(T.m):max(T.m)
+    Y.tr.aug <- matrix(NA,length(timeline),N)
+    Y.ct.aug <- matrix(NA,length(timeline),N)
+    for(i in 1:N) {
+        Y.tr.aug[which(timeline%in%T.m[,i]),i] <- Y.tr[,i]
+        Y.ct.aug[which(timeline%in%T.m[,i]),i] <- Y.ct[,i]
+    }
+    Y.tr.bar <- apply(Y.tr.aug, 1, mean, na.rm=TRUE)
+    Y.ct.bar <- apply(Y.ct.aug, 1, mean, na.rm=TRUE)
+    Yb <- cbind(Y.tr.bar,Y.ct.bar)
+    return(list(timeline=timeline,
+                Y.tr.aug=Y.tr.aug,
+                Y.ct.aug=Y.ct.aug,
+                Yb=Yb))
+ 
+}
 ###################################
 ## parametric bootstrap for ub data
 ###################################

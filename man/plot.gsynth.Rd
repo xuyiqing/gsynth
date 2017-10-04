@@ -4,7 +4,7 @@
 \description{Visualizes estimation results of the generalized synthetic control method.}
 \usage{\method{plot}{gsynth}(x, type = "gap", xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL, legendOff = FALSE, raw = "band",
-            main = NULL, nfactors = NULL, id = NULL, \dots)
+            main = NULL, nfactors = NULL, id = NULL, axis.adjust = FALSE, \dots)
 }
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}
