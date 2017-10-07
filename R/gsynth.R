@@ -254,6 +254,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     N <- length(unique(data[,id]))
     p <- length(Xname)
     id.series <- unique(sort(data[,id]))
+    time.uni <- unique(sort(data[,time]))
 
     ## sort data
     data <- data[order(data[,id], data[,time]), ]
@@ -304,6 +305,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     Y.ind <- matrix(data[,Yname],TT,N)
     I[is.nan(Y.ind)] <- 0
 
+
     if (0%in%I) {
     	data[is.nan(data)] <- 0
     }
@@ -319,6 +321,22 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ##outcome variable
     Y<-matrix(data[,Yname],TT,N)
     tr<-D[TT,]==1     # cross-sectional: treated unit
+    
+    I.tr.use <- apply(I[,which(!tr)],1,sum)
+    if (0%in%I.tr.use) {
+        for (i in 1:TT) {
+            if (I.tr.use[i]==0) {
+                cat("There are not any observations in control group at ",time.uni[i],", drop observations in treated group units at that period.\n")
+            }
+        }
+        I[which(I.tr.use==0),] <- 0 ## reset I
+        Y[which(I==0)] <- 0
+        data[which(c(I)==0),] <- 0
+
+    }
+
+
+
     pre<-as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
     T0<-apply(pre,2,sum) 
     T0.min<-min(T0)
@@ -340,7 +358,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     }
 
     if (T0.min < min.T0) {
-        cat("Some treated units has too few pre-treatment periods. Automatically remove them.\n")
+        cat("Some treated units has too few pre-treatment periods. \nAutomatically remove them.\n")
     }
 
     rm.tr.id <- rep(0,dim(pre)[2])
@@ -379,9 +397,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                     Xi[which(I==0)] <- NA
                     tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
                 }
-                if (tot.var.unit == 0) {
-                    ## time invariant covar can be removed
-                    cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+                if(!is.na(tot.var.unit)) {
+                    if (tot.var.unit == 0) {
+                        ## time invariant covar can be removed
+                        cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+                    }
                 }
             }
             if (force %in% c(2, 3)) {
@@ -392,9 +412,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                     Xi[which(I==0)] <- NA
                     tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
                 }
-                if (tot.var.time == 0) {
-                    ## can be removed in inter_fe
-                    cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                if (!is.na(tot.var.time)) {
+                    if (tot.var.time == 0) {
+                        ## can be removed in inter_fe
+                        cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                    }
                 }
             } 
         } 
@@ -1142,8 +1164,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ##control group residuals
     out<-list(
         ## main results
-        ## D.tr = D.tr,
-        ## I.tr = I.tr,
+        D.tr = D.tr,
+        I.tr = I.tr,
         Y.tr = Y.tr,
         Y.ct = Y.ct,
         Y.co = Y.co, 
@@ -1949,10 +1971,12 @@ synth.boot<-function(Y,
                 for(i in 1:Ntr){
                     vcov_tr[,,i]<-res.vcov(res=error.tr.adj[,,i],
                                            cov.ar=cov.ar)
+                    vcov_tr[,,i][is.na(vcov_tr[,,i])|is.nan(vcov_tr[,,i])] <- 0
                 }
                 
                 ## calculate vcov of e_co
                 vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
+                vcov_co[is.na(vcov_co)|is.nan(vcov_co)] <- 0
             }
 
             one.boot <- function(){
@@ -2018,6 +2042,7 @@ synth.boot<-function(Y,
 
             if (0%in%I) {
                 vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
+                vcov_co[is.na(vcov_co)|is.nan(vcov_co)] <- 0
             }
             
             one.boot <- function(){
@@ -2321,7 +2346,8 @@ plot.gsynth <- function(x,
     }
     if (type == "counterfactual") {
         if (! raw %in% c("none","band","all")) {
-            stop("\"raw\" option misspecifed.") 
+            cat("\"raw\" option misspecifed. Reset to \"none\".")
+            raw <- "none" 
         }
         if (is.null(id)==FALSE) {
             if (length(id)>1) {
@@ -2354,7 +2380,11 @@ plot.gsynth <- function(x,
     } else {
         angle <- 0
         x.v <- 0
-        x.h <- 0
+        if (type=="missing") {
+            x.h <- 0.5
+        } else {
+            x.h <- 0
+        }
     }
     
     ##-------------------------------##
@@ -2649,10 +2679,12 @@ plot.gsynth <- function(x,
                     } else {
                         time.bf <- time[T0.ub[id]]
                     }
+                    time <- time - time.bf
+                    time.bf <- 0
                     if (!is.null(tb)) {
                         colnames(tb) <- c("ATT", "S.E.", "CI.lower", "CI.upper","p.value")
                     } else {
-                        tb <- as.matrix(out$eff[,id])
+                        tb <- as.matrix(x$eff[,id])
                         colnames(tb) <- "ATT" 
                     } 
                 }
