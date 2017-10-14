@@ -1,5 +1,6 @@
 # include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins(cpp11)]]
 
 using namespace Rcpp ;
 
@@ -192,14 +193,14 @@ List panel_factor (arma::mat E, int r) {
   if (T < N) { 
     arma::mat EE = E * E.t() /(N * T) ;
     arma::svd( U, s, V, EE) ;
-    factor = U.head_cols(r) * sqrt(T) ;
+    factor = U.head_cols(r) * sqrt(double(T)) ;
     lambda = E.t() * factor/T ;
     VNT = diagmat(s.head_rows(r)) ;
   } 
   else {
     arma::mat EE = E.t() * E / (N * T) ;
     svd(U, s, V, EE) ;
-    lambda = U.head_cols(r) * sqrt(N) ;
+    lambda = U.head_cols(r) * sqrt(double(N)) ;
     factor = E * lambda / N ;
     VNT = diagmat(s.head_rows(r)) ;
   }
@@ -770,7 +771,7 @@ List inter_fe_ub (arma::mat Y,
     } 
     else if (r > 0) {       
       List out  =  beta_iter_ub(XX, invXX, YY, I, r, tol, beta0) ;
-      beta  = as<arma::mat>(out["beta"]) ;
+      beta  =  as<arma::mat>(out["beta"]) ;
       factor  =  as<arma::mat>(out["factor"]) ;
       lambda  =  as<arma::mat>(out["lambda"]) ;
       VNT  =  as<arma::mat>(out["VNT"]) ;
