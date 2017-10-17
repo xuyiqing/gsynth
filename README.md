@@ -12,5 +12,10 @@
 **Note:**
 
 Rcpp, RcppArmadillo and MacOS "-lgfortran" and "-lquadmath" error, see: http://thecoatlessprofessor.com/programming/rcpp-rcpparmadillo-and-os-x-mavericks-lgfortran-and-lquadmath-error/
+
 Installation failture related to OpenMP on MacOS, see:
 http://thecoatlessprofessor.com/programming/openmp-in-r-on-os-x/
+
+To fix these problems, consider installing: 
+gfortran 6.1 from https://gcc.gnu.org/wiki/GFortranBinaries#MacOS
+clang4 R Binaries from https://github.com/coatless/r-macos-clang
