@@ -49,8 +49,8 @@
   Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
 }
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
-  with Interactive Fixed Effects Models." Political Analysis,
-  forthcoming. Available at: \url{https://doi.org/10.1017/pan.2016.2}.
+  with Interactive Fixed Effects Models." Political Analysis, Vol. 25, 
+  Iss. 1, January 2017, pp. 57-76. Available at: \url{https://doi.org/10.1017/pan.2016.2}.
 
   See \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html} for
   more detailed information.

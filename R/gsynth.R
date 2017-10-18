@@ -614,11 +614,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##
     ## Parsing data
     ##-------------------------------##  
-    
+    na.pos <- NULL
     ## unit id and time
     TT <-dim(Y)[1]
     N<-dim(Y)[2]
     if (is.null(X)==FALSE) {p<-dim(X)[3]} else {p<-0}
+
      
     ## treatement indicator
     tr <- D[TT,] == 1  ## cross-sectional: treated unit
@@ -697,11 +698,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         }
                 
         if (p > 0) {
-            if (est.co.best$validX == 0) {
-                est.co.best$beta <- matrix(0, p, 1) 
-            }
             na.pos <- is.nan(est.co.best$beta)
-            est.co.best$beta[is.nan(est.co.best$beta)] <- 0 ## time invariant covar
             
         } 
         r.cv<-r
@@ -745,11 +742,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             }       
    
             if (p > 0) {
-                if (est.co$validX == 0) {
-                    est.co$beta <- 0
-                }
                 na.pos <- is.nan(est.co$beta)
-                est.co$beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
+                ## if (est.co$validX == 0) {
+                ##     beta <- matrix(0, p, 1) 
+                ## }
+                beta <- est.co$beta
+                beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
             } 
             
             if (is.null(norm.para)) {
@@ -772,7 +770,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             
             if (p>0) {
                 for (j in 1:p) {
-                    U.tr<-U.tr-X.tr[,,j]*est.co$beta[j]
+                    U.tr<-U.tr-X.tr[,,j]*beta[j]
                 }
             }
             
@@ -939,7 +937,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
 
     if (p>0) {
         beta<-est.co.best$beta
-        beta[is.nan(beta)] <- 0
+        if (est.co.best$validX == 0) {
+            beta <- matrix(0, p, 1) 
+        } else {
+            beta <- est.co.best$beta
+            beta[is.nan(est.co.best$beta)] <- 0
+        }
         ## if (!is.null(norm.para)) {
         ##     est.co.best$beta <- est.co.best$beta/norm.para[2]    
         ## }
@@ -1326,9 +1329,11 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 
     if (p > 0) {
         beta0 <- init$beta
-        beta0[is.na(beta0)] <- 0
+        if (NA%in%beta0) {
+            beta0 <- as.matrix(beta0[which(!is.na(beta0))])
+        }
     } else {
-        beta0 <- matrix(0, 0, 0)
+        beta0 <- matrix(0, 0, 1)
     }
     
     diff <- 100
@@ -1743,6 +1748,7 @@ synth.boot<-function(Y,
                      cores = NULL){
     
     
+    na.pos <- NULL
     TT<-dim(Y)[1]
     N<-dim(Y)[2]
     if (is.null(X)==FALSE) {
@@ -1804,10 +1810,17 @@ synth.boot<-function(Y,
     att.avg<-out$att.avg
     if (p > 0) {
         beta <- out$beta
-        na.pos <- is.na(beta)
-        beta[na.pos] <- 0
+        if (NA%in%beta) {
+            if (sum(is.na(beta))<p) {
+                beta.it <- as.matrix(beta[which(!is.na(beta))])
+            } else {
+                beta.it <- matrix(0,0,1)
+            }
+        } else {
+            beta.it <- beta
+        }
     } else {
-        beta<-matrix(0,0,1)
+        beta.it <- beta <-matrix(0,0,1)
     }
     
     error.co<-out$res.co ## error terms (T*Nco) contains NA unbalanced data
@@ -1838,7 +1851,7 @@ synth.boot<-function(Y,
                 boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
                                  force = force, r = out$r.cv, CV=0,
                                  tol = tol, AR1 = AR1,
-                                 beta0 = beta, norm.para = norm.para)
+                                 beta0 = beta.it, norm.para = norm.para)
                 return(boot)
                 
             } 
@@ -1929,7 +1942,7 @@ synth.boot<-function(Y,
                 synth.out <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
                                         I = I.id.pseudo,
                                         force = force, r = out$r.cv, CV = 0,
-                                        tol = tol, AR1 = AR1, beta0 = beta,
+                                        tol = tol, AR1 = AR1, beta0 = beta.it,
                                         norm.para = norm.para)
                 if (is.null(norm.para)) {
                     output <- synth.out$eff
@@ -2014,7 +2027,7 @@ synth.boot<-function(Y,
                 boot <- synth.core(Y.boot, X.boot, D.boot, I=I.boot,
                                    force = force, r = out$r.cv,
                                    CV = 0, tol = tol, AR1 = AR1,
-                                   beta0 = beta, norm.para = norm.para)
+                                   beta0 = beta.it, norm.para = norm.para)
 
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
