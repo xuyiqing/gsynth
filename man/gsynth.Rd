@@ -78,9 +78,12 @@ on interactive fixed effect models.}
   \item{index}{name of the unit and time indicators.}
   \item{id}{a vector of unit IDs.}
   \item{time}{a vector of time periods.}
-  \item{obs.missing}{a matrix of indicators of observations.}
+  \item{obs.missing}{a matrix stroing status of each unit at each time point. 
+    \code{0} for missing, \code{1} for control group units, \code{2} for treat group units at pre-treatment period, \code{3} for treat group units at post-treatment period, and \code{4} for removed treated group units. Useful for unbalanced panel data.}
   \item{id.tr}{a vector of IDs for the treatment units.}
   \item{id.co}{a vector of IDs for the control units.}
+  \item{D.tr}{a matrix of treatment indicator for the treated unit outcome.}
+  \item{I.tr}{a matrix of observation indicator for the treated unit outcome.}
   \item{Y.tr}{data of the treated unit outcome.}
   \item{Y.ct}{predicted counterfactuals for the treated units.}
   \item{Y.co}{data of the control unit outcome.}
@@ -97,10 +100,7 @@ on interactive fixed effect models.}
   \item{Ntr}{the number of treated units.}
   \item{Nco}{the number of control units.}
   \item{T0}{a vector that stores the timing of the treatment for balanced panel
-    data or pre-treatment periods of each treated unit for unbalanced panel
     data.}
-  \item{T0.ub}{a vector that stores the timing of the treatment for 
-    unbalanced panel data.}
   \item{tr}{a vector indicating treatment status for each unit.}
   \item{pre}{a matrix indicating the pre-treatment/non-treatment status.}
   \item{post}{a matrix indicating the post-treatment status.}
@@ -125,11 +125,17 @@ on interactive fixed effect models.}
   \item{lambda.co}{estimated loadings for the control group.}
   \item{lambda.tr}{estimated loadings for the treatment group.}
   \item{mu}{estimated ground mean. }
-  \item{xi}{estimated time fixed effects. }
+  \item{xi}{estimated time fixed effects.}
   \item{alpha.tr}{estimated unit fixed effects for the treated units.}
   \item{alpha.co}{estimated unit fixed effects for the control units.}
-  \item{obs.missing}{a matrix stroing status of each unit at each time point. 
-    \code{0} for missing, \code{1} for control group units, \code{2} for treat group units at pre-treatment period, \code{3} for treat group units at post-treatment period, and \code{4} for removed treated group units. Useful for unbalanced panel data.} 
+  \item{validX}{a logic value indicating if multicollinearity exists.}
+  \item{inference}{a string indicating bootstrap procedure.}
+  \item{est.att}{inference for \code{att}.}
+  \item{est.att.avg}{inference for \code{att.avg}.}
+  \item{est.beta}{inference for \code{beta}.}
+  \item{est.ind}{inference for \code{att} of each treated unit.}
+  \item{att.boot}{bootstrap results for \code{att}.}
+  \item{beta.boot}{bootstrap results for \code{beta}.}
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>

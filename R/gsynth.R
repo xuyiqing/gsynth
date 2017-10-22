@@ -624,8 +624,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## treatement indicator
     tr <- D[TT,] == 1  ## cross-sectional: treated unit
     co <- D[TT,] == 0
-    I.tr<-I[,tr]
-    I.co<-I[,co]
+    I.tr <- as.matrix(I[,tr]) ## maybe only 1 treated unit
+    I.co <- I[,co]
 
     if (!0%in%I.tr) {
         ## a (TT*Ntr) matrix, time dimension: before treatment
@@ -1067,9 +1067,13 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
     
     ## ATT and average outcomes
-    if (sameT0 == TRUE & (!0%in%I.tr)) { ## diff-in-diffs: same timing
-        att <- rowMeans(eff)
-    }  else { ## diff timing, centered the att
+    if (DID == TRUE) { ## diff-in-diffs: same timing
+        if (!0%in%I.tr) {
+            att <- rowMeans(eff)
+        } else {
+            att <- rowSums(eff)/rowSums(I.tr)
+        }
+    } else { ## diff timing, centered the att
         if (!0%in%I.tr) {
             eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
             for (j in 1:Ntr) {
@@ -1159,6 +1163,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         }
     }
 
+    T0<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+
     
     ##-------------------------------##
     ## Storage 
@@ -1185,7 +1191,6 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         Ntr = Ntr,
         Nco = Nco,
         T0 = T0,
-        T0.ub = T0.ub,
         tr = tr,
         pre = pre,
         post = post,
@@ -1200,7 +1205,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     out <- c(out,list(sigma2 = sigma2, res.co=res.co))
     
 
-    if ( sameT0 == FALSE | 0%in%I.tr ) {
+    if ( DID == FALSE ) {
         out<-c(out,list(eff.cnt = eff.cnt,
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
@@ -1263,10 +1268,10 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     if (is.null(X)==FALSE) {p<-dim(X)[3]} else {p<-0}
      
     ## treatement indicator
-    tr<-D[TT,]==1  ## cross-sectional: treated unit
-    co<-D[TT,]==0
-    I.tr<-I[,tr]
-    I.co<-I[,co]
+    tr <- D[TT,]==1  ## cross-sectional: treated unit
+    co <- D[TT,]==0
+    I.tr <- as.matrix(I[,tr])
+    I.co <- I[,co]
 
     if (!0%in%I.tr) {
         ## a (TT*Ntr) matrix, time dimension: before treatment
@@ -1395,8 +1400,12 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
 
     ## ATT and average outcomes
-    if (sameT0 == TRUE & (!0%in%I.tr)) { ## diff-in-diffs: same timing
-        att <- rowMeans(eff)
+    if (DID == TRUE) { ## diff-in-diffs: same timing
+        if (!0%in%I.tr) {
+            att <- rowMeans(eff)
+        } else {
+            att <- rowSums(eff)/rowSums(I.tr)
+        }
     }  else { ## diff timing, centered the att
         if (!0%in%I.tr) {
             eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
@@ -1507,6 +1516,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         }
     }
 
+    T0<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
+
     
     ##-------------------------------##
     ## Storage 
@@ -1532,7 +1543,6 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         Ntr=Ntr,
         Nco=Nco,
         T0=T0,
-        T0.ub = T0.ub,
         tr=tr,
         pre=pre,
         post = post,
@@ -1548,7 +1558,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     out <- c(out,list(sigma2 = sigma2, res.co = res.co))
     
     
-    if(!sameT0) {
+    if (DID==FALSE) {
         out<-c(out,list(eff.cnt=eff.cnt, ##
                         Y.tr.cnt=Y.tr.cnt, ##
                         Y.ct.cnt=Y.ct.cnt)) ##
@@ -1610,7 +1620,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
     ## treatement indicator
     tr<-D[TT,]==1  ## cross-sectional: treated unit
     co<-D[TT,]==0
-    I.tr<-I[,tr]
+    I.tr<-as.matrix(I[,tr])
     I.co<-I[,co]
     D.tr<-D[,tr]
 
@@ -1760,11 +1770,11 @@ synth.boot<-function(Y,
     ## treatement indicator
     tr<-D[TT,]==1  ## cross-sectional: treated unit
     co <- D[TT,] == 0 
-    I.tr<-I[,tr]
-    I.co<-I[,co]
-    D.tr<-D[,tr]
-    pre<-as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]!=0)
-    post<-as.matrix(D[,which(tr==1)]!=0&I[,which(tr==1)]!=0)
+    I.tr <- as.matrix(I[,tr])
+    I.co <- I[,co]
+    D.tr <- D[,tr]
+    pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]!=0)
+    post <- as.matrix(D[,which(tr==1)]!=0&I[,which(tr==1)]!=0)
                                          
     Ntr<-sum(tr)
     Nco<-N-Ntr
@@ -1808,6 +1818,8 @@ synth.boot<-function(Y,
     eff<-out$eff
     att<-out$att
     att.avg<-out$att.avg
+    DID <- out$DID
+
     if (p > 0) {
         beta <- out$beta
         if (NA%in%beta) {
@@ -2148,10 +2160,10 @@ synth.boot<-function(Y,
     se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
     pvalue.att <- apply(att.boot, 1, get.pvalue)
 
-    if (sameT0 == TRUE & !0%in%I) {
+    if (DID == TRUE) {
         ntreated <- apply(post, 1, sum)
     } else {
-        if (!0%in%I) {
+        if (!0%in%I.tr) {
             rawcount <- apply(1-pre, 1, sum)
             ntreated <- c(rep(0, T0.min), rev(rawcount[(T0.min + 1): TT]))
         } else {
@@ -2168,10 +2180,14 @@ synth.boot<-function(Y,
     est.att <- cbind(att, se.att, CI.att, pvalue.att, ntreated)
     colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper",
                            "p.value", "n.Treated")
-    if (sameT0 == TRUE) {
+    if (DID == TRUE) {
         rownames(est.att) <- time
     } else {
-        rownames(est.att) <- c(1:TT) - min(T0)
+        if (!0%in%I.tr) {
+            rownames(est.att) <- c(1:TT) - min(T0)
+        } else {
+            rownames(est.att) <- c(1:TT) - min(T0.ub)
+        }
     }
     
     ## average (over time) ATT
@@ -2417,7 +2433,6 @@ plot.gsynth <- function(x,
     # I.tr <- x$I.tr
     TT <- x$T
     T0 <- x$T0 ## notice
-    T0.ub <- x$T0.ub
     p <- x$p
     ## m <- x$m
     Ntr <- x$Ntr
@@ -2464,17 +2479,9 @@ plot.gsynth <- function(x,
         }
         
         if (length(id) == 1) {
-            if (!0%in%I.tr) {
-                time.bf <- time[T0[which(id == x$id.tr)]]
-            } else {
-                time.bf <- time[T0.ub[which(id==x$id.tr)]]
-            }
+            time.bf <- time[T0[which(id == x$id.tr)]]
         } else {
-            if (!0%in%I.tr) {
-                time.bf <- time[unique(T0)]
-            } else {
-                time.bf <- time[unique(T0.ub)]
-            }
+            time.bf <- time[unique(T0)]
         }
 
         ## periods to show
@@ -2493,13 +2500,8 @@ plot.gsynth <- function(x,
     }
 
     if (type == "gap")  { ## variable treatment timing
-        if(!0%in%I.tr){
-            time <- c(1:TT) - min(T0)
-            time.bf <- 0 ## before treatment
-        } else {
-            time <- c(1:TT) - min(T0.ub)
-            time.bf <- 0
-        }
+        time <- c(1:TT) - min(T0)
+        time.bf <- 0 ## before treatment
 
         if (length(xlim) != 0) {
             show <- which(time>=xlim[1]& time<=xlim[2])     
@@ -2556,16 +2558,10 @@ plot.gsynth <- function(x,
         } else if (ylab == "") {
             ylab <- NULL
         }
-        if (!0%in%I.tr) {
-            pst <- (1 - x$pre)
-            for (i in 1:Ntr){
-                pst[T0[i],i] <- 1 ## paint the period right before treatment
-            }
-        } else {
-            pst <- D.tr
-            for(i in 1:Ntr){
-                pst[T0.ub[i],i] <- 1 ## unbalanced treated units
-            }
+            
+        pst <- D.tr
+        for (i in 1:Ntr){
+            pst[T0[i],i] <- 1 ## paint the period right before treatment
         }
         time.pst <- c(pst[show,] * time[show])
         time.pst <- time.pst[which(c(pst[show,])==1)]
@@ -2687,11 +2683,7 @@ plot.gsynth <- function(x,
                 if (length(id) == 1) { ## id specified
                     id <- which(x$id.tr == id)
                     tb <- x$est.ind[,,id]
-                    if (!0%in%I.tr) {
-                        time.bf <- time[T0[id]] 
-                    } else {
-                        time.bf <- time[T0.ub[id]]
-                    }
+                    time.bf <- time[T0[id]] 
                     time <- time - time.bf
                     time.bf <- 0
                     if (!is.null(tb)) {
@@ -3145,11 +3137,7 @@ plot.gsynth <- function(x,
                 ylab <- NULL
             }
             
-            if (!0%in%I.tr) {
-                xx <- ct.adjsut(x$Y.tr, x$Y.ct, x$T0)
-            } else {
-                xx <- ct.adjsut(x$Y.tr, x$Y.ct, x$T0.ub)
-            }
+            xx <- ct.adjsut(x$Y.tr, x$Y.ct, x$T0)
 
             time <- xx$timeline
             Yb <- xx$Yb

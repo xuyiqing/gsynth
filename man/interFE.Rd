@@ -45,10 +45,9 @@
   \item{ValidX}{a bool value specifying whether there are valid covariates.}
   \item{dat.Y}{a matrix storing data of the outcome variable.}
   \item{dat.X}{an array storing data of the independent variables.}
-  \item{Y}{Name of the outcome variable.}
-  \item{D}{Name of the treatment variable.}
-  \item{X}{Name of the time-varying control variables.}
-  \item{index}{Name of the unit and time indicators.}
+  \item{Y}{name of the outcome variable.}
+  \item{X}{name of the time-varying control variables.}
+  \item{index}{name of the unit and time indicators.}
   \item{est.table}{a table of the estimation results.}
   \item{est.boot}{a matrix storing results from bootstraps.}
 }
