@@ -6,7 +6,8 @@ on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X=NULL, na.rm = FALSE, index, 
        force = "unit", r = 0, CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
-       cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, normalize = FALSE)  
+       cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
+       normalize = FALSE, quick_missing = FALSE)  
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of
@@ -56,6 +57,8 @@ on interactive fixed effect models.}
   periods. Treated units with pre-treatment periods less than that will be removed automatically.}
 \item{normalize}{a logic flag indicating whether to scale outcome and 
   covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
+\item{quick_missing}{a logic flag indicating whether to plot the missing 
+  plot(see \code{\link{plot.gsynth}}) before run the algorithm.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It

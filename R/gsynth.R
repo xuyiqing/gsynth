@@ -43,7 +43,8 @@ gsynth <- function(formula=NULL,data, # a data frame (long-form)
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
                    min.T0 = 5,
-                   normalize = FALSE
+                   normalize = FALSE,
+                   quick_missing = FALSE
                    ) {
     UseMethod("gsynth")
 }
@@ -69,7 +70,8 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
-                           normalize = FALSE
+                           normalize = FALSE,
+                           quick_missing = FALSE
                            ) {
     ## parsing
     varnames <- all.vars(formula)
@@ -86,11 +88,15 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
                           na.rm, index, force, r,
                           CV, EM, se, nboots, 
                           inference, cov.ar, 
-                          parallel, cores, tol, seed, min.T0, normalize)
-    out$call <- match.call()
-    out$formula <- formula
-    print(out)
-    return(out)
+                          parallel, cores, tol, seed, min.T0, 
+                          normalize, quick_missing)
+    
+    if (quick_missing==FALSE) {
+        out$call <- match.call()
+        out$formula <- formula
+        print(out)
+        return(out)
+    }
 }
 
 ## default function
@@ -114,7 +120,8 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
-                           normalize = FALSE
+                           normalize = FALSE,
+                           quick_missing = FALSE
                            ){  
     
     ##-------------------------------##
@@ -162,17 +169,23 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         r.end <- r[2]; r <- r[1]
     }
     ## EM
-    if (is.logical(EM) == FALSE & is.numeric(EM)==FALSE) {
+    if (is.logical(EM) == FALSE & !EM%in%c(0, 1)) {
         stop("EM is not a logical flag.")
     }
     ## se
-    if (is.logical(se) == FALSE & is.numeric(se)==FALSE) {
+    if (is.logical(se) == FALSE & !se%in%c(0, 1)) {
         stop("se is not a logical flag.")
     } 
     ## normalize
-    if (is.logical(normalize) == FALSE & is.numeric(normalize)==FALSE) {
+    if (is.logical(normalize) == FALSE & !normalize%in%c(0, 1)) {
         stop("normalize is not a logical flag.")
     } 
+
+    ## normalize
+    if (is.logical(quick_missing) == FALSE & !quick_missing%in%c(0, 1)) {
+        stop("quick_missing is not a logical flag.")
+    } 
+
 
     ## inference
     if (inference == "para") {
@@ -207,7 +220,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         }
     }
     ## remove missing values
-    if (is.logical(na.rm) == FALSE & is.numeric(na.rm)==FALSE) {
+    if (is.logical(na.rm) == FALSE & !na.rm%in%c(0, 1)) {
         stop("na.rm is not a logical flag.")
     } 
     if (na.rm == TRUE) {
@@ -224,17 +237,19 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     Xname <- X
 
     ## normalize
-    norm.para <- NULL
-    if (normalize==TRUE) {
-        sd.Y <- sd(as.matrix(data[,Yname]))
-        data[,c(Yname, Xname)] <- data[,c(Yname, Xname)]/sd.Y
-        ## if (length(Xname)>0) {
-        ##     sd.X <- apply(as.matrix(data[,Xname]),2,sd)
-        ##     data[,Xname] <- as.matrix(data[,Xname])/sd.X
-        ##     norm.para <- c(sd.Y,sd.X)
-        ## } else {
-            norm.para <- sd.Y
-        ## }   
+    if (quick_missing==FALSE) {
+        norm.para <- NULL
+        if (normalize==TRUE) {
+            sd.Y <- sd(as.matrix(data[,Yname]))
+            data[,c(Yname, Xname)] <- data[,c(Yname, Xname)]/sd.Y
+            ## if (length(Xname)>0) {
+            ##     sd.X <- apply(as.matrix(data[,Xname]),2,sd)
+            ##     data[,Xname] <- as.matrix(data[,Xname])/sd.X
+            ##     norm.para <- c(sd.Y,sd.X)
+            ## } else {
+                norm.para <- sd.Y
+            ## }   
+        }
     }
     ## else if (normalize==2) {
     ##     sd.Y <- sd(as.matrix(data[,Yname]))
@@ -266,13 +281,21 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     if (sum(is.na(data[, Dname])) > 0) {
         stop(paste("Missing values in variable \"", Dname,"\".", sep = ""))
     }
-    if (p > 0) {
-        for (i in 1:p) {
-            if (sum(is.na(data[, Xname[i]])) > 0) {
-                stop(paste("Missing values in variable \"", Xname[i],"\".", sep = ""))
+
+    if (!(1%in%data[, Dname]&0%in%data[,Dname]&length(unique(data[,Dname]))==2)) {
+        stop(paste("Error values in variable \"", Dname,"\".", sep = ""))
+    }
+
+    if (quick_missing==FALSE) {
+        if (p > 0) {
+            for (i in 1:p) {
+                if (sum(is.na(data[, Xname[i]])) > 0) {
+                    stop(paste("Missing values in variable \"", Xname[i],"\".", sep = ""))
+                }
             }
         }
     }
+
     if (sum(is.na(data[, id])) > 0) {
         stop(paste("Missing values in variable \"", id,"\".", sep = ""))
     }
@@ -285,14 +308,22 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         
         data[,time]<-as.numeric(as.factor(data[,time]))
         ob <- "time_ob_ls"
-        if(ob%in%colnames(data)){
+        
+        while(ob%in%colnames(data)){
             ob <- paste(ob,ob,sep="")
         }
+
         data[,ob]<-data[,time]
         for (i in 1:N) {
             data[data[,id]==id.series[i],ob] <- data[data[,id]==id.series[i],time]+(i-1)*TT  
         }
-        variable <- c(Yname,Dname,Xname)
+
+        if (quick_missing==TRUE) {
+            variable <- c(Yname, Dname)
+        } else {
+            variable <- c(Yname, Dname, Xname)
+        }
+
         data_I <- matrix(0,N*TT,1)
         data_I[c(data[,ob]),1] <- 1
         data_ub <- as.matrix(data[,variable])
@@ -329,13 +360,16 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                 cat("There are not any observations in control group at ",time.uni[i],", drop observations in treated group units at that period.\n")
             }
         }
-        I[which(I.tr.use==0),] <- 0 ## reset I
+        TT <- TT - sum(I.tr.use==0)
+        time.uni <- time.uni[-which(I.tr.use==0)]
+        
+        I <- I[-which(I.tr.use==0),]
+        D <- D[-which(I.tr.use==0),]
+        Y <- Y[-which(I.tr.use==0),]
+
         Y[which(I==0)] <- 0
-        data[which(c(I)==0),] <- 0
-
+        data <- data[-which(rep(I.tr.use, N)==0),]
     }
-
-
 
     pre<-as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
     T0<-apply(pre,2,sum) 
@@ -383,50 +417,54 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         id.tr <- id.tr[-rm.tr.pos]
     }
     
-    ## time-varying covariates
-    X <- array(0,dim=c(TT,N,p))
+    if (quick_missing==FALSE) {
+        ## time-varying covariates
+        X <- array(0,dim=c(TT,N,p))
 
-    if (p > 0) {
-        for (i in 1:p) {
-            X[,,i] <- matrix(data[, Xname[i]], TT, N)
-            if (force %in% c(1,3)) {
-                if (!0%in%I) {
-                    tot.var.unit <- sum(apply(X[, , i], 2, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I==0)] <- NA
-                    tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
-                }
-                if(!is.na(tot.var.unit)) {
-                    if (tot.var.unit == 0) {
-                        ## time invariant covar can be removed
-                        cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+        if (p > 0) {
+            for (i in 1:p) {
+                X[,,i] <- matrix(data[, Xname[i]], TT, N)
+                if (force %in% c(1,3)) {
+                    if (!0%in%I) {
+                        tot.var.unit <- sum(apply(X[, , i], 2, var))
+                    } else {
+                        Xi <- X[,,i]
+                        Xi[which(I==0)] <- NA
+                        tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
+                    }
+                    if(!is.na(tot.var.unit)) {
+                        if (tot.var.unit == 0) {
+                            ## time invariant covar can be removed
+                            cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+                        }
                     }
                 }
-            }
-            if (force %in% c(2, 3)) {
-                if (!0%in%I) {
-                    tot.var.time <- sum(apply(X[, , i], 1, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I==0)] <- NA
-                    tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
-                }
-                if (!is.na(tot.var.time)) {
-                    if (tot.var.time == 0) {
-                        ## can be removed in inter_fe
-                        cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                if (force %in% c(2, 3)) {
+                    if (!0%in%I) {
+                        tot.var.time <- sum(apply(X[, , i], 1, var))
+                    } else {
+                        Xi <- X[,,i]
+                        Xi[which(I==0)] <- NA
+                        tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
+                    } 
+                    if (!is.na(tot.var.time)) {
+                        if (tot.var.time == 0) {
+                            ## can be removed in inter_fe
+                            cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                        }
                     }
-                }
+                } 
             } 
-        } 
+        }
     }
 
     if (1 %in% rm.tr.id) {
-        X.old <- X
-        X <- array(0,dim=c(TT,(N - length(rm.tr.id.s)),p))
-        for (i in 1:p) {
-            X[,,i] <- X.old[,-rm.tr.id.s,i]
+        if (quick_missing==FALSE) {
+            X.old <- X
+            X <- array(0,dim=c(TT,(N - length(rm.tr.id.s)),p))
+            for (i in 1:p) {
+                X[,,i] <- X.old[,-rm.tr.id.s,i]
+            }
         }
         Y <- Y[,-rm.tr.id.s]
         D <- D[,-rm.tr.id.s]
@@ -434,10 +472,12 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         I <- I[,-rm.tr.id.s] ## after removing
     }    
 
-    if (is.null(dim(X)[3])==TRUE) {
-        p <- 0
-    } else {
-        p <- dim(X)[3]
+    if (quick_missing==FALSE) {
+        if (is.null(dim(X)[3])==TRUE) {
+            p <- 0
+        } else {
+            p <- dim(X)[3]
+        }
     }
     ## for AR1, burn the first period
     AR1 <- FALSE
@@ -463,7 +503,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ## Register clusters
     ##-------------------------------##
     
-    if (se == TRUE & parallel==TRUE) {
+    if (se == TRUE & parallel==TRUE & quick_missing==FALSE) {
    
         if (is.null(cores)==TRUE) {
             cores <- detectCores()
@@ -477,48 +517,50 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ## run main program
     ##-------------------------------##
 
-    if (se == FALSE) {
-        if (EM == FALSE) { # the algorithm suggested in the paper 
-            out<-synth.core(Y = Y, X = X, D = D, I = I,
-                            r = r, r.end = r.end, force = force,
-                            CV = CV, tol = tol, 
-                            AR1 = AR1, norm.para = norm.para)
+    if (quick_missing==FALSE) {
+        if (se == FALSE) {
+            if (EM == FALSE) { # the algorithm suggested in the paper 
+                out<-synth.core(Y = Y, X = X, D = D, I = I,
+                                r = r, r.end = r.end, force = force,
+                                CV = CV, tol = tol, 
+                                AR1 = AR1, norm.para = norm.para)
 
-        } else { # EM algorithm
-            if (CV == FALSE) { 
-                out<-synth.em(Y = Y, X = X, D = D, I = I,
-                              r = r, force = force,
-                              tol = tol, AR1 = AR1, norm.para = norm.para)
+            } else { # EM algorithm
+                if (CV == FALSE) { 
+                    out<-synth.em(Y = Y, X = X, D = D, I = I,
+                                  r = r, force = force,
+                                  tol = tol, AR1 = AR1, norm.para = norm.para)
 
                 
-            } else { # cross-validation
-                out<-synth.em.cv(Y = Y,X = X, D = D, I = I,
-                                 r = r, r.end = r.end, force = force,
-                                 tol = tol, AR1 = AR1, norm.para = norm.para)
+                } else { # cross-validation
+                    out<-synth.em.cv(Y = Y,X = X, D = D, I = I,
+                                     r = r, r.end = r.end, force = force,
+                                     tol = tol, AR1 = AR1, norm.para = norm.para)
 
+                } 
             } 
+        } else  {
+            if (is.null(seed) == FALSE) {
+                set.seed(seed)
+            }
+            out<-synth.boot(Y = Y, X = X, D = D, I=I, EM = EM,
+                            r = r, r.end = r.end, force = force,
+                            CV = CV, tol = tol,
+                            nboots = nboots, inference = inference,
+                            cov.ar = cov.ar,
+                            parallel = parallel, cores = cores,           
+                            AR1 = AR1, norm.para = norm.para)
+
         } 
-    } else  {
-        if (is.null(seed) == FALSE) {
-            set.seed(seed)
+
+        if (se == TRUE & parallel == TRUE) {
+            stopCluster(para.clusters)
+            ##closeAllConnections()
         }
-        out<-synth.boot(Y = Y, X = X, D = D, I=I, EM = EM,
-                        r = r, r.end = r.end, force = force,
-                        CV = CV, tol = tol,
-                        nboots = nboots, inference = inference,
-                        cov.ar = cov.ar,
-                        parallel = parallel, cores = cores,           
-                        AR1 = AR1, norm.para = norm.para)
 
-    } 
-
-    if (se == TRUE & parallel == TRUE) {
-        stopCluster(para.clusters)
-        ##closeAllConnections()
-    }
-
-    if ( (out$validX == 0) & (p!=0) ) {
-        warning("Multi-colinearity among covariates. Try removing some of them.\r")
+        if ( (out$validX == 0) & (p!=0) ) {
+            warning("Multi-colinearity among covariates. Try removing some of them.\r")
+        }
     }
     
     
@@ -528,6 +570,12 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     
     iname.old <- iname <- unique(sort(data.old[,id]))
     tname.old <- tname <- unique(sort(data.old[,time]))
+    if (!0%in%I.tr.use) {
+        tname.old <- tname <- unique(sort(data.old[,time]))
+    } else {
+        tname.old <- tname <- unique(sort(data.old[,time]))[which(I.tr.use!=0)]
+    }
+
     
     if (1%in%rm.tr.id) {
         tr.remove.id <- iname[rm.tr.id.s]
@@ -535,9 +583,24 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     }
 
     obs.missing <-matrix(1,TT,N) ## control group:1
-    tr.pre <- out$pre
+    
+    if (quick_missing==FALSE) {
+        tr.pre <- out$pre
+        tr.post <- out$post
+    } else {
+        tr.q <- D[TT,] == 1  ## cross-sectional: treated unit
+        I.tr.q <- as.matrix(I[,tr.q]) ## maybe only 1 treated unit
+        if (!0%in%I.tr.q) {
+            ## a (TT*Ntr) matrix, time dimension: before treatment
+            tr.pre <- as.matrix(D[,which(tr.q==1)]==0)
+            tr.post <- as.matrix(D[,which(tr.q==1)]==1)   
+        } else {
+            tr.pre <- as.matrix(D[,which(tr.q==1)]==0&I[,which(tr.q==1)]==1)
+            tr.post <- as.matrix(D[,which(tr.q==1)]==1&I[,which(tr.q==1)]==1)
+        }   
+    }
+
     tr.pre[which(tr.pre==1)] <- 2 ## pre 2
-    tr.post <- out$post
     tr.post[which(tr.post==1)] <- 3 ## post 3
     obs.missing[,id.tr] <- tr.pre + tr.post
 
@@ -554,42 +617,58 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     ## obs.missing[which(obs.missing==0)] <- "missing"
 
     colnames(obs.missing) <- unique(sort(data.old[,id]))
-    rownames(obs.missing) <- unique(sort(data.old[,time]))
     
-    if (AR1 == TRUE) {
-        tname <- tname[-1]
-    } 
-    Xname.tmp <- Xname
-    if (AR1 == TRUE) {
-        Xname.tmp<-c(paste(Yname,"_lag",sep=""),Xname)
-    }
-    rownames(out$beta)<-Xname.tmp
-    if (se == TRUE) {
-        rownames(out$est.beta)<-Xname.tmp
-    } 
-    colnames(out$eff) <- iname[which(out$tr==1)]
-    rownames(out$eff) <- tname
+    rownames(obs.missing) <- tname
+    
+    if (quick_missing==FALSE) {
+        if (AR1 == TRUE) {
+            tname <- tname[-1]
+        } 
+        Xname.tmp <- Xname
+        if (AR1 == TRUE) {
+            Xname.tmp<-c(paste(Yname,"_lag",sep=""),Xname)
+        }
+        rownames(out$beta)<-Xname.tmp
+        if (se == TRUE) {
+            rownames(out$est.beta)<-Xname.tmp
+        } 
+        colnames(out$eff) <- iname[which(out$tr==1)]
+        rownames(out$eff) <- tname
    
-    output <- c(list(Y.dat = Y,
-                     Y = Yname,
-                     D = Dname,
-                     X = Xname,
-                     index = index,
-                     id = iname,
-                     time = tname,
-                     obs.missing = obs.missing, 
-                     id.tr = iname[which(out$tr==1)],
-                     id.co = iname[which(out$tr==0)]),
-                out)
+        output <- c(list(Y.dat = Y,
+                         Y = Yname,
+                         D = Dname,
+                         X = Xname,
+                         index = index,
+                         id = iname,
+                         time = tname,
+                         obs.missing = obs.missing, 
+                         id.tr = iname[which(out$tr==1)],
+                         id.co = iname[which(out$tr==0)]),
+                    out)
                 
-    if (1 %in% rm.tr.id) {
-        output <- c(output,list(tr.remove.id = tr.remove.id))
-        cat("list of removed treated units:",tr.remove.id)
-        cat("\n\n")
+        if (1 %in% rm.tr.id) {
+            output <- c(output,list(tr.remove.id = tr.remove.id))
+            cat("list of removed treated units:",tr.remove.id)
+            cat("\n\n")
+        }
+        output <- c(output, list(call = match.call()))
+        class(output) <- "gsynth"
+        return(output)
+    } else { ## plot missing
+        
+        if (1 %in% rm.tr.id) {
+            cat("list of removed treated units:",tr.remove.id)
+            cat("\n\n")
+        }
+        output <- list(obs.missing = obs.missing, 
+                       time = tname,
+                       index = index
+                       )
+        class(output) <- "gsynth"
+        suppressWarnings(plot(output, type="missing"))
+
     }
-    output <- c(output, list(call = match.call()))
-    class(output) <- "gsynth"
-    return(output)
     
 } ## Program GSynth ends 
 
@@ -1137,7 +1216,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         ## if (p>0) {
         ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
         ## }
-        if (r>0) {
+        if (r.cv > 0) {
             est.co.best$lambda <- est.co.best$lambda*norm.para[1]
             lambda.tr <- lambda.tr*norm.para[1]
         }
@@ -2478,10 +2557,12 @@ plot.gsynth <- function(x,
             time <- 1:TT
         }
         
-        if (length(id) == 1) {
-            time.bf <- time[T0[which(id == x$id.tr)]]
-        } else {
-            time.bf <- time[unique(T0)]
+        if (type!="missing") {
+            if (length(id) == 1) {
+                time.bf <- time[T0[which(id == x$id.tr)]]
+            } else {
+                time.bf <- time[unique(T0)]
+            }
         }
 
         ## periods to show
@@ -3468,9 +3549,9 @@ plot.gsynth <- function(x,
 
         m <- x$obs.missing
         if (!is.null(id)) {
-            m <- m[show,which(colnames(m)%in%id)]
+            m <- as.matrix(m[show,which(colnames(m)%in%id)])
         } else {
-            m <- m[show,]
+            m <- as.matrix(m[show,])
             ## ylim <- colnames(m)
         }
 
@@ -3585,7 +3666,7 @@ plot.gsynth <- function(x,
                                         face="bold",
                                         margin = margin(10, 0, 10, 0))) +
         scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
-        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = id)
+        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = sort(id))
         
         if(length(all)>=4) {
             p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))
