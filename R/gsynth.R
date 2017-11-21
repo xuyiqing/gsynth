@@ -2085,16 +2085,23 @@ synth.boot<-function(Y,
 
             one.boot <- function(){
                 ## boostrap ID
-                id.boot<-c(id.tr,sample(id.co,Nco,replace=TRUE))
+                fake.co <- sample(id.co,Nco,replace=TRUE)
+                id.boot<-c(id.tr, fake.co)
                 
                 ## get the error for the treated and control
                 error.tr.boot<-matrix(NA,TT,Ntr)
                 if (0%in%I) {
+                    
                     for (w in 1:Ntr) {
                         error.tr.boot[,w]<-t(rmvnorm(n=1,rep(0,TT),vcov_tr[,,w],method="svd"))
                     }
+                    
+                    error.tr.boot[which(I.tr==0)] <- 0
+                    
                     error.co.boot <- 
                         t(rmvnorm(n=Nco,rep(0,TT),vcov_co,method="svd"))
+
+                    error.co.boot[which(as.matrix(I[,fake.co])==0)] <- 0
                     
                 } else {
                     for (w in 1:Ntr) {
