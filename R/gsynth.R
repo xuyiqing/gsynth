@@ -136,6 +136,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     if (length(index) != 2 | sum(index %in% colnames(data)) != 2) {
         stop("\"index\" option misspecified. Try, for example, index = c(\"unit.id\", \"time\").")
     }
+    
+    unique_label <- unique(paste(data[,index[1]],"_",data[,index[2]],sep=""))
+    if (length(unique_label)!=dim(data)[1]) {
+        stop("Some records may be replicated or wrongly marked in the data set.")
+    }
     ## force
     if (force == "none") { # force = 0 "none": no additive fixed effects imposed
         force <- 0
@@ -462,8 +467,12 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         if (quick_missing==FALSE) {
             X.old <- X
             X <- array(0,dim=c(TT,(N - length(rm.tr.id.s)),p))
-            for (i in 1:p) {
-                X[,,i] <- X.old[,-rm.tr.id.s,i]
+            if (p > 0) {
+                for (i in 1:p) {
+                    X[,,i] <- X.old[,-rm.tr.id.s,i]
+                }
+            } else {
+                X <- X.old[,-rm.tr.id.s,,drop=FALSE]
             }
         }
         Y <- Y[,-rm.tr.id.s]
