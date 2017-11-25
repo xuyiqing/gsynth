@@ -38,7 +38,7 @@ on interactive fixed effect models.}
 \item{nboots}{an integer specifying the number of bootstrap
   runs. Ignored if \code{se = FALSE}.}
 \item{inference}{a string specifying which type of inferential method
-  will be used, either "parametric" or "non-parametric". "parametric" is
+  will be used, either "parametric" or "nonparametric". "parametric" is
   recommended when the number of treated units is small.}
 \item{cov.ar}{an integer specifying order of the auto regression process
   that the residuals follow. Used for parametric bootstrap procedure when data

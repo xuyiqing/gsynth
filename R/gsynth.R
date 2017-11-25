@@ -789,7 +789,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             na.pos <- is.nan(est.co.best$beta)
             
         } 
-        r.cv<-r
+        r.cv <- r.max <- r
         
     }  else if (CV == TRUE) { 
         
@@ -808,198 +808,211 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         
         ## store all MSPE
         if (force%in%c(0,2)) {
-            r.max<-min((T0.min-1),r.end)
+            r.max<-max(min((T0.min-1),r.end),0)
         } else {
-            r.max<-min((T0.min-2),r.end)
+            r.max<-max(min((T0.min-2),r.end),0)
         }
-        CV.out<-matrix(NA,(r.max-r+1),4)
-        colnames(CV.out)<-c("r","sigma2","IC","MSPE")
-        CV.out[,"r"]<-c(r:r.max)
-        CV.out[,"MSPE"]<-1e20
+        if (r.max==0) {
+            r.cv <- 0
+            cat("Cross validation cannot be performed since available pre-treatment records of treated units are too few. So set r.cv = 0.\n ")
+            if(!0%in%I.co){
+                est.co.best<-inter_fe(Y.co, X.co, 0, force=force, beta0 = beta0)    
+            } else {
+                est.co.best<-inter_fe_ub(Y.co, X.co, I.co, 0, force=force, beta0 = beta0)
+            }
+
+        } else {
+            cat(paste("Maximun value of factor number is reset to ",r.max, " since available pre-treatment 
+                records of treated units are too few. Or you can remove more treated units.\n "))
+            CV.out<-matrix(NA,(r.max-r+1),4)
+            colnames(CV.out)<-c("r","sigma2","IC","MSPE")
+            CV.out[,"r"]<-c(r:r.max)
+            CV.out[,"MSPE"]<-1e20
         
-        for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts 
-
-            ## inter FE based on control, before & after 
-            r<-CV.out[i,"r"]
-            if (!0%in%I.co) {
-                est.co<-inter_fe(Y = Y.co, X = X.co, r,
-                                 force = force, beta0 = beta0)
-            } else {
-                est.co<-inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
-                                    force = force, beta0 = beta0)
-            }       
-   
-            if (p > 0) {
-                na.pos <- is.nan(est.co$beta)
-                ## if (est.co$validX == 0) {
-                ##     beta <- matrix(0, p, 1) 
-                ## }
-                beta <- est.co$beta
-                beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
-            } 
-            
-            if (is.null(norm.para)) {
-                sigma2<-est.co$sigma2
-                IC<-est.co$IC
-            } else {
-                sigma2<-est.co$sigma2*(norm.para[1]^2)
-                IC <- est.co$IC-log(est.co$sigma2) + log(sigma2)
-            }
-            
-            if (r!=0) {
-                ## factor T*r
-                F.hat<-as.matrix(est.co$factor)
-                ## the last column is for alpha_i
-                if (force%in%c(1,3)) {F.hat<-cbind(F.hat,rep(1,TT))}  
-            }      
-            
-            ## take out the effect of X (nothing to do with CV)
-            U.tr <- Y.tr
-            
-            if (p>0) {
-                for (j in 1:p) {
-                    U.tr<-U.tr-X.tr[,,j]*beta[j]
-                }
-            }
-            
-            ## take out grant mean and time fixed effects (nothing to do with CV)
-            U.tr<-U.tr-matrix(est.co$mu,TT,Ntr) ## grand mean
-            if (force%in%c(2,3)) {
-                U.tr<-U.tr-matrix(est.co$xi,TT,Ntr,byrow=FALSE)
-            } ## time fixed effects
-
-            ## reset unbalanced data
-            if (0%in%I.tr) {
-                U.tr[which(I.tr==0)] <- 0
-            }
-            
-            ## save for the moment       
-            U.sav<-U.tr
-            
-            ## leave-one-out cross-validation
-            sum.e2<-num.y<-0
-            for (lv in unique(unlist(time.pre))){ ## leave one out using the pre-treatment period
-
-                U.tr<-U.sav
-                ## take out lv from U.tr.pre
-                if ( max(T0)==T0.min & (!0%in%I.tr) ) {
-                    U.lv<-as.matrix(U.tr[setdiff(c(1:T0.min),lv),]) ## setdiff : x
+            for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts 
+  
+                ## inter FE based on control, before & after 
+                r<-CV.out[i,"r"]
+                if (!0%in%I.co) {
+                    est.co<-inter_fe(Y = Y.co, X = X.co, r,
+                                     force = force, beta0 = beta0)
                 } else {
-                    U.tr.pre.v<-as.vector(U.tr)[which(pre.v==1)]    ## pre-treatment residual in a vector
-                    U.tr.pre<-split(U.tr.pre.v, id.tr.pre.v) ##  a list of pretreatment residuals
-                    if (!0%in%I.tr) {
-                        U.lv<-lapply(U.tr.pre,function(vec){return(vec[-lv])}) ## a list    
-                    } else {
-                        ## U.tr.pre.sav <- U.tr.pre
-                        for (i.tr in 1:Ntr) {
-                            U.tmp <- U.tr.pre[[i.tr]]
-                            U.tr.pre[[i.tr]] <- U.tmp[!time.pre[[i.tr]]==lv]
-                        }                        
-                        U.lv <- U.tr.pre
-                        ## U.tr.pre <- U.tr.pre.sav    
-                    }        
+                    est.co<-inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
+                                        force = force, beta0 = beta0)
+                }       
+   
+                if (p > 0) {
+                    na.pos <- is.nan(est.co$beta)
+                    ## if (est.co$validX == 0) {
+                    ##     beta <- matrix(0, p, 1) 
+                    ## }
+                    beta <- est.co$beta
+                    beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
+                } 
+            
+                if (is.null(norm.para)) {
+                    sigma2<-est.co$sigma2
+                    IC<-est.co$IC
+                } else {
+                    sigma2<-est.co$sigma2*(norm.para[1]^2)
+                    IC <- est.co$IC-log(est.co$sigma2) + log(sigma2)
                 }
+               
+                if (r!=0) {
+                    ## factor T*r
+                    F.hat<-as.matrix(est.co$factor)
+                    ## the last column is for alpha_i
+                    if (force%in%c(1,3)) {F.hat<-cbind(F.hat,rep(1,TT))}  
+                }      
+                
+                ## take out the effect of X (nothing to do with CV)
+                U.tr <- Y.tr
+               
+                if (p>0) {
+                    for (j in 1:p) {
+                        U.tr<-U.tr-X.tr[,,j]*beta[j]
+                    }
+                }
+            
+                ## take out grant mean and time fixed effects (nothing to do with CV)
+                U.tr<-U.tr-matrix(est.co$mu,TT,Ntr) ## grand mean
+                if (force%in%c(2,3)) {
+                    U.tr<-U.tr-matrix(est.co$xi,TT,Ntr,byrow=FALSE)
+                } ## time fixed effects
 
-                if (r==0) {            
-                    if (force%in%c(1,3)) { ## take out unit fixed effect
-                        if ( max(T0)==T0.min & (!0%in%I.tr) ) {
-                            alpha.tr.lv<-colMeans(U.lv)
-                            U.tr<-U.tr-matrix(alpha.tr.lv,TT, Ntr,byrow=TRUE)
-                        } else {
-                            alpha.tr.lv<-sapply(U.lv,mean)
-                            U.tr<-U.tr-matrix(alpha.tr.lv,TT,Ntr,byrow=TRUE)
-                            ######
-                            ## if (0%in%I.tr) {
-                            ##     U.tr[which(I.tr==0)] <- 0
-                            ## }
-                            ###### not necessary
-                        }
-                    } 
-                    e<-U.tr[which(time==lv),] ## that period
-                } else {  ## case: r>0
-                    ## take out the effect of factors
-                    F.lv<-as.matrix(F.hat[which(time!=lv),])
+                ## reset unbalanced data
+                if (0%in%I.tr) {
+                    U.tr[which(I.tr==0)] <- 0
+                }
+            
+                ## save for the moment       
+                U.sav<-U.tr
+            
+                ## leave-one-out cross-validation
+                sum.e2<-num.y<-0
+                for (lv in unique(unlist(time.pre))){ ## leave one out using the pre-treatment period
+   
+                    U.tr<-U.sav
+                    ## take out lv from U.tr.pre
                     if ( max(T0)==T0.min & (!0%in%I.tr) ) {
-                        F.lv.pre<-F.hat[setdiff(c(1:T0.min),lv),]
-                        lambda.lv<-try(
-                            solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%U.lv,
-                            silent=TRUE)
-                        if('try-error' %in% class(lambda.lv)) {
-                            break
-                        }
-                        ## lamda.lv r*N matrix
+                        U.lv<-as.matrix(U.tr[setdiff(c(1:T0.min),lv),]) ## setdiff : x
                     } else {
+                        U.tr.pre.v<-as.vector(U.tr)[which(pre.v==1)]    ## pre-treatment residual in a vector
+                        U.tr.pre<-split(U.tr.pre.v, id.tr.pre.v) ##  a list of pretreatment residuals
                         if (!0%in%I.tr) {
-                            lambda.lv<-try(as.matrix(sapply(U.lv,function(vec){
-                                F.lv.pre<-as.matrix(F.lv[1:length(vec),])
-                                l.lv.tr<-solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%vec 
-                                return(l.lv.tr) ## a vector of each individual lambdas
-                            })), silent=TRUE)
-                            if('try-error' %in% class(lambda.lv)) {
-                                break
+                            U.lv<-lapply(U.tr.pre,function(vec){return(vec[-lv])}) ## a list    
+                        } else {
+                            ## U.tr.pre.sav <- U.tr.pre
+                            for (i.tr in 1:Ntr) {
+                                U.tmp <- U.tr.pre[[i.tr]]
+                                U.tr.pre[[i.tr]] <- U.tmp[!time.pre[[i.tr]]==lv]
+                            }                        
+                            U.lv <- U.tr.pre
+                            ## U.tr.pre <- U.tr.pre.sav    
+                        }        
+                    }
+
+                    if (r==0) {            
+                        if (force%in%c(1,3)) { ## take out unit fixed effect
+                            if ( max(T0)==T0.min & (!0%in%I.tr) ) {
+                                alpha.tr.lv<-colMeans(U.lv)
+                                U.tr<-U.tr-matrix(alpha.tr.lv,TT, Ntr,byrow=TRUE)
                             } else {
-                                if( (r==1) & (force%in%c(0,2)) ){
-                                    lambda.lv <- t(lambda.lv)
-                                }    
-                            }
-                        } else { ## unbalanced data r*N
-                            if (force%in%c(1,3)) {
-                                lambda.lv <- matrix(NA,(r+1),Ntr)
-                            } else {
-                                lambda.lv <- matrix(NA,r,Ntr)
-                            }
-                            test <- try(
-                                for (i.tr in 1:Ntr) {
-                                    ## F.lv.pre <- as.matrix(F.lv[unlist(time.pre[i.tr]),])
-                                    F.lv.pre <- as.matrix(F.hat[setdiff(time.pre[[i.tr]],lv),])
-                                    lambda.lv[,i.tr] <- solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%as.matrix(U.lv[[i.tr]])
-                                }, silent = TRUE)
-                            if('try-error' %in% class(test)) {
-                                break
+                                alpha.tr.lv<-sapply(U.lv,mean)
+                                U.tr<-U.tr-matrix(alpha.tr.lv,TT,Ntr,byrow=TRUE)
+                                ######
+                                ## if (0%in%I.tr) {
+                                ##     U.tr[which(I.tr==0)] <- 0
+                                ## }
+                                ###### not necessary
                             }
                         } 
+                        e<-U.tr[which(time==lv),] ## that period
+                    } else {  ## case: r>0
+                        ## take out the effect of factors
+                        F.lv<-as.matrix(F.hat[which(time!=lv),])
+                        if ( max(T0)==T0.min & (!0%in%I.tr) ) {
+                            F.lv.pre<-F.hat[setdiff(c(1:T0.min),lv),]
+                            lambda.lv<-try(
+                                solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%U.lv,
+                                silent=TRUE)
+                            if('try-error' %in% class(lambda.lv)) {
+                                break
+                            }
+                            ## lamda.lv r*N matrix
+                        } else {
+                            if (!0%in%I.tr) {
+                                lambda.lv<-try(as.matrix(sapply(U.lv,function(vec){
+                                    F.lv.pre<-as.matrix(F.lv[1:length(vec),])
+                                    l.lv.tr<-solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%vec 
+                                    return(l.lv.tr) ## a vector of each individual lambdas
+                                })), silent=TRUE)
+                                if('try-error' %in% class(lambda.lv)) {
+                                    break
+                                } else {
+                                    if( (r==1) & (force%in%c(0,2)) ){
+                                        lambda.lv <- t(lambda.lv)
+                                    }    
+                                }
+                            } else { ## unbalanced data r*N
+                                if (force%in%c(1,3)) {
+                                    lambda.lv <- matrix(NA,(r+1),Ntr)
+                                } else {
+                                    lambda.lv <- matrix(NA,r,Ntr)
+                                }
+                                test <- try(
+                                    for (i.tr in 1:Ntr) {
+                                        ## F.lv.pre <- as.matrix(F.lv[unlist(time.pre[i.tr]),])
+                                        F.lv.pre <- as.matrix(F.hat[setdiff(time.pre[[i.tr]],lv),])
+                                        lambda.lv[,i.tr] <- solve(t(F.lv.pre)%*%F.lv.pre)%*%t(F.lv.pre)%*%as.matrix(U.lv[[i.tr]])
+                                    }, silent = TRUE)
+                                if('try-error' %in% class(test)) {
+                                    break
+                                }
+                            } 
+                        }
+                        ##if (r>1|(r==1&force%in%c(1,3))) {
+                            lambda.lv<-t(lambda.lv) ## N*r
+                        ##}
+                        ## error term (the left-out period)
+                        e<-U.tr[which(time==lv),] - c(F.hat[which(time==lv),]%*%t(lambda.lv)) 
                     }
-                    ##if (r>1|(r==1&force%in%c(1,3))) {
-                        lambda.lv<-t(lambda.lv) ## N*r
-                    ##}
-                    ## error term (the left-out period)
-                    e<-U.tr[which(time==lv),] - c(F.hat[which(time==lv),]%*%t(lambda.lv)) 
-                }
-                if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
-                    e<-e[which(pre[which(time==lv),]==TRUE)]    
-                }
-                ## sum up
-                sum.e2 <- sum.e2+t(e)%*%e
-                num.y <- num.y+length(e)
+                    if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
+                        e<-e[which(pre[which(time==lv),]==TRUE)]    
+                    }
+                    ## sum up
+                    sum.e2 <- sum.e2+t(e)%*%e
+                    num.y <- num.y+length(e)
                 
-            } ## end of leave-one-out
+                } ## end of leave-one-out
             
-            MSPE<-ifelse(num.y==0,Inf,sum.e2/num.y)
-            if(!is.null(norm.para)){
-                MSPE <- MSPE*(norm.para[1]^2)
-            }
+                MSPE<-ifelse(num.y==0,Inf,sum.e2/num.y)
+                if(!is.null(norm.para)){
+                    MSPE <- MSPE*(norm.para[1]^2)
+                }
 
-            if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
-                ## at least 5% improvement for MPSE
-                est.co.best<-est.co  ## interFE result with the best r
-                r.cv<-r
-            } else {
-                if (r==r.cv+1) cat("*")
-            } 
-            CV.out[i,2:4]<-c(sigma2,IC,MSPE)
-            cat("\n r = ",r,"; sigma2 = ",
-                sprintf("%.5f",sigma2),"; IC = ",
-                sprintf("%.5f",IC),"; MSPE = ",
-                sprintf("%.5f",MSPE),sep="")
+                if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
+                    ## at least 5% improvement for MPSE
+                    est.co.best<-est.co  ## interFE result with the best r
+                    r.cv<-r
+                } else {
+                    if (r==r.cv+1) cat("*")
+                } 
+                CV.out[i,2:4]<-c(sigma2,IC,MSPE)
+                cat("\n r = ",r,"; sigma2 = ",
+                    sprintf("%.5f",sigma2),"; IC = ",
+                    sprintf("%.5f",IC),"; MSPE = ",
+                    sprintf("%.5f",MSPE),sep="")
             
-        } ## end of while: search for r_star over
-         
+            } ## end of while: search for r_star over
+           
         
-        if (r>(T0.min-1)) {cat(" (r hits maximum)")}
-        cat("\n\n r* = ",r.cv, sep="")
-        cat("\n\n") 
+            if (r>(T0.min-1)) {cat(" (r hits maximum)")}
+            cat("\n\n r* = ",r.cv, sep="")
+            cat("\n\n") 
         
-        MSPE.best<-min(CV.out[,"MSPE"])
+            MSPE.best<-min(CV.out[,"MSPE"])
+        }
         
     } ## End of Cross-Validation
 
@@ -1082,7 +1095,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             lambda.tr<-try(solve(t(F.hat.pre)%*%F.hat.pre)%*%t(F.hat.pre)%*%U.tr.pre,
                            silent = TRUE)
             if('try-error' %in% class(lambda.tr)) {
-                stop("Please set a smaller number of factors.")
+                stop("Error occurs. Please set a smaller value of factor number.")
             }
         } else {
             if(!0%in%I.tr) {
@@ -1092,7 +1105,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                     return(l.tr) ## a vector of each individual lambdas
                 })), silent =TRUE)
                 if('try-error' %in% class(lambda.tr)) {
-                    stop("Please set a smaller number of factors.")
+                    stop("Error occurs. Please set a smaller value of factor number.")
                 }
                 if ( (r.cv==1) & (force%in%c(0,2)) ) {
                     lambda.tr <- t(lambda.tr)    
@@ -1110,7 +1123,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                     }, silent =TRUE
                 )
                 if('try-error' %in% class(lambda.tr)) {
-                    stop("Please set a smaller number of factors.")
+                    stop("Error occurs. Please set a smaller value of factor number.")
                 }
             }
         }
@@ -1298,7 +1311,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
     }
-    if (CV == 1) {
+    if (CV == 1 & r.max!=0) {
         out<-c(out, list(MSPE = MSPE.best,
                          CV.out = CV.out))
     }
@@ -1751,67 +1764,71 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
 
     ## store all MSPE 
     if (force%in%c(0,2)) {
-        r.max<-min((T0.min-1),r.end)
+        r.max<-max(min((T0.min-1),r.end),0)
     } else {
-        r.max<-min((T0.min-2),r.end)
+        r.max<-max(min((T0.min-2),r.end),0)
     }
-    CV.out<-matrix(NA,(r.max-r+1),4)
-    colnames(CV.out)<-c("r","sigma2","IC","MSPE")
-    CV.out[,"r"]<-c(r:r.max)
-    CV.out[,"MSPE"]<-1e20
-    cat("Cross-validating ...","\r")
-    for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts
+    if (r.max==0) {
+        stop("Cross validation cannot be performed since available pre-treatment records of treated units are too few. r.cv = 0.\n ")
+    } else {
+        CV.out<-matrix(NA,(r.max-r+1),4)
+        colnames(CV.out)<-c("r","sigma2","IC","MSPE")
+        CV.out[,"r"]<-c(r:r.max)
+        CV.out[,"MSPE"]<-1e20
+        cat("Cross-validating ...","\r")
+        for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts
       
-        r <- CV.out[i,"r"]
-        est<-synth.em(Y = Y,X = X, D = D, I = I, r = r, force = force,
-                      tol = tol, AR1 = AR1, norm.para = norm.para)
-        sigma2<-est$sigma2
-        IC<-est$IC
+            r <- CV.out[i,"r"]
+            est<-synth.em(Y = Y,X = X, D = D, I = I, r = r, force = force,
+                          tol = tol, AR1 = AR1, norm.para = norm.para)
+            sigma2<-est$sigma2
+            IC<-est$IC
         
-        ## leave-one-out cross-validation
-        sum.e2<-num.y<-0
-        for (lv in unique(unlist(time.pre))){ ## leave one out using the pre-treatment period
+            ## leave-one-out cross-validation
+            sum.e2<-num.y<-0
+            for (lv in unique(unlist(time.pre))){ ## leave one out using the pre-treatment period
 
-            D.cv <- D
-            D.cv[which(time == lv), id.tr] <- 1 # set the left-out period to treated
-            ###########################
-            ## if (0%in%I.tr) {
-            ##     D.cv[which(I==0)] <- 0
-            ## } not necessary! synth.em can detect pre and post period for ub data
-            out <- synth.em(Y = Y, X = X, D = D.cv, I = I, r = r, force = force,
-                            tol = tol, AR1 = AR1, norm.para = norm.para)
+                D.cv <- D
+                D.cv[which(time == lv), id.tr] <- 1 # set the left-out period to treated
+                ###########################
+                ## if (0%in%I.tr) {
+                ##     D.cv[which(I==0)] <- 0
+                ## } not necessary! synth.em can detect pre and post period for ub data
+                out <- synth.em(Y = Y, X = X, D = D.cv, I = I, r = r, force = force,
+                                tol = tol, AR1 = AR1, norm.para = norm.para)
 
-            e <- out$eff[which(time == lv),]
-            
-            if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
-                e<-e[which(pre[which(time==lv),]==TRUE)]    
+                e <- out$eff[which(time == lv),]
+              
+                if (sameT0 == FALSE|0%in%I.tr) { # those who are actually not treated
+                    e<-e[which(pre[which(time==lv),]==TRUE)]    
+                }
+                ## sum up
+                sum.e2<-sum.e2+t(e)%*%e
+                num.y<-num.y + length(e) 
+            } ## end of leave-one-out
+        
+            MSPE<-sum.e2/num.y
+            if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
+                ## at least 5% improvement for MPSE
+                est.best<-est  ## interFE result with the best r
+                r.cv<-r
+            } else {
+                if (r==r.cv+1) cat("*")
             }
-            ## sum up
-            sum.e2<-sum.e2+t(e)%*%e
-            num.y<-num.y + length(e) 
-        } ## end of leave-one-out
-        
-        MSPE<-sum.e2/num.y
-        if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
-            ## at least 5% improvement for MPSE
-            est.best<-est  ## interFE result with the best r
-            r.cv<-r
-        } else {
-            if (r==r.cv+1) cat("*")
+            CV.out[i,2:4]<-c(sigma2,IC,MSPE)
+            cat("\n r = ",r,"; sigma2 = ",
+                sprintf("%.5f",sigma2),"; IC = ",
+                sprintf("%.5f",IC),"; MSPE = ",
+                sprintf("%.5f",MSPE),sep="") 
+        } ## end of while: search for r_star over
+     
+        if (r>(T0.min-1)) {
+            cat(" (r hits maximum)")
         }
-        CV.out[i,2:4]<-c(sigma2,IC,MSPE)
-        cat("\n r = ",r,"; sigma2 = ",
-            sprintf("%.5f",sigma2),"; IC = ",
-            sprintf("%.5f",IC),"; MSPE = ",
-            sprintf("%.5f",MSPE),sep="") 
-    } ## end of while: search for r_star over
-    
-    if (r>(T0.min-1)) {
-        cat(" (r hits maximum)")
+        cat("\n\n r* = ", r.cv, sep="") 
+        cat("\n\n") 
+        MSPE.best <- min(CV.out[,"MSPE"])
     }
-    cat("\n\n r* = ", r.cv, sep="") 
-    cat("\n\n") 
-    MSPE.best <- min(CV.out[,"MSPE"])
     
 
     ##-------------------------------##
@@ -1901,6 +1918,20 @@ synth.boot<-function(Y,
                              AR1 = AR1, norm.para = norm.para)
         }
     }
+
+    ## for parametric bootstarp: some control group units may not be suitble
+    if (inference == "parametric") {
+        co.pre <- apply(as.matrix(I.co[1:T0.ub.min,]),2,sum)
+        co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT,]),2,sum)
+        if (force%in%c(1,3)) {
+            valid.co <- id.co[(co.pre >= out$r.cv+1)&(co.post >= 1)]
+        } else {
+            valid.co <- id.co[(co.pre >= out$r.cv)&(co.post >= 1)]
+        }
+        
+    }
+
+
     ## output
     validX <- out$validX
     eff<-out$eff
@@ -1944,8 +1975,14 @@ synth.boot<-function(Y,
         if (EM == FALSE) {
             one.nonpara <- function(){
 
-                boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
-                           sample(id.co,Nco, replace=TRUE))
+                repeat {
+                    fake.co <- sample(id.co,Nco, replace=TRUE)
+                    if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                        break
+                    }
+                }
+
+                boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
                 
                 X.boot<-X[,boot.id,,drop=FALSE]
                 boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
@@ -1958,8 +1995,14 @@ synth.boot<-function(Y,
         } else { # the case of EM
             one.nonpara <- function(){
                 
-                boot.id<-c(sample(id.tr,Ntr,replace=TRUE),
-                           sample(id.co,Nco, replace=TRUE))
+                repeat {
+                    fake.co <- sample(id.co,Nco, replace=TRUE)
+                    if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                        break
+                    }
+                }
+
+                boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
                 
                 X.boot<-X[,boot.id,,drop=FALSE]
                 boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
@@ -2024,11 +2067,21 @@ synth.boot<-function(Y,
 
             draw.error <- function() {
                 ## draw 1 prediction error at a time      
+                repeat {
+                    fake.tr<-sample(id.co,1,replace=FALSE)
+                    if (fake.tr%in%valid.co) {
+                        break
+                    }
+                }
             
-                fake.tr<-sample(id.co,1,replace=FALSE)
                 id.co.rest<-id.co[which(!id.co%in%fake.tr)]
                 ## resample control, to smooth CV prediction error
-                id.co.pseudo<-sample(id.co.rest,Nco,replace=TRUE)
+                repeat {
+                    id.co.pseudo <- sample(id.co.rest, Nco, replace=TRUE)
+                    if (sum(apply(as.matrix(I[,id.co.pseudo]),1,sum)>=1)==TT) {
+                        break
+                    }
+                }
                       
                 id.pseudo<-c(rep(fake.tr,Ntr),id.co.pseudo)  ## Ntr + ...
                 I.id.pseudo<-I[,id.pseudo] 
@@ -2094,7 +2147,12 @@ synth.boot<-function(Y,
 
             one.boot <- function(){
                 ## boostrap ID
-                fake.co <- sample(id.co,Nco,replace=TRUE)
+                repeat {
+                    fake.co <- sample(id.co,Nco, replace=TRUE)
+                    if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                        break
+                    }
+                }
                 id.boot<-c(id.tr, fake.co)
                 
                 ## get the error for the treated and control
