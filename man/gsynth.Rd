@@ -42,7 +42,7 @@ on interactive fixed effect models.}
   recommended when the number of treated units is small.}
 \item{cov.ar}{an integer specifying order of the auto regression process
   that the residuals follow. Used for parametric bootstrap procedure when data
-  is in the form of unbalanced panel.}
+  is in the form of unbalanced panel. The default value is 1.}
 \item{parallel}{a logical flag indicating whether parallel computing
   will be used in bootstrapping and/or cross-validation. Ignored if
   \code{se = FALSE}.}
@@ -52,13 +52,16 @@ on interactive fixed effect models.}
   could prevent you from multi-tasking on your computer).}
 \item{tol}{a positive number indicating the tolerance level.}
 \item{seed}{an integer that sets the seed in random number
-  generation. Ignored if  \code{se = FALSE} and \code{r} is specified.}
+  generation. Ignored if \code{se = FALSE} and \code{r} is specified.}
 \item{min.T0}{an integer specifying the minimum value of pre-treatment 
-  periods. Treated units with pre-treatment periods less than that will be removed automatically.}
+  periods. Treated units with pre-treatment periods less than that will be removed automatically. This item is important for unbalanced panels. If users 
+  want to perform cross validation procedure to select the optimal number of factors from \code{(r.min, r.max)}, they should set \code{min.T0} larger than 
+  \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} otherwise. If there are too few pre-treatment periods among all treated units, a smaller value of \code{r.max} is recommended. Users may also plot the treatment status of data set before running the algorithm by specifying 
+  \code{quick_missing = TRUE} to help decide the value of \code{r.max}. }
 \item{normalize}{a logic flag indicating whether to scale outcome and 
   covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
 \item{quick_missing}{a logic flag indicating whether to plot the missing 
-  plot(see \code{\link{plot.gsynth}}) before run the algorithm.}
+  plot(see \code{\link{plot.gsynth}}) before running the algorithm.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It

@@ -383,18 +383,34 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     id.co<-which(tr==0)
     
     if( (length(r)==1) & (!CV) ) {
-        con1 <- (T0.min < r) & (force%in%c(0,2))
-        con2 <- (T0.min <= r) & (force%in%c(1,3))
+        con1 <- (T0.min < r.end) & (force%in%c(0,2))
+        con2 <- (T0.min <= r.end) & (force%in%c(1,3))
         if (con1) {
-            T0.min.e <- r
+            T0.min.e <- r.end
         }
         if (con2) {
-            T0.min.e <- r + 1
+            T0.min.e <- r.end + 1
         }
         if (con1 | con2) {
             stop("Some treated units has too few pre-treatment periods. Please set a larger value of min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
         } 
     }
+
+    if (CV) {
+        con1 <- (T0.min <= r.end + 1) & (force%in%c(0,2))
+        con2 <- (T0.min <= r.end + 2) & (force%in%c(1,3))
+        if (con1) {
+            T0.min.e <- r.end + 1
+        }
+        if (con2) {
+            T0.min.e <- r.end + 2
+        }
+        if (con1 | con2) {
+            stop("Some treated units has too few pre-treatment periods. Please set a larger value of min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
+        } 
+    
+    }
+
 
     if (T0.min < min.T0) {
         cat("Some treated units has too few pre-treatment periods. \nAutomatically remove them.\n")
@@ -822,8 +838,6 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             }
 
         } else {
-            cat(paste("Maximun value of factor number is reset to ",r.max, " since available pre-treatment 
-                records of treated units are too few. Or you can remove more treated units.\n "))
             CV.out<-matrix(NA,(r.max-r+1),4)
             colnames(CV.out)<-c("r","sigma2","IC","MSPE")
             CV.out[,"r"]<-c(r:r.max)
