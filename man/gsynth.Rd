@@ -130,6 +130,7 @@ on interactive fixed effect models.}
   \item{factor}{estimated time-varying factors.}
   \item{lambda.co}{estimated loadings for the control group.}
   \item{lambda.tr}{estimated loadings for the treatment group.}
+  \item{wgt.implied}{estimated weights of each of the control group unit for each of the treatment group unit.}
   \item{mu}{estimated ground mean. }
   \item{xi}{estimated time fixed effects.}
   \item{alpha.tr}{estimated unit fixed effects for the treated units.}
@@ -168,7 +169,8 @@ library(gsynth)
 data(gsynth)
 out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
               index = c("id","time"), force = "two-way",
-              CV = TRUE, r = c(0, 5), se = FALSE)  
+              CV = TRUE, r = c(0, 5), se = FALSE) 
+print(out) 
 }
 
 

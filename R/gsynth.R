@@ -94,7 +94,7 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
     if (quick_missing==FALSE) {
         out$call <- match.call()
         out$formula <- formula
-        print(out)
+        ## print(out)
         return(out)
     }
 }
@@ -383,8 +383,8 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     id.co<-which(tr==0)
     
     if( (length(r)==1) & (!CV) ) {
-        con1 <- (T0.min < r.end) & (force%in%c(0,2))
-        con2 <- (T0.min <= r.end) & (force%in%c(1,3))
+        con1 <- (T0.min < r.end) & (min.T0 < r.end) & (force%in%c(0,2))
+        con2 <- (T0.min <= r.end) & (min.T0 <= r.end) & (force%in%c(1,3))
         if (con1) {
             T0.min.e <- r.end
         }
@@ -392,13 +392,13 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
             T0.min.e <- r.end + 1
         }
         if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value of min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
+            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
         } 
     }
 
     if (CV) {
-        con1 <- (T0.min <= r.end + 1) & (force%in%c(0,2))
-        con2 <- (T0.min <= r.end + 2) & (force%in%c(1,3))
+        con1 <- (T0.min <= r.end + 1) & (min.T0 <= r.end + 1) & (force%in%c(0,2))
+        con2 <- (T0.min <= r.end + 2) & (min.T0 <= r.end + 2) & (force%in%c(1,3))
         if (con1) {
             T0.min.e <- r.end + 1
         }
@@ -406,10 +406,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
             T0.min.e <- r.end + 2
         }
         if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value of min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
+            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
         } 
     
     }
+    
 
 
     if (T0.min < min.T0) {
@@ -659,6 +660,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         } 
         colnames(out$eff) <- iname[which(out$tr==1)]
         rownames(out$eff) <- tname
+
+        if (out$r.cv>0) {
+           colnames(out$wgt.implied) <- iname[which(out$tr==1)]
+           rownames(out$wgt.implied) <- iname[which(out$tr==0)]
+        }
    
         output <- c(list(Y.dat = Y,
                          Y = Yname,
@@ -1154,6 +1160,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             lambda.tr<-lambda.tr[,1:r.cv, drop = FALSE] 
         }
 
+        wgt.implied <- t(ginv(t(as.matrix(lambda.tr)))%*%t(as.matrix(est.co.best$lambda)))
+
     } ## end of r!=0 case
 
     if (0%in%I.tr) {
@@ -1334,7 +1342,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                        niter = est.co.best$niter,
                        factor = as.matrix(est.co.best$factor),
                        lambda.co = as.matrix(est.co.best$lambda),
-                       lambda.tr = as.matrix(lambda.tr) ## Ntr*r
+                       lambda.tr = as.matrix(lambda.tr), ## Ntr*r
+                       wgt.implied = wgt.implied
                    )) 
     } 
     if (force==1) {
@@ -1565,6 +1574,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         lambda <- est$lambda
         lambda.tr <- lambda[id.tr,,drop=FALSE]
         lambda.co <- lambda[id.co,]
+        wgt.implied <- t(ginv(t(as.matrix(lambda.tr)))%*%t(as.matrix(lambda.co)))
     }
     ## AR1: calculate accumulative effect
     if (AR1 == TRUE) {
@@ -1682,7 +1692,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     if (r > 0) {
         out<-c(out,list(factor=as.matrix(est$factor),
                         lambda.co=as.matrix(lambda.co),
-                        lambda.tr=as.matrix(lambda.tr)
+                        lambda.tr=as.matrix(lambda.tr),
+                        wgt.implied = wgt.implied
                         )) 
     } 
     if (force == 1) {

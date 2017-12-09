@@ -16,6 +16,7 @@ importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
 importFrom("abind", "abind")
 importFrom("GGally", "ggpairs")
 importFrom("mvtnorm", "rmvnorm")
+importFrom("MASS", "ginv")
 
 
 export(gsynth)
