@@ -382,35 +382,41 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     id.tr <- which(tr==1)
     id.co<-which(tr==0)
     
-    if( (length(r)==1) & (!CV) ) {
-        con1 <- (T0.min < r.end) & (min.T0 < r.end) & (force%in%c(0,2))
-        con2 <- (T0.min <= r.end) & (min.T0 <= r.end) & (force%in%c(1,3))
-        if (con1) {
-            T0.min.e <- r.end
-        }
-        if (con2) {
-            T0.min.e <- r.end + 1
-        }
-        if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
-        } 
-    }
+    if (quick_missing==FALSE) {
+        if ( (length(r)==1) & (!CV) ) {
+        
+            T0.min.2 <- min(T0[which(T0>=min.T0)])
 
-    if (CV) {
-        con1 <- (T0.min <= r.end + 1) & (min.T0 <= r.end + 1) & (force%in%c(0,2))
-        con2 <- (T0.min <= r.end + 2) & (min.T0 <= r.end + 2) & (force%in%c(1,3))
-        if (con1) {
-            T0.min.e <- r.end + 1
+            con1 <- (T0.min.2 < r.end) & (force%in%c(0,2))
+            con2 <- (T0.min.2 <= r.end) & (force%in%c(1,3))
+            if (con1) {
+                T0.min.e <- r.end
+            }
+            if (con2) {
+                T0.min.e <- r.end + 1
+            }
+            if (con1 | con2) {
+                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
+            } 
         }
-        if (con2) {
-            T0.min.e <- r.end + 2
+
+        if (CV) {
+        
+            T0.min.2 <- min(T0[which(T0>=min.T0)])
+
+            con1 <- (T0.min.2 < r.end + 1) & (force%in%c(0,2))
+            con2 <- (T0.min.2 < r.end + 2) & (force%in%c(1,3))
+            if (con1) {
+                T0.min.e <- r.end + 1
+            }
+            if (con2) {
+                T0.min.e <- r.end + 2
+            }
+            if (con1 | con2) {
+                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
+            } 
         }
-        if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
-        } 
-    
     }
-    
 
 
     if (T0.min < min.T0) {
