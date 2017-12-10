@@ -61,7 +61,7 @@ on interactive fixed effect models.}
 \item{normalize}{a logic flag indicating whether to scale outcome and 
   covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
 \item{quick_missing}{a logic flag indicating whether to plot the missing 
-  plot(see \code{\link{plot.gsynth}}) before running the algorithm.}
+  plot(see \code{\link{plot.gsynth}}) before running the algorithm. If \code{quick_missing = TRUE}, a result containing \code{obs.missing} and \code{missingplot} will be obtained.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It
@@ -143,6 +143,7 @@ on interactive fixed effect models.}
   \item{est.ind}{inference for \code{att} of each treated unit.}
   \item{att.boot}{bootstrap results for \code{att}.}
   \item{beta.boot}{bootstrap results for \code{beta}.}
+  \item{missingplot}{a ggplot2 object for the missing plot. See \code{\link{plot.gsynth}}. }
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>

@@ -96,6 +96,8 @@ gsynth.formula <- function(formula=NULL,data, # a data frame (long-form)
         out$formula <- formula
         ## print(out)
         return(out)
+    } else {
+        return(out)
     }
 }
 
@@ -384,7 +386,11 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
     
     if (quick_missing==FALSE) {
         if ( (length(r)==1) & (!CV) ) {
-        
+ 
+            if (sum(T0>=min.T0)==0) {
+                stop ("All treated units have been removed.\n")
+            }       
+ 
             T0.min.2 <- min(T0[which(T0>=min.T0)])
 
             con1 <- (T0.min.2 < r.end) & (force%in%c(0,2))
@@ -402,6 +408,10 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
 
         if (CV) {
         
+            if (sum(T0>=min.T0)==0) {
+                stop ("All treated units have been removed.\n")
+            }
+
             T0.min.2 <- min(T0[which(T0>=min.T0)])
 
             con1 <- (T0.min.2 < r.end + 1) & (force%in%c(0,2))
@@ -420,7 +430,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
 
 
     if (T0.min < min.T0) {
-        cat("Some treated units has too few pre-treatment periods. \nAutomatically remove them.\n")
+        cat("Some treated units has too few pre-treatment periods. \nThey will be automatically removed.\n")
     }
 
     rm.tr.id <- rep(0,dim(pre)[2])
@@ -703,8 +713,10 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
                        index = index
                        )
         class(output) <- "gsynth"
-        suppressWarnings(plot(output, type="missing"))
-
+        missingplot <- suppressWarnings(plot(output, type="missing"))
+        out <- list(missingplot = missingplot, obs.missing = obs.missing)
+        class(out) <- "gsynth"
+        return(out)
     }
     
 } ## Program GSynth ends 
@@ -2439,27 +2451,30 @@ synth.boot<-function(Y,
 ## a gsynth object
 print.gsynth <- function(x,  
                          ...) {
-    cat("Call:\n")
-    print(x$call, digits = 4)
     
-    if (is.null(x$est.avg) == TRUE) { # no uncertainties
-        cat("\nAverage Treatment Effect on the Treated:\n")
-        print(x$att.avg, digits = 4)
-        cat("\n   ~ by Period (including Pre-treatment Periods):\n")
-        print(x$att, digits = 4)
-        if (is.null(x$X) == FALSE) {
-            cat("\nCoefficients for the Covariates:\n")
-            print(x$beta, digits = 4)
-        }
-        cat("\nUncertainty estimates not available.\n")
-    } else {
-        cat("\nAverage Treatment Effect on the Treated:\n")
-        print(x$est.avg, digits = 4)
-        cat("\n   ~ by Period (including Pre-treatment Periods):\n")
-        print(x$est.att, digits = 4)
-        if (is.null(x$X) == FALSE) {
-            cat("\nCoefficients for the Covariates:\n")
-            print(x$est.beta, digits = 4)
+    if (length(x)!=2) { ## quick_missing 
+        cat("Call:\n")
+        print(x$call, digits = 4)
+    
+        if (is.null(x$est.avg) == TRUE) { # no uncertainties
+            cat("\nAverage Treatment Effect on the Treated:\n")
+            print(x$att.avg, digits = 4)
+            cat("\n   ~ by Period (including Pre-treatment Periods):\n")
+            print(x$att, digits = 4)
+            if (is.null(x$X) == FALSE) {
+                cat("\nCoefficients for the Covariates:\n")
+                print(x$beta, digits = 4)
+            }
+            cat("\nUncertainty estimates not available.\n")
+        } else {
+            cat("\nAverage Treatment Effect on the Treated:\n")
+            print(x$est.avg, digits = 4)
+            cat("\n   ~ by Period (including Pre-treatment Periods):\n")
+            print(x$est.att, digits = 4)
+            if (is.null(x$X) == FALSE) {
+                cat("\nCoefficients for the Covariates:\n")
+                print(x$est.beta, digits = 4)
+            }
         }
     }
     
@@ -2482,7 +2497,7 @@ plot.gsynth <- function(x,
                         xlab = NULL, 
                         ylab = NULL,
                         legendOff = FALSE,
-                        raw = "band", 
+                        raw = "none", 
                         main = NULL,
                         nfactors = NULL, 
                         id = NULL,
