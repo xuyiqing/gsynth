@@ -17,6 +17,7 @@ importFrom("abind", "abind")
 importFrom("GGally", "ggpairs")
 importFrom("mvtnorm", "rmvnorm")
 importFrom("MASS", "ginv")
+importFrom("graphics", "plot")
 
 
 export(gsynth)

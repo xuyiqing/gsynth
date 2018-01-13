@@ -2,42 +2,70 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 data_ub_adj <- function(I_data, data) {
-    .Call(`_gsynth_data_ub_adj`, I_data, data)
+    .Call('_gsynth_data_ub_adj', PACKAGE = 'gsynth', I_data, data)
 }
 
 XXinv <- function(X) {
-    .Call(`_gsynth_XXinv`, X)
+    .Call('_gsynth_XXinv', PACKAGE = 'gsynth', X)
+}
+
+Y_demean <- function(Y, force) {
+    .Call('_gsynth_Y_demean', PACKAGE = 'gsynth', Y, force)
+}
+
+fe_add <- function(alpha_X, xi_X, mu_X, alpha_Y, xi_Y, mu_Y, beta, T, N, p, force) {
+    .Call('_gsynth_fe_add', PACKAGE = 'gsynth', alpha_X, xi_X, mu_X, alpha_Y, xi_Y, mu_Y, beta, T, N, p, force)
+}
+
+fe_add2 <- function(alpha_Y, xi_Y, mu_Y, T, N, force) {
+    .Call('_gsynth_fe_add2', PACKAGE = 'gsynth', alpha_Y, xi_Y, mu_Y, T, N, force)
 }
 
 panel_est <- function(X, Y, MF) {
-    .Call(`_gsynth_panel_est`, X, Y, MF)
+    .Call('_gsynth_panel_est', PACKAGE = 'gsynth', X, Y, MF)
 }
 
 panel_beta <- function(X, xxinv, Y, FE) {
-    .Call(`_gsynth_panel_beta`, X, xxinv, Y, FE)
+    .Call('_gsynth_panel_beta', PACKAGE = 'gsynth', X, xxinv, Y, FE)
 }
 
 panel_factor <- function(E, r) {
-    .Call(`_gsynth_panel_factor`, E, r)
+    .Call('_gsynth_panel_factor', PACKAGE = 'gsynth', E, r)
 }
 
 panel_factor_ub <- function(E, I, r, tolerate) {
-    .Call(`_gsynth_panel_factor_ub`, E, I, r, tolerate)
+    .Call('_gsynth_panel_factor_ub', PACKAGE = 'gsynth', E, I, r, tolerate)
+}
+
+fe_ad_iter <- function(Y, I, force, tolerate) {
+    .Call('_gsynth_fe_ad_iter', PACKAGE = 'gsynth', Y, I, force, tolerate)
+}
+
+fe_ad_covar_iter <- function(XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, tolerate) {
+    .Call('_gsynth_fe_ad_covar_iter', PACKAGE = 'gsynth', XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, tolerate)
+}
+
+fe_ad_inter_iter <- function(Y, I, force, r, tolerate) {
+    .Call('_gsynth_fe_ad_inter_iter', PACKAGE = 'gsynth', Y, I, force, r, tolerate)
+}
+
+fe_ad_inter_covar_iter <- function(XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, r, tolerate) {
+    .Call('_gsynth_fe_ad_inter_covar_iter', PACKAGE = 'gsynth', XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, r, tolerate)
 }
 
 beta_iter <- function(X, xxinv, Y, r, tolerate, beta0) {
-    .Call(`_gsynth_beta_iter`, X, xxinv, Y, r, tolerate, beta0)
+    .Call('_gsynth_beta_iter', PACKAGE = 'gsynth', X, xxinv, Y, r, tolerate, beta0)
 }
 
 beta_iter_ub <- function(X, xxinv, Y, I, r, tolerate, beta0) {
-    .Call(`_gsynth_beta_iter_ub`, X, xxinv, Y, I, r, tolerate, beta0)
+    .Call('_gsynth_beta_iter_ub', PACKAGE = 'gsynth', X, xxinv, Y, I, r, tolerate, beta0)
 }
 
 inter_fe <- function(Y, X, r, force, beta0, tol = 1e-5) {
-    .Call(`_gsynth_inter_fe`, Y, X, r, force, beta0, tol)
+    .Call('_gsynth_inter_fe', PACKAGE = 'gsynth', Y, X, r, force, beta0, tol)
 }
 
 inter_fe_ub <- function(Y, X, I, r, force, beta0, tol = 1e-5) {
-    .Call(`_gsynth_inter_fe_ub`, Y, X, I, r, force, beta0, tol)
+    .Call('_gsynth_inter_fe_ub', PACKAGE = 'gsynth', Y, X, I, r, force, beta0, tol)
 }
 

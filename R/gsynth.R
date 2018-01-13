@@ -231,6 +231,7 @@ gsynth.default <- function(formula=NULL,data, # a data frame (long-form)
         stop("na.rm is not a logical flag.")
     } 
     if (na.rm == TRUE) {
+    	data <- data[,c(index, Y, D, X)]
         data <- na.omit(data)
     } 
     ##-------------------------------##
@@ -820,9 +821,17 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         
         ## inter.fe on the control group
         if(!0%in%I.co){
-            est.co.best<-inter_fe(Y.co, X.co, r, force=force, beta0 = beta0)    
+            ## if (force!=0) {
+                est.co.best<-inter_fe(Y.co, X.co, r, force=force, beta0 = beta0)
+            ## } else {
+                ## est.co.best<-inter_fe(Y.co, abind(I.co,X.co,along=3), r, force=0, beta0 = beta0)  
+            ## }    
         } else {
-            est.co.best<-inter_fe_ub(Y.co, X.co, I.co, r, force=force, beta0 = beta0)
+            ## if (force!=0) {
+              est.co.best<-inter_fe_ub(Y.co, X.co, I.co, r, force=force, beta0 = beta0)
+            ## } else {
+            ##   est.co.best<-inter_fe_ub(Y.co, abind(I.co,X.co,along=3), I.co, r, force=0, beta0 = beta0)  
+            ## }
         }
                 
         if (p > 0) {
@@ -856,9 +865,17 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             r.cv <- 0
             cat("Cross validation cannot be performed since available pre-treatment records of treated units are too few. So set r.cv = 0.\n ")
             if(!0%in%I.co){
-                est.co.best<-inter_fe(Y.co, X.co, 0, force=force, beta0 = beta0)    
+                ## if (force!=0) {
+                    est.co.best<-inter_fe(Y.co, X.co, 0, force=force, beta0 = beta0) 
+                ## } else {
+                ##     est.co.best<-inter_fe(Y.co, abind(I.co, X.co, along=3), 0, force=0, beta0 = beta0) 
+                ## }  
             } else {
-                est.co.best<-inter_fe_ub(Y.co, X.co, I.co, 0, force=force, beta0 = beta0)
+                ## if (force!=0) {
+                    est.co.best<-inter_fe_ub(Y.co, X.co, I.co, 0, force=force, beta0 = beta0)
+                ## } else {
+                ##     est.co.best<-inter_fe_ub(Y.co, abind(I.co, X.co, along=3), I.co, 0, force=0, beta0 = beta0)
+                ## }
             }
 
         } else {
@@ -872,11 +889,21 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 ## inter FE based on control, before & after 
                 r<-CV.out[i,"r"]
                 if (!0%in%I.co) {
-                    est.co<-inter_fe(Y = Y.co, X = X.co, r,
-                                     force = force, beta0 = beta0)
+                    ## if (force!=0) {
+                        est.co<-inter_fe(Y = Y.co, X = X.co, r,
+                                         force = force, beta0 = beta0)
+                    ## } else {
+                    ##     est.co<-inter_fe(Y = Y.co, X = abind(I.co, X.co, along=3), 
+                    ##                      r, force = 0, beta0 = beta0)                        
+                    ## }
                 } else {
-                    est.co<-inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
-                                        force = force, beta0 = beta0)
+                    ## if (force!=0) {
+                        est.co<-inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
+                                            force = force, beta0 = beta0)
+                    ## } else {
+                    ##     est.co<-inter_fe_ub(Y = Y.co, X = abind(I.co, X.co, along=3), 
+                    ##                         I = I.co, r, force = 0, beta0 = beta0)                        
+                    ## }
                 }       
    
                 if (p > 0) {
@@ -1497,9 +1524,17 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 
         ## M step
         if (!0%in%I) {
-            est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0)
+            ## if (force!=0) {
+                est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0)
+            ## } else {
+            ##     est<-inter_fe(Y.e, abind(I,X,along=3), r, force=0, beta0 = beta0)
+            ## }
         } else {
-            est<-inter_fe_ub(Y.e, X, I, r, force=force, beta0 = beta0)
+            ## if (force!=0) {
+                est<-inter_fe_ub(Y.e, X, I, r, force=force, beta0 = beta0)
+            ## } else {
+            ##     est<-inter_fe_ub(Y.e, abind(I,X,along=3), I, r, force=0, beta0 = beta0)
+            ## }
         }
         Y.ct <- as.matrix(Y.e[,id.tr] - est$residuals[,id.tr]) # T * Ntr
 
@@ -2174,7 +2209,7 @@ synth.boot<-function(Y,
                 ## calculate vcov of ep_tr
                 error.tr.adj <- array(NA,dim=c(TT,nboots,Ntr))
                 for(i in 1:Ntr){
-                    error.tr.adj[,,i]<-error.tr[,i,]
+                    error.tr.adj[,,i] <- error.tr[,i,]
                 }
                 vcov_tr<-array(NA,dim=c(TT,TT,Ntr))
                 for(i in 1:Ntr){
@@ -3711,44 +3746,13 @@ plot.gsynth <- function(x,
 
         T <- dim(m)[1]
         N <- dim(m)[2]
-        units <- rep(1:N, each = T)
+        units <- rep(rev(1:N), each = T)
         period <- rep(1:T, N)
         res <- c(m)
         data <- cbind.data.frame(units=units, period=period, res=res)
         data[,"res"] <- as.factor(data[,"res"])
 
-
-
-        ## if (!is.null(n.period)&n.period>2) {
-        ##     n.period <- n.period - 1
-        ##     T.n <- (T-1)%/%n.period
-        ##     T.res <- (T-1)%%n.period
-        ##     T.b <- seq(from=1,to=T.n*n.period+1,by=T.n)
-        ##     if (T.res!=0) {
-        ##         T.j <- 1
-        ##         for(i in (n.period-T.res+1):n.period) {
-        ##             T.b[i] <- T.b[i] + T.j
-        ##             T.j <- T.j + 1
-        ##         }
-        ##     }
-        ## } else {
-        ##     T.b <- 1:T
-        ## }
-
-        ## if (N>10) {
-        ##     N.n <- (N-1)%/%9
-        ##     N.res <- (N-1)%%9
-        ##     N.b <- seq(from=1,to=N.n*9+1,by=N.n)
-        ##     if (N.res!=0) {
-        ##         N.j <- 1
-        ##         for (i in (10-N.res+1):10) {
-        ##             N.b[i] <- N.b[i] + N.j
-        ##             N.j <- N.j + 1
-        ##         }
-        ##     }
-        ## } else {
-             N.b <- 1:N
-        ## }
+        N.b <- 1:N
         
         p <- ggplot(data, aes(x = period, y = units,
                               fill = res), position = "identity") 
@@ -3786,7 +3790,7 @@ plot.gsynth <- function(x,
                                         face="bold",
                                         margin = margin(10, 0, 10, 0))) +
         scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
-        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = sort(id))
+        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(sort(id)))
         
         if(length(all)>=4) {
             p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))
@@ -3823,69 +3827,34 @@ ct.adjsut <- function (Y.tr,
 ###################################
 ## parametric bootstrap for ub data
 ###################################
-remove_na <- function(a, b) {
-    c1 <- which(is.na(a))
-    c2 <- which(is.na(b))
-    return(unique(c(c1,c2)))
-}
-
-res.vcov <- function(res, 
+res.vcov <- function(res, ## TT*Nboots
                      cov.ar = 1) {
     T <- dim(res)[1]
-    k <- cov.ar
-    vcov <- matrix(0, T, T)
+    I <- is.na(res)
+    count <- matrix(NA,T,T)
 
-    if (k==0) { ## no serial correlation
-        for (i in 1:T) {
-            vcov[i,i] <- var(res[i,], na.rm = TRUE)
-        }
-    }  
-    else if (k>=T) {
-        for (i in 1:T) {
-            for (j in 1:T) {
-                if (j==i) {
-                    vcov[i,i] <- var(res[i,], na.rm = TRUE)
-                }
-                else if (j>i) {
-                    if(NA%in%res[i,]|NA%in%res[j,]) {
-                        vcov[i,j] <- 
-                            cov(res[i,-remove_na(res[i,], res[j,])], res[j,-remove_na(res[i,], res[j,])])
-                    } else {
-                        vcov[i,j] <- cov(res[i,],res[j,])
-                    }
-                }
-                else { ## j < i
-                    vcov[i,j] <- vcov[j,i]
-                }        
-            }
-        }    
-    }
-    else { ## ar(k) process
-        for (i in 1:T) {
-            r1 <- max(1,(i-k))
-            r2 <- min(T,(i+k))
-            for(j in r1:r2) {
-                if (j==i) {
-                    vcov[i,i] <- var(res[i,], na.rm = TRUE)
-                }
-                else if (j>i) {
-                    if(NA%in%res[i,]|NA%in%res[j,]) {
-                        vcov[i,j] <- 
-                            cov(res[i,-remove_na(res[i,], res[j,])], res[j,-remove_na(res[i,], res[j,])])
-                    } else {
-                        vcov[i,j] <- cov(res[i,],res[j,])
-                    }
-                }                
-                else { ## j < i
-                    vcov[i,j] <- vcov[j,i]
+    res[is.na(res)] <- 0
+    vcov <- res%*%t(res)
+
+
+    for (i in 1:T) {
+        for (j in 1:T) {
+            if (i > j) {
+                count[i, j] <- count[j, i]
+            } else {
+                if ((j-i) <= cov.ar) {
+                  II <- I[i,] + I[j,]
+                  count[i, j] <- min( 1/sum(II==0), 1)
+                } else {
+                  count[i, j] <- 0
                 }
             }
         }
-
     }
-
+    vcov <- vcov*count
     return(vcov)
 }
+
 
 
 
