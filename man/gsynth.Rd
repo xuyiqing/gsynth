@@ -7,7 +7,7 @@ on interactive fixed effect models.}
        force = "unit", r = 0, CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
-       normalize = FALSE, quick_missing = FALSE)  
+       normalize = FALSE)  
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of
@@ -56,12 +56,9 @@ on interactive fixed effect models.}
 \item{min.T0}{an integer specifying the minimum value of pre-treatment 
   periods. Treated units with pre-treatment periods less than that will be removed automatically. This item is important for unbalanced panels. If users 
   want to perform cross validation procedure to select the optimal number of factors from \code{(r.min, r.max)}, they should set \code{min.T0} larger than 
-  \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} otherwise. If there are too few pre-treatment periods among all treated units, a smaller value of \code{r.max} is recommended. Users may also plot the treatment status of data set before running the algorithm by specifying 
-  \code{quick_missing = TRUE} to help decide the value of \code{r.max}. }
+  \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} otherwise. If there are too few pre-treatment periods among all treated units, a smaller value of \code{r.max} is recommended.}
 \item{normalize}{a logic flag indicating whether to scale outcome and 
   covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
-\item{quick_missing}{a logic flag indicating whether to plot the missing 
-  plot(see \code{\link{plot.gsynth}}) before running the algorithm. If \code{quick_missing = TRUE}, a result containing \code{obs.missing} and \code{missingplot} will be obtained.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It
@@ -143,7 +140,6 @@ on interactive fixed effect models.}
   \item{est.ind}{inference for \code{att} of each treated unit.}
   \item{att.boot}{bootstrap results for \code{att}.}
   \item{beta.boot}{bootstrap results for \code{beta}.}
-  \item{missingplot}{a ggplot2 object for the missing plot. See \code{\link{plot.gsynth}}. }
 }
 \author{
   Yiqing Xu <yiqingxu@ucsd.edu>

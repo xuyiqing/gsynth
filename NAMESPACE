@@ -20,6 +20,7 @@ importFrom("MASS", "ginv")
 importFrom("graphics", "plot")
 
 
+export(preView)
 export(gsynth)
 S3method("gsynth", "default")
 S3method("gsynth", "formula")
