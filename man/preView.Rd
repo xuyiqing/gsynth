@@ -2,8 +2,8 @@
 \alias{preView}
 \title{pre-plotting}
 \description{Visualizes outcomes or treatment status before running the generalized synthetic control method.}
-\usage{preView(formula, data, index, na.rm = FALSE, type = "raw", 
-               xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL, 
+\usage{preView(formula, data, index, na.rm = FALSE, type = "missing", 
+               DiDmode = TRUE, xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
                labels = NULL, legendOff = FALSE, main = NULL, id = NULL, 
                axis.adjust = FALSE)
 }
@@ -18,8 +18,9 @@
   missing data. The algorithm will report an error if missing data
   exist.}
   \item{type}{a string that specifies the type of the plot. Must be either
-    of the following twp: "raw" (plotting the raw data); "counterfactual"    
-    (plotting predicted Y(0)'s); "missing" (plotting status of each unit at each time point).}
+    of the following two: "raw" (plotting the raw data); "missing" (plotting status of each unit at each time point).}
+  \item{DiDmode}{a logic flag indicating whether the data set is a Diff-in-Diff 
+    data.}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis. When 
     class of time varible is string, must specify not original value but a counting number e.g. \code{xlim=c(1,30)}.}
   \item{ylim}{a two-element numeric vector specifying the range of y-axis.}

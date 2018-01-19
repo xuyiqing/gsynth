@@ -469,19 +469,20 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (1 %in% rm.tr.id) {
 
         X.old <- X
-        X <- array(0,dim = c(TT, (N - length(rm.tr.id.s)), p))
         if (p > 0) {
+            X <- array(0,dim = c(TT, (N - length(rm.tr.id.s)), p))
             for (i in 1:p) {
-                X[, , i] <- X.old[, -rm.tr.id.s, i]
+                subX <- X.old[, , i]
+                X[, , i] <- as.matrix(subX[, -rm.tr.id.s])
             }
         } else {
-            X <- X.old[, -rm.tr.id.s, , drop=FALSE]
+            X <- array(0,dim = c(TT, (N - length(rm.tr.id.s)), 0))
         }
 
-        Y <- Y[,-rm.tr.id.s]
-        D <- D[,-rm.tr.id.s]
+        Y <- as.matrix(Y[,-rm.tr.id.s])
+        D <- as.matrix(D[,-rm.tr.id.s])
         I.old <- I ## total I
-        I <- I[,-rm.tr.id.s] ## after removing
+        I <- as.matrix(I[,-rm.tr.id.s]) ## after removing
     }    
 
     if (is.null(dim(X)[3]) == TRUE) {
@@ -3914,53 +3915,84 @@ preView <- function(formula,
     
     ##treatment indicator
     D <- matrix(data[,Dname],TT,N)
+    D.old <- D ## store D 
 
     ## once treated, always treated
     D <- apply(D, 2, function(vec){cumsum(vec)})
     D <- ifelse(D > 0, 1, 0)
 
-    ##outcome variable
-    Y <- matrix(data[,Yname],TT,N)
-    tr <- D[TT,]==1     # cross-sectional: treated unit
+    ## check DID mode
+    if (sum(abs(D.old[which(I==1)] - D[which(I==1)])) == 0) {
+        ## DID data
+        ## if (DiDmode==FALSE) {
+        ##     warning("DID data\n")
+        ## }
+        DiDmode <- DiDmode
+    } else { ## FE mode
+        if (DiDmode==TRUE) {
+            warning("FE data\n")
+        }
+        DiDmode <- FALSE
+    }
 
-    pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
-    post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
-    id.tr <- which(tr==1)
-    id.co <- which(tr==0)
-
-    ## DID
-    D.tr <- as.matrix(D[,which(tr==1)])
-    T0 <- apply(D.tr==0,2,sum) 
-    DID <- length(unique(T0))==1
-
-    Ntr <- sum(tr)
-    Nco <- N - Ntr
-        
     ##-------------------------------##
     ## storage
-    ##-------------------------------## 
-    I.tr <- as.matrix(I[,which(tr==1)])
-    Y.tr <- as.matrix(Y[,which(tr==1)])
-    Y.co <- as.matrix(Y[,which(tr==0)])
-    
+    ##-------------------------------##    
     iname <- unique(sort(data.old[,id]))
     tname <- unique(sort(data.old[,time]))
 
-    obs.missing <-matrix(1, TT, N) ## control group:1 
+    ##outcome variable
+    Y <- matrix(data[,Yname],TT,N)
+    Y[which(I==0)] <- NA
+    
+    if (DiDmode == TRUE) {
+        tr <- D[TT,]==1     # cross-sectional: treated unit
+        pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
+        post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
+        id.tr <- which(tr==1)
+        id.co <- which(tr==0)
 
-    if (DID==FALSE) {
-        obs.missing <-matrix(2, TT, N) ## control group:1
-        pre[which(pre==1)] <- 2 ## pre 2  
-        post[which(post==1)] <- 1 ## post 1  
-    } else {
-        obs.missing <-matrix(3, TT, N) ## control group:1
+        ## DID timing
+        D.tr <- as.matrix(D[,which(tr==1)])
+        T0 <- apply(D.tr==0,2,sum) 
+        DID <- length(unique(T0))==1
+
+        I.tr <- as.matrix(I[,which(tr==1)])
+        Y.tr <- as.matrix(Y[,which(tr==1)])
+        Y.co <- as.matrix(Y[,which(tr==0)])
+
+        Ntr <- sum(tr)
+        Nco <- N - Ntr
+
+        obs.missing <- matrix(3, TT, N) ## control group:1
         pre[which(pre==1)] <- 1 ## pre 2
         post[which(post==1)] <- 2 ## post 3
-        ## obs.missing[,id.tr] <- pre + post
-        ## obs.missing[which(I==0)] <- 4 ## missing 0(Y or D missing)
+        obs.missing[,id.tr] <- pre + post
+        obs.missing[which(I==0)] <- 4 ## missing
+
+        id.tr <- iname[which(tr==1)] ## re-define id
+        id.co <- iname[which(tr==0)]
+    } else {
+        unit.type <- rep(NA, N) ## 1 for control; 2 for treated; 3 for reversal
+        for (i in 1:N) {
+            di <- D.old[, i]
+            ii <- I[, i]
+            if (length(unique(di[which(ii==1)])) == 1) { ## treated or control
+                if (0 %in% unique(di[which(ii==1)])) {
+                    unit.type[i] <- 1 ## control
+                } else {
+                    unit.type[i] <- 2 ## treated
+                }
+            } else {
+                unit.type[i] <- 3 ## reversal
+            }
+        }
+        
+        obs.missing <- matrix(2, TT, N) ## not under treatment
+        obs.missing[which(D.old==1)] <- 1 ## under treatment
+        obs.missing[which(I==0)] <- 4 ## missing
     }
-    obs.missing[,id.tr] <- pre + post
-    obs.missing[which(I==0)] <- 4 ## missing 0(Y or D missing)   
+        
     ## obs.missing[which(obs.missing==1)] <- "control"
     ## obs.missing[which(obs.missing==2)] <- "pre"
     ## obs.missing[which(obs.missing==3)] <- "post"
@@ -3977,9 +4009,6 @@ preView <- function(formula,
 
     colnames(obs.missing) <- iname
     rownames(obs.missing) <- tname
-
-    id.tr <- iname[which(tr==1)]
-    id.co <- iname[which(tr==0)]
 
     time <- tname 
     id <- id.old ## recover parameter from the function
@@ -4060,21 +4089,10 @@ preView <- function(formula,
             }
         }
     }
-
-    ## parameters
-    line.width <- c(1.2,0.5)
   
     ## type of plots
     if (!is.numeric(time[1])) {
         time <- 1:TT
-    }
-        
-    if (type == "raw") {
-        if (length(id) == 1) {
-            time.bf <- time[T0[which(id == id.tr)]]
-        } else {
-            time.bf <- time[unique(T0)]
-        }
     }
 
     ## periods to show
@@ -4092,11 +4110,16 @@ preView <- function(formula,
     if (legendOff == TRUE) {
         legend.pos <- "none"
     } else {
-        legend.pos <- "bottom"
+        ## if (DiDmode == FALSE && type == "raw" && length(unique(unit.type)) > 2) {
+        ##     legend.pos <- "right"
+        ## } else {
+            legend.pos <- "bottom"
+        ## }
     }
 
     ############  START  ############### 
     if (type == "raw") {
+
         ## axes labels
         if (is.null(xlab)==TRUE) {
             xlab <- index[2]
@@ -4108,88 +4131,320 @@ preView <- function(formula,
         } else if (ylab == "") {
             ylab <- NULL
         }
+
+        if (DiDmode == TRUE) { ## DID-type plot
+            ## time-line
+            if (length(id) == 1) {
+                time.bf <- time[T0[which(id == id.tr)]]
+            } else {
+                time.bf <- time[unique(T0)]
+            }
             
-        pst <- D.tr
-        for (i in 1:Ntr){
-            pst[T0[i], i] <- 1 ## paint the period right before treatment
-        }
-        time.pst <- c(pst[show,] * time[show])
-        time.pst <- time.pst[which(c(pst[show,])==1)]
-        Y.tr.pst <- c(Y.tr[show,])[which(pst[show,]==1)]
-        id.tr.pst <- matrix(rep(1:Ntr,each=TT),TT,Ntr,byrow=FALSE)[show,]
-        id.tr.pst <- c(id.tr.pst)[which(pst[show,]==1)]
+            pst <- D.tr
+            for (i in 1:Ntr) {
+                pst[T0[i], i] <- 1 ## paint the period right before treatment
+            }
+            time.pst <- c(pst[show,] * time[show])
+            time.pst <- time.pst[which(c(pst[show,])==1)]
+            Y.tr.pst <- c(Y.tr[show,])[which(pst[show,]==1)]
+            id.tr.pst <- matrix(rep(1:Ntr,each=TT),TT,Ntr,byrow=FALSE)[show,]
+            id.tr.pst <- c(id.tr.pst)[which(pst[show,]==1)]
 
-        data <- cbind.data.frame("time" = c(rep(time[show], N), time.pst),
-                                 "outcome" = c(c(Y.tr[show,]),
-                                               c(Y.co[show,]),
-                                               Y.tr.pst),
-                                 "type" = c(rep("tr",(Ntr*nT)),
-                                            rep("co",(Nco*nT)),
-                                            rep("tr.pst",length(Y.tr.pst))),
-                                 "id" = c(rep(1:N,each = nT), id.tr.pst*(-1)))
+            data <- cbind.data.frame("time" = c(rep(time[show], N), time.pst),
+                                     "outcome" = c(c(Y.tr[show,]),
+                                                   c(Y.co[show,]),
+                                                   Y.tr.pst),
+                                     "type" = c(rep("tr",(Ntr*nT)),
+                                                rep("co",(Nco*nT)),
+                                                rep("tr.pst",length(Y.tr.pst))),
+                                     "id" = c(rep(1:N,each = nT), id.tr.pst*(-1)))
         
-        ## theme
-        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-            theme(legend.position = legend.pos,
-                  axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.h),
-                  plot.title = element_text(size=20,
-                                            hjust = 0.5,
-                                            face="bold",
-                                            margin = margin(10, 0, 10, 0)))
+            ## theme
+            p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                theme(legend.position = legend.pos,
+                      axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.h),
+                      plot.title = element_text(size=20,
+                                                hjust = 0.5,
+                                                face="bold",
+                                                margin = margin(10, 0, 10, 0)))
 
         
         
-        if (DID==TRUE) {
-            p <- p + geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                annotate("rect", xmin= time.bf, xmax= Inf,
-                         ymin=-Inf, ymax=Inf, alpha = .3) 
-        }
+            if (DID==TRUE) {
+                p <- p + geom_vline(xintercept=time.bf,colour="white",size = 2) +
+                    annotate("rect", xmin= time.bf, xmax= Inf,
+                             ymin=-Inf, ymax=Inf, alpha = .3) 
+            }
         
-        ## main
-        p <- p + geom_line(aes(time, outcome,
-                               colour = type,
-                               size = type,
-                               linetype = type,
-                               group = id))
+            ## main
+            p <- p + geom_line(aes(time, outcome,
+                                   colour = type,
+                                   size = type,
+                                   linetype = type,
+                                   group = id))
 
-        ## legend
-        set.limits = c("tr","tr.pst","co")
-        set.labels = c("Treated (Pre)",
-                       "Treated (Post)",
-                       "Controls")
-        set.colors = c("#FC8D6280","red","#99999950")
-        set.linetypes = c("solid","solid","solid")
-        set.linewidth = c(0.5, 0.5, 0.5)
-        
-        p <- p + scale_colour_manual(limits = set.limits,
-                                     labels = set.labels,
-                                     values =set.colors) +
-            scale_linetype_manual(limits = set.limits,
+            ## legend
+            set.limits = c("tr","tr.pst","co")
+            set.labels = c("Treated (Pre)",
+                           "Treated (Post)",
+                           "Controls")
+            set.colors = c("#FC8D6280","red","#99999950")
+            set.linetypes = c("solid","solid","solid")
+            set.linewidth = c(0.5, 0.5, 0.5)
+
+            p <- p + scale_colour_manual(limits = set.limits,
+                                         labels = set.labels,
+                                         values =set.colors) +
+                scale_linetype_manual(limits = set.limits,
+                                      labels = set.labels,
+                                      values = set.linetypes) +
+                scale_size_manual(limits = set.limits,
                                   labels = set.labels,
-                                  values = set.linetypes) +
-            scale_size_manual(limits = set.limits,
-                              labels = set.labels,
-                              values = set.linewidth) +
-            guides(linetype = guide_legend(title=NULL, ncol=3),
-                   colour = guide_legend(title=NULL, ncol=3),
-                   size = guide_legend(title=NULL, ncol=3)) 
-        if (!is.numeric(time.label)) {
-            p <- p + 
-            scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
-        }
+                                  values = set.linewidth) +
+                guides(linetype = guide_legend(title=NULL, ncol=3),
+                       colour = guide_legend(title=NULL, ncol=3),
+                       size = guide_legend(title=NULL, ncol=3)) 
+        
+            if (!is.numeric(time.label)) {
+                p <- p + 
+                    scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+            }
 
-        ## title
-        if (is.null(main) == TRUE) {
-            p <- p + ggtitle("Raw Data")
-        } else if (main!="") {
-            p <- p + ggtitle(main)
-        }
+            ## title
+            if (is.null(main) == TRUE) {
+                p <- p + ggtitle("Raw Data")
+            } else if (main!="") {
+                p <- p + ggtitle(main)
+            }
 
-        ## ylim
-        if (is.null(ylim) == FALSE) {
-            p <- p + coord_cartesian(ylim = ylim)
+            ## ylim
+            if (is.null(ylim) == FALSE) {
+                p <- p + coord_cartesian(ylim = ylim)
+            }
+            suppressWarnings(print(p))
+            ## end of raw plot
+        
+        } else { ## FE-type plot
+            
+            ## sequence: always control, always treated, reversal
+            ## for (i in 1:(TT-1)) {
+            ##     for (j in 1:N) {
+            ##         if (D.old[i+1, j] == 1) {
+            ##             D.plot[i, j] <- 1 ## link the last period
+            ##         }
+            ##     }
+            ## }
+
+            if (is.null(ylim) == TRUE) {
+                ylim <- c(min(c(Y[show,]), na.rm = TRUE), max(c(Y[show,]), na.rm = TRUE))
+            }
+
+            main <- "Raw Data"
+
+            if (1 %in% unit.type) {
+                co.pos <- which(unit.type == 1)
+                Nco <- length(co.pos)
+                data1 <- cbind.data.frame("time" = c(rep(time[show], Nco)),
+                                          "outcome" = c(Y[show, co.pos]),
+                                          "type" = c(rep("co", (Nco*nT))),
+                                          "id" = c(rep(1:Nco, each = nT)))
+                limits1 <- c("co", "tr")
+                #limits1 <- "co"
+                labels1 <- c("Control", "Treated")
+                #labels1 <- "Not Under Treatment"
+                colors1 <- c("#99999950", "#FC8D6280")
+                #colors1 <- "#99999950"
+                ## main1 <- main
+                main1 <- "Always Under Control"
+            }
+
+            if (2 %in% unit.type) {
+                tr.pos <- which(unit.type == 2)
+                Ntr <- length(tr.pos)
+                data2 <- cbind.data.frame("time" = c(rep(time[show], Ntr)),
+                                          "outcome" = c(Y[show, tr.pos]),
+                                          "type" = c(rep("tr",(Ntr*nT))),
+                                          "id" = c(rep(1:Ntr,each = nT)))
+                limits2 <- c("co", "tr")
+                #limits2 <- "tr"
+                labels2 <- c("Control", "Treated")
+                #labels2 <- "Under Treatment"
+                colors2 <- c("#99999950", "#FC8D6280") 
+                #colors2 <- "#FC8D6280" 
+                ## main2 <- ifelse(1%in%unit.type, "", main)
+                main2 <- "Always Under Treatment"
+            }
+
+            if (3 %in% unit.type) {
+                rv.pos <- which(unit.type == 3)
+                Nrv <- length(rv.pos)
+
+                D.plot <- D.old
+                #for (i in 1:(TT-1)) {
+                #    for (j in 1:N) {
+                #        if (D.old[i+1, j] == 1) {
+                #            D.plot[i, j] <- 1 ## link the last period
+                #        }
+                #    }
+                #}
+
+                D.plot[which(D.plot == 0)] <- NA
+                D.plot[which(I == 0)] <- NA
+
+                D.rv <- as.matrix(D.plot[, rv.pos])
+                Y.rv <- as.matrix(Y[, rv.pos])
+
+                Y.trt <- Y.rv * D.rv
+                Y.trt.show <- as.matrix(Y.trt[show,])
+                time.trt.show <- time[show]
+                ut.time <- ut.id <- NULL
+                for (i in 1:Nrv) {
+                    if (sum(is.na(Y.trt.show[,i])) != nT) {
+                        ut.id <- c(ut.id, rep(i, nT - sum(is.na(Y.trt.show[,i]))))
+                        ut.time <- c(ut.time, time.trt.show[which(!is.na(Y.trt.show[,i]))])
+                    }
+                }
+
+
+                data3 <- cbind.data.frame("time" = c(rep(time[show], Nrv), ut.time),
+                                          "outcome" = c(c(Y[show, rv.pos]),
+                                                      c(Y.trt.show[which(!is.na(Y.trt.show))])),
+                                          "type" = c(rep("nut",(Nrv*nT)),
+                                                   rep("ut",length(ut.id))),
+                                          "id" = c(rep(1:Nrv,each = nT), ut.id))
+                limits3 <- c("nut", "ut")
+                labels3 <- c("Control", "Treated")
+                ## colors3 <- c("#B0C4DE", "red")
+                colors3 <- c("#99999950", "#FC8D6280")
+                ##if (1%in%unit.type||2%in%unit.type) {
+                ##    main3 <- ""   
+                ##} else {
+                ##    main3 <- main 
+                ##}
+                main3 <- "Treatment Status Changed"
+            }
+            
+            subplot <- function (data, limits, labels, colors, main) {
+                ## theme
+                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                    theme(axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.h),
+                          plot.title = element_text(size=10,
+                                                    hjust = 0.5,
+                                                    margin = margin(10, 0, 10, 0)))
+
+                ## main
+                p <- p + geom_line(aes(time, outcome,
+                                       colour = type,
+                                       size = type,
+                                       linetype = type,
+                                       group = id))
+
+                ## legend
+                set.limits = limits
+                set.labels = labels
+                set.colors = colors
+                set.linetypes = rep("solid", length(limits))
+                set.linewidth = rep(0.5, length(limits))
+
+                p <- p + scale_colour_manual(limits = set.limits,
+                                             labels = set.labels,
+                                             values =set.colors) +
+                    scale_linetype_manual(limits = set.limits,
+                                          labels = set.labels,
+                                          values = set.linetypes) +
+                    scale_size_manual(limits = set.limits,
+                                      labels = set.labels,
+                                      values = set.linewidth) +
+                    guides(linetype = guide_legend(title=NULL, nrow=1),
+                           colour = guide_legend(title=NULL, nrow=1),
+                           size = guide_legend(title=NULL, nrow=1)) 
+        
+                if (!is.numeric(time.label)) {
+                    p <- p + 
+                        scale_x_continuous(expand = c(0, 0), breaks = show[T.b], labels = time.label[T.b])
+                }
+
+                ## title
+                if (is.null(main) == TRUE) {
+                    p <- p + ggtitle("Raw Data")
+                } else if (main!="") {
+                    p <- p + ggtitle(main)
+                }
+
+                ## ylim
+                if (is.null(ylim) == FALSE) {
+                    p <- p + coord_cartesian(ylim = ylim)
+                }
+                return(p)
+            }
+
+            if (length(unique(unit.type))==1) {
+                if (1%in%unit.type) {
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
+                                     legend, nrow = 2, heights = c (1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))   
+                }
+                else if (2%in%unit.type) {
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"),
+                                     legend, nrow = 2, heights = c (1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                }
+                else if (3%in%unit.type) {
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p3 + theme(legend.position="none"),
+                                     legend, nrow = 2, heights = c (1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                }
+            }
+            else if (length(unique(unit.type))==2) {
+                if (!1%in%unit.type) {
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"), p3 + theme(legend.position="none"),
+                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                }
+                else if (!2%in%unit.type) {
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p3 + theme(legend.position="none"),
+                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                }
+                else if (!3%in%unit.type) {
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
+                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))     
+                }
+            }
+            else {
+                p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
+                                 p3 + theme(legend.position="none"), legend, nrow = 4, heights = c (1, 1, 1, 1/5)),
+                                 top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+            }
+            ## end of raw plot
         }
-        ## end of raw plot
         
     } else if (type=="missing") {
         
@@ -4300,9 +4555,9 @@ preView <- function(formula,
         if(length(all)>=4) {
             p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))
         }
+        suppressWarnings(print(p))
         ## end of missing plot
     }    
-    suppressWarnings(print(p))
     ## if (type == "missing") {
     ##     out <- list(plot = p, obs.missing = obs.missing)
     ## } else {
