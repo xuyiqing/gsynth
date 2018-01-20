@@ -1095,7 +1095,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             lambda.tr <- try(solve(t(F.hat.pre) %*% F.hat.pre) %*% t(F.hat.pre) %*% U.tr.pre,
                            silent = TRUE)
             if('try-error' %in% class(lambda.tr)) {
-                stop("Error occurs. Please set a smaller value of factor number.")
+                return(list(att = rep(NA, TT), att.avg = NA, beta = matrix(NA, p, 1)))
+                ## stop("Error occurs. Please set a smaller value of factor number.")
             }
         } else {
             if (!0%in%I.tr) {
@@ -1105,7 +1106,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                     return(l.tr) ## a vector of each individual lambdas
                 })), silent =TRUE)
                 if('try-error' %in% class(lambda.tr)) {
-                    stop("Error occurs. Please set a smaller value of factor number.")
+                    return(list(att = rep(NA, TT), att.avg = NA, beta = matrix(NA, p, 1)))
+                    ## stop("Error occurs. Please set a smaller value of factor number.")
                 }
                 if ( (r.cv == 1) & (force%in%c(0,2)) ) {
                     lambda.tr <- t(lambda.tr)    
@@ -1123,7 +1125,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                     }, silent =TRUE
                 )
                 if('try-error' %in% class(lambda.tr)) {
-                    stop("Error occurs. Please set a smaller value of factor number.")
+                    return(list(att = rep(NA, TT), att.avg = NA, beta = matrix(NA, p, 1)))
+                    ## stop("Error occurs. Please set a smaller value of factor number.")
                 }
             }
         }
@@ -1313,7 +1316,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
     }
-    if (CV == 1 & r.max!=0) {
+    if (CV == 1 & r.max != 0) {
         out<-c(out, list(MSPE = MSPE.best,
                          CV.out = CV.out))
     }
@@ -3775,7 +3778,8 @@ preView <- function(formula,
                     legendOff = FALSE,
                     main = NULL,
                     id = NULL,
-                    axis.adjust = FALSE
+                    axis.adjust = FALSE,
+                    axis.lab = "both"
                     ) {  
     ## ------------------------------------- ##
     ##          part 1: parsing data
@@ -3817,6 +3821,11 @@ preView <- function(formula,
     if (is.logical(na.rm) == FALSE & !na.rm%in%c(0, 1)) {
         stop("na.rm is not a logical flag.")
     } 
+
+    ## axis.lab
+    if (!axis.lab %in% c("both", "unit", "time", "none")) {
+        stop("\"axis.lab\" option misspecified. Try, for example, axis.lab = c(\"both\", \"unit\", \"time\", \"off\").") 
+    }
 
     ##-------------------------------##
     ## Parsing raw data
@@ -4239,7 +4248,9 @@ preView <- function(formula,
                 ylim <- c(min(c(Y[show,]), na.rm = TRUE), max(c(Y[show,]), na.rm = TRUE))
             }
 
-            main <- "Raw Data"
+            if (is.null(main) == TRUE) {
+                main <- "Raw Data"
+            }
 
             if (1 %in% unit.type) {
                 co.pos <- which(unit.type == 1)
@@ -4548,9 +4559,23 @@ preView <- function(formula,
               plot.title = element_text(size=20,
                                         hjust = 0.5,
                                         face="bold",
-                                        margin = margin(10, 0, 10, 0))) +
-        scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
-        scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(sort(id)))
+                                        margin = margin(10, 0, 10, 0)))
+        if (axis.lab == "both") {
+            p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(id))
+        }
+        else if (axis.lab == "unit") {
+            p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = NULL) +
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(id))            
+        }
+        else if (axis.lab == "time") {
+            p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = NULL)
+        }
+        else if (axis.lab == "none") {
+            p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = NULL) +
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = NULL)
+        }
         
         if(length(all)>=4) {
             p <- p + guides(fill=guide_legend(nrow=2,byrow=TRUE))

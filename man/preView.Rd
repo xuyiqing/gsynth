@@ -5,7 +5,7 @@
 \usage{preView(formula, data, index, na.rm = FALSE, type = "missing", 
                DiDmode = TRUE, xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
                labels = NULL, legendOff = FALSE, main = NULL, id = NULL, 
-               axis.adjust = FALSE)
+               axis.adjust = FALSE, axis.lab = "both")
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of
@@ -35,6 +35,7 @@
     It can also be a vector specifying units to be plotted if \code{type=="missing"} when data magitude is large. Ignored if \code{type} is "raw".}
   \item{axis.adjust}{a logic flag indicating whether to adjust labels on x-axis. 
     Useful when class of time variable is string and data magnitude is large.}
+  \item{axis.lab}{a string indicating whether labels on x-axis and y-axis will be shown. There are 4 types: "both": labels on both axes will be shown; "unit": only labels on y-axis; "time": only labels on x-axis; "off": no labels will be shown. Default is \code{axis.lab = "both"}.  }
 }
 \details{
   \code{preView} visualizes the raw data used by the generalized synthetic control method or the treatment status of the data set.
