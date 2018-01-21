@@ -3,9 +3,10 @@
 \title{pre-plotting}
 \description{Visualizes outcomes or treatment status before running the generalized synthetic control method.}
 \usage{preView(formula, data, index, na.rm = FALSE, type = "missing", 
-               DiDmode = TRUE, xlim = NULL, ylim = NULL, xlab = NULL, ylab = NULL,
-               labels = NULL, legendOff = FALSE, main = NULL, id = NULL, 
-               axis.adjust = FALSE, axis.lab = "both")
+               ByGroup = FALSE, xlim = NULL, ylim = NULL, xlab = NULL, 
+               ylab = NULL, labels = NULL, legendOff = FALSE, main = NULL, 
+               id = NULL, axis.adjust = FALSE, axis.lab = "both", 
+               axis.lab.gap = c(0, 0))
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of
@@ -19,7 +20,7 @@
   exist.}
   \item{type}{a string that specifies the type of the plot. Must be either
     of the following two: "raw" (plotting the raw data); "missing" (plotting status of each unit at each time point).}
-  \item{DiDmode}{a logic flag indicating whether the data set is a Diff-in-Diff 
+  \item{ByGroup}{a logic flag indicating whether the data set is a Diff-in-Diff 
     data.}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis. When 
     class of time varible is string, must specify not original value but a counting number e.g. \code{xlim=c(1,30)}.}
@@ -35,7 +36,8 @@
     It can also be a vector specifying units to be plotted if \code{type=="missing"} when data magitude is large. Ignored if \code{type} is "raw".}
   \item{axis.adjust}{a logic flag indicating whether to adjust labels on x-axis. 
     Useful when class of time variable is string and data magnitude is large.}
-  \item{axis.lab}{a string indicating whether labels on x-axis and y-axis will be shown. There are 4 types: "both": labels on both axes will be shown; "unit": only labels on y-axis; "time": only labels on x-axis; "off": no labels will be shown. Default is \code{axis.lab = "both"}.  }
+  \item{axis.lab}{a string indicating whether labels on x-axis and y-axis will be shown. There are 4 types: "both": labels on both axes will be shown; "unit": only labels on y-axis; "time": only labels on x-axis; "none": no labels will be shown. Default is \code{axis.lab = "both"}.  }
+  \item{axis.lab.gap}{a numeric vector setting gaps between labels on x or y-axis for "missing" plot. Default is \code{axis.lab.gap = c(0, 0)}, which means that all labels will be shown. Useful for data set with large N or T.}
 }
 \details{
   \code{preView} visualizes the raw data used by the generalized synthetic control method or the treatment status of the data set.

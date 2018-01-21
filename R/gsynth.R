@@ -3769,7 +3769,7 @@ preView <- function(formula,
                     index, # c(unit, time) indicators
                     na.rm = FALSE, # remove missing values
                     type = "missing",
-                    DiDmode = TRUE, # DiD mode (color pre-treatment treated differently)
+                    ByGroup = FALSE, # (color pre-treatment treated differently)
                     xlim = NULL, 
                     ylim = NULL,
                     xlab = NULL, 
@@ -3779,7 +3779,8 @@ preView <- function(formula,
                     main = NULL,
                     id = NULL,
                     axis.adjust = FALSE,
-                    axis.lab = "both"
+                    axis.lab = "both",
+                    axis.lab.gap = c(0, 0)
                     ) {  
     ## ------------------------------------- ##
     ##          part 1: parsing data
@@ -3792,8 +3793,8 @@ preView <- function(formula,
     } else {
         X <- NULL
     }
-    p <- length(X)
 
+    p <- length(X)
     ##-------------------------------##
     ## Checking Parameters
     ##-------------------------------## 
@@ -3823,8 +3824,12 @@ preView <- function(formula,
     } 
 
     ## axis.lab
-    if (!axis.lab %in% c("both", "unit", "time", "none")) {
+    if (!axis.lab %in% c("both", "unit", "time", "off")) {
         stop("\"axis.lab\" option misspecified. Try, for example, axis.lab = c(\"both\", \"unit\", \"time\", \"off\").") 
+    }
+    ## time labels gap
+    if (sum(axis.lab.gap < 0) > 0) {
+        stop("\"gap\" should be equal to or greater than 0.\n")
     }
 
     ##-------------------------------##
@@ -3932,16 +3937,12 @@ preView <- function(formula,
 
     ## check DID mode
     if (sum(abs(D.old[which(I==1)] - D[which(I==1)])) == 0) {
-        ## DID data
-        ## if (DiDmode==FALSE) {
-        ##     warning("DID data\n")
-        ## }
-        DiDmode <- DiDmode
+        ByGroup <- ByGroup
     } else { ## FE mode
-        if (DiDmode==TRUE) {
+        if (ByGroup == FALSE) {
             warning("FE data\n")
         }
-        DiDmode <- FALSE
+        ByGroup <- TRUE
     }
 
     ##-------------------------------##
@@ -3954,7 +3955,7 @@ preView <- function(formula,
     Y <- matrix(data[,Yname],TT,N)
     Y[which(I==0)] <- NA
     
-    if (DiDmode == TRUE) {
+    if (ByGroup == FALSE) {
         tr <- D[TT,]==1     # cross-sectional: treated unit
         pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
         post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
@@ -4119,7 +4120,7 @@ preView <- function(formula,
     if (legendOff == TRUE) {
         legend.pos <- "none"
     } else {
-        ## if (DiDmode == FALSE && type == "raw" && length(unique(unit.type)) > 2) {
+        ## if (ByGroup == TRUE && type == "raw" && length(unique(unit.type)) > 2) {
         ##     legend.pos <- "right"
         ## } else {
             legend.pos <- "bottom"
@@ -4141,7 +4142,7 @@ preView <- function(formula,
             ylab <- NULL
         }
 
-        if (DiDmode == TRUE) { ## DID-type plot
+        if (ByGroup == FALSE) { ## DID-type plot
             ## time-line
             if (length(id) == 1) {
                 time.bf <- time[T0[which(id == id.tr)]]
@@ -4261,7 +4262,7 @@ preView <- function(formula,
                                           "id" = c(rep(1:Nco, each = nT)))
                 limits1 <- c("co", "tr")
                 #limits1 <- "co"
-                labels1 <- c("Control", "Treated")
+                labels1 <- c("Control Condition", "Treatment Condition")
                 #labels1 <- "Not Under Treatment"
                 colors1 <- c("#99999950", "#FC8D6280")
                 #colors1 <- "#99999950"
@@ -4278,7 +4279,7 @@ preView <- function(formula,
                                           "id" = c(rep(1:Ntr,each = nT)))
                 limits2 <- c("co", "tr")
                 #limits2 <- "tr"
-                labels2 <- c("Control", "Treated")
+                labels2 <- c("Control Condition", "Treatment Condition")
                 #labels2 <- "Under Treatment"
                 colors2 <- c("#99999950", "#FC8D6280") 
                 #colors2 <- "#FC8D6280" 
@@ -4324,7 +4325,7 @@ preView <- function(formula,
                                                    rep("ut",length(ut.id))),
                                           "id" = c(rep(1:Nrv,each = nT), ut.id))
                 limits3 <- c("nut", "ut")
-                labels3 <- c("Control", "Treated")
+                labels3 <- c("Control Condition", "Treatment Condition")
                 ## colors3 <- c("#B0C4DE", "red")
                 colors3 <- c("#99999950", "#FC8D6280")
                 ##if (1%in%unit.type||2%in%unit.type) {
@@ -4530,7 +4531,26 @@ preView <- function(formula,
         data <- cbind.data.frame(units=units, period=period, res=res)
         data[,"res"] <- as.factor(data[,"res"])
 
+        ## labels
         N.b <- 1:N
+        if (axis.lab == "both") {
+            if (length(axis.lab.gap)==2) {
+                x.gap <- axis.lab.gap[1]
+                y.gap <- axis.lab.gap[2] 
+            } else {
+                x.gap <- y.gap <- axis.lab.gap[1]
+            }
+        } else {
+            x.gap <- y.gap <- axis.lab.gap[1]
+        }
+
+        if (x.gap != 0) {
+            T.b <- seq(from = 1, to = length(show), by = (x.gap + 1))
+        }
+        if (y.gap != 0) {
+            N.b <- seq(from = N, to = 1, by = -(y.gap + 1))
+        }
+        id <- rev(id)
         
         p <- ggplot(data, aes(x = period, y = units,
                               fill = res), position = "identity") 
@@ -4562,19 +4582,19 @@ preView <- function(formula,
                                         margin = margin(10, 0, 10, 0)))
         if (axis.lab == "both") {
             p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
-            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(id))
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = id[N.b])
         }
         else if (axis.lab == "unit") {
             p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = NULL) +
-            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = rev(id))            
+            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = id[N.b])            
         }
         else if (axis.lab == "time") {
             p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = time.label[T.b]) +
             scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = NULL)
         }
-        else if (axis.lab == "none") {
-            p <- p + scale_x_continuous(expand = c(0, 0), breaks = T.b, labels = NULL) +
-            scale_y_continuous(expand = c(0, 0), breaks = N.b, labels = NULL)
+        else if (axis.lab == "off") {
+            p <- p + scale_x_continuous(expand = c(0, 0), breaks = 1:length(show), labels = NULL) +
+            scale_y_continuous(expand = c(0, 0), breaks = 1:N, labels = NULL)
         }
         
         if(length(all)>=4) {
