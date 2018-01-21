@@ -3634,7 +3634,7 @@ plot.gsynth <- function(x,
             ylab <- NULL
         }
         if (is.null(main)==TRUE) {
-            main <- "Observations"
+            main <- "Treatment Status"
         } else if (main == "") {
             main <- NULL
         }
@@ -3776,8 +3776,8 @@ preView <- function(formula,
                     ylim = NULL,
                     xlab = NULL, 
                     ylab = NULL,
-                    labels = NULL,
                     legendOff = FALSE,
+                    legend.labs = NULL,
                     main = NULL,
                     id = NULL,
                     axis.adjust = FALSE,
@@ -3832,6 +3832,11 @@ preView <- function(formula,
     ## time labels gap
     if (sum(axis.lab.gap < 0) > 0) {
         stop("\"gap\" should be equal to or greater than 0.\n")
+    }
+
+    ## legend labels
+    if (is.null(legend.labs)==FALSE) {
+        legend.labs <- as.character(legend.labs)
     }
 
     ##-------------------------------##
@@ -3941,8 +3946,8 @@ preView <- function(formula,
     if (sum(abs(D.old[which(I==1)] - D[which(I==1)])) == 0) {
         by.group <- by.group
     } else { ## FE mode
-        if (by.group == FALSE) {
-            warning("FE data\n")
+        if (by.group == FALSE & type == "raw") {
+            warning("Treatment has reversals. Show by groups.\n")
         }
         by.group <- TRUE
     }
@@ -4122,11 +4127,7 @@ preView <- function(formula,
     if (legendOff == TRUE) {
         legend.pos <- "none"
     } else {
-        ## if (by.group == TRUE && type == "raw" && length(unique(unit.type)) > 2) {
-        ##     legend.pos <- "right"
-        ## } else {
-            legend.pos <- "bottom"
-        ## }
+        legend.pos <- "bottom"
     }
 
     ############  START  ############### 
@@ -4197,9 +4198,11 @@ preView <- function(formula,
 
             ## legend
             set.limits = c("tr","tr.pst","co")
-            set.labels = c("Treated (Pre)",
-                           "Treated (Post)",
-                           "Controls")
+            if (length(legend.labs)==3) {
+                set.labels <- legend.labs
+            } else {
+                set.labels = c("Treated (Pre)","Treated (Post)","Controls")                
+            }
             set.colors = c("#FC8D6280","red","#99999950")
             set.linetypes = c("solid","solid","solid")
             set.linewidth = c(0.5, 0.5, 0.5)
@@ -4255,6 +4258,12 @@ preView <- function(formula,
                 main <- "Raw Data"
             }
 
+            if (length(legend.labs)==2) {
+                set.labels <- legend.labs
+            } else {
+                set.labels = c("Control", "Treatment")                
+            }
+
             if (1 %in% unit.type) {
                 co.pos <- which(unit.type == 1)
                 Nco <- length(co.pos)
@@ -4264,8 +4273,6 @@ preView <- function(formula,
                                           "id" = c(rep(1:Nco, each = nT)))
                 limits1 <- c("co", "tr")
                 #limits1 <- "co"
-                labels1 <- c("Control Condition", "Treatment Condition")
-                #labels1 <- "Not Under Treatment"
                 colors1 <- c("#99999950", "#FC8D6280")
                 #colors1 <- "#99999950"
                 ## main1 <- main
@@ -4281,8 +4288,6 @@ preView <- function(formula,
                                           "id" = c(rep(1:Ntr,each = nT)))
                 limits2 <- c("co", "tr")
                 #limits2 <- "tr"
-                labels2 <- c("Control Condition", "Treatment Condition")
-                #labels2 <- "Under Treatment"
                 colors2 <- c("#99999950", "#FC8D6280") 
                 #colors2 <- "#FC8D6280" 
                 ## main2 <- ifelse(1%in%unit.type, "", main)
@@ -4327,8 +4332,6 @@ preView <- function(formula,
                                                    rep("ut",length(ut.id))),
                                           "id" = c(rep(1:Nrv,each = nT), ut.id))
                 limits3 <- c("nut", "ut")
-                labels3 <- c("Control Condition", "Treatment Condition")
-                ## colors3 <- c("#B0C4DE", "red")
                 colors3 <- c("#99999950", "#FC8D6280")
                 ##if (1%in%unit.type||2%in%unit.type) {
                 ##    main3 <- ""   
@@ -4355,7 +4358,6 @@ preView <- function(formula,
 
                 ## legend
                 set.limits = limits
-                set.labels = labels
                 set.colors = colors
                 set.linetypes = rep("solid", length(limits))
                 set.linewidth = rep(0.5, length(limits))
@@ -4394,24 +4396,24 @@ preView <- function(formula,
 
             if (length(unique(unit.type))==1) {
                 if (1%in%unit.type) {
-                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                                      legend, nrow = 2, heights = c (1, 1/5)),
                                      top = textGrob(main, gp = gpar(fontsize=20,font=2))))   
                 }
                 else if (2%in%unit.type) {
-                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"),
                                      legend, nrow = 2, heights = c (1, 1/5)),
                                      top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
                 }
                 else if (3%in%unit.type) {
-                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p3 + theme(legend.position="none"),
                                      legend, nrow = 2, heights = c (1, 1/5)),
@@ -4420,27 +4422,27 @@ preView <- function(formula,
             }
             else if (length(unique(unit.type))==2) {
                 if (!1%in%unit.type) {
-                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
-                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position="bottom"))$grobs)
+                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
+                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"), p3 + theme(legend.position="none"),
                                      legend, nrow = 3, heights = c (1, 1, 1/5)),
                                      top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
                 }
                 else if (!2%in%unit.type) {
-                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
-                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
+                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p3 + theme(legend.position="none"),
                                      legend, nrow = 3, heights = c (1, 1, 1/5)),
                                      top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
                 }
                 else if (!3%in%unit.type) {
-                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
-                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
+                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                     legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                     suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
                                      legend, nrow = 3, heights = c (1, 1, 1/5)),
@@ -4448,10 +4450,10 @@ preView <- function(formula,
                 }
             }
             else {
-                p1 <- subplot(data1, limits1, labels1, colors1, main1)
-                p2 <- subplot(data2, limits2, labels2, colors2, main2)
-                p3 <- subplot(data3, limits3, labels3, colors3, main3)
-                suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                p1 <- subplot(data1, limits1, set.labels, colors1, main1)
+                p2 <- subplot(data2, limits2, set.labels, colors2, main2)
+                p3 <- subplot(data3, limits3, set.labels, colors3, main3)
+                suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position=legend.pos))$grobs)
                 legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
                 suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
                                  p3 + theme(legend.position="none"), legend, nrow = 4, heights = c (1, 1, 1, 1/5)),
@@ -4473,7 +4475,7 @@ preView <- function(formula,
             ylab <- NULL
         }
         if (is.null(main)==TRUE) {
-            main <- "Observations"
+            main <- "Treatment Status"
         } else if (main == "") {
             main <- NULL
         }
@@ -4523,8 +4525,8 @@ preView <- function(formula,
         if (!is.null(labels) && length(labels) != length(all)) {
             warning("Wrong label numbers. Using default.\n")
         }
-        if (!is.null(labels) && length(labels) == length(all)) {
-            label <- labels
+        if (!is.null(legend.labs) && length(legend.labs) == length(all)) {
+            label <- legend.labs
         }
 
         units <- rep(rev(1:N), each = TT)
