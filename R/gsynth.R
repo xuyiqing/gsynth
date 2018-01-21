@@ -2,7 +2,7 @@
 ## (Causal Inference with Interactive Fixed Effects Models)
 ## Version 1.03
 ## Author: Yiqing Xu, University of California, San Diego
-## Date: 2016.7.28
+## Date: 2018.1.20
 
 ## MAIN FUNCTION
 ## gsynth.formula()
@@ -17,6 +17,8 @@
 ## METHODS
 ## print.gsynth()
 ## plot.gsynth()
+
+## preView()
 
 #####################################################################
 ## A Shell Function
@@ -3760,16 +3762,16 @@ ct.adjsut <- function (Y.tr,
  
 }
 
-###################################################
-## preview of data treatment status and missingness
-###################################################
+#################################################################
+## preview of data treatment status, missing values and raw data
+#################################################################
 
 preView <- function(formula,
                     data, # a data frame (long-form)
                     index, # c(unit, time) indicators
                     na.rm = FALSE, # remove missing values
                     type = "missing",
-                    ByGroup = FALSE, # (color pre-treatment treated differently)
+                    by.group = FALSE, # (color pre-treatment treated differently)
                     xlim = NULL, 
                     ylim = NULL,
                     xlab = NULL, 
@@ -3937,12 +3939,12 @@ preView <- function(formula,
 
     ## check DID mode
     if (sum(abs(D.old[which(I==1)] - D[which(I==1)])) == 0) {
-        ByGroup <- ByGroup
+        by.group <- by.group
     } else { ## FE mode
-        if (ByGroup == FALSE) {
+        if (by.group == FALSE) {
             warning("FE data\n")
         }
-        ByGroup <- TRUE
+        by.group <- TRUE
     }
 
     ##-------------------------------##
@@ -3955,7 +3957,7 @@ preView <- function(formula,
     Y <- matrix(data[,Yname],TT,N)
     Y[which(I==0)] <- NA
     
-    if (ByGroup == FALSE) {
+    if (by.group == FALSE) {
         tr <- D[TT,]==1     # cross-sectional: treated unit
         pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
         post <- as.matrix(D[,which(tr==1)]==1&I[,which(tr==1)]==1)
@@ -4120,7 +4122,7 @@ preView <- function(formula,
     if (legendOff == TRUE) {
         legend.pos <- "none"
     } else {
-        ## if (ByGroup == TRUE && type == "raw" && length(unique(unit.type)) > 2) {
+        ## if (by.group == TRUE && type == "raw" && length(unique(unit.type)) > 2) {
         ##     legend.pos <- "right"
         ## } else {
             legend.pos <- "bottom"
@@ -4142,7 +4144,7 @@ preView <- function(formula,
             ylab <- NULL
         }
 
-        if (ByGroup == FALSE) { ## DID-type plot
+        if (by.group == FALSE) { ## DID-type plot
             ## time-line
             if (length(id) == 1) {
                 time.bf <- time[T0[which(id == id.tr)]]
