@@ -4,7 +4,7 @@
 \description{Visualizes outcomes or treatment status before running the generalized synthetic control method.}
 \usage{preView(formula, data, index, na.rm = FALSE, type = "missing", 
                by.group = FALSE, xlim = NULL, ylim = NULL, xlab = NULL, 
-               ylab = NULL, legend.labs = NULL, legendOff = FALSE, main = NULL, 
+               ylab = NULL, legendOff = FALSE, legend.labs = NULL, main = NULL, 
                id = NULL, axis.adjust = FALSE, axis.lab = "both", 
                axis.lab.gap = c(0, 0))
 }
