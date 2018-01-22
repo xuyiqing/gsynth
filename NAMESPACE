@@ -22,7 +22,7 @@ importFrom("gridExtra", "grid.arrange", "arrangeGrob")
 importFrom("grid", "textGrob", "gpar")
 
 
-export(preView)
+export(panelView)
 export(gsynth)
 S3method("gsynth", "default")
 S3method("gsynth", "formula")

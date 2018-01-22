@@ -3766,23 +3766,24 @@ ct.adjsut <- function (Y.tr,
 ## preview of data treatment status, missing values and raw data
 #################################################################
 
-preView <- function(formula,
-                    data, # a data frame (long-form)
-                    index, # c(unit, time) indicators
-                    na.rm = FALSE, # remove missing values
-                    type = "missing",
-                    by.group = FALSE, # (color pre-treatment treated differently)
-                    xlim = NULL, 
-                    ylim = NULL,
-                    xlab = NULL, 
-                    ylab = NULL,
-                    legendOff = FALSE,
-                    legend.labs = NULL,
-                    main = NULL,
-                    id = NULL,
-                    axis.adjust = FALSE,
-                    axis.lab = "both",
-                    axis.lab.gap = c(0, 0)
+panelView <- function(formula,
+                      data, # a data frame (long-form)
+                      index, # c(unit, time) indicators
+                      na.rm = FALSE, # remove missing values
+                      type = "missing",
+                      by.group = FALSE, # (color pre-treatment treated differently)
+                      xlim = NULL, 
+                      ylim = NULL,
+                      xlab = NULL, 
+                      ylab = NULL,
+                      legendOff = FALSE,
+                      legend.labs = NULL,
+                      main = NULL,
+                      id = NULL,
+                      show.id = NULL,
+                      axis.adjust = FALSE,
+                      axis.lab = "both",
+                      axis.lab.gap = c(0, 0)
                     ) {  
     ## ------------------------------------- ##
     ##          part 1: parsing data
@@ -3838,6 +3839,22 @@ preView <- function(formula,
     if (is.null(legend.labs)==FALSE) {
         legend.labs <- as.character(legend.labs)
     }
+
+    ## missing plot : y-axis
+    if (!is.null(show.id)) {
+        if (is.null(id) && !class(show.id) %in% c("numeric", "integer")) {
+            stop("\"show.id\" option misspecified. Try, for example, show.id = 1:100. \n")
+        } else {
+            if (!is.null(id)) {
+                if (class(show.id) != "numeric") {
+                    warning("\"show.id\" option misspecified. Using \"id\" option.\n")
+                } else if (class(show.id) == "numeric") {
+                    warning("Using \"id\" option.\n")
+                }
+            }
+        }
+    }
+
 
     ##-------------------------------##
     ## Parsing raw data
@@ -3942,6 +3959,12 @@ preView <- function(formula,
     D <- apply(D, 2, function(vec){cumsum(vec)})
     D <- ifelse(D > 0, 1, 0)
 
+    ## DID timing
+    tr.old <- D[TT,]==1
+    D.tr.old <- as.matrix(D[,which(tr.old==1)])
+    T0 <- apply(D.tr.old==0,2,sum) 
+    DID <- length(unique(T0))==1
+
     ## check DID mode
     if (sum(abs(D.old[which(I==1)] - D[which(I==1)])) == 0) {
         by.group <- by.group
@@ -3961,7 +3984,26 @@ preView <- function(formula,
     ##outcome variable
     Y <- matrix(data[,Yname],TT,N)
     Y[which(I==0)] <- NA
-    
+
+    ## plot a part of outcomes: raw plot
+    if (!is.null(id.old) && type == "raw") {
+        id.pos <- rep(NA, length(id.old))
+        for (i in 1:length(id.old)) {
+            if (id.old[i]%in%iname) {
+                id.pos[i] <- which(iname == id.old[i])
+            } else {
+                stop("Some specified units are not in the data.")
+            }
+        }
+        N <- length(id.old)
+        Y <- as.matrix(Y[, id.pos])
+        I <- as.matrix(I[, id.pos])
+        D <- as.matrix(D[, id.pos])
+        D.old <- as.matrix(D.old[, id.pos])
+        iname <- id.old
+
+    }
+
     if (by.group == FALSE) {
         tr <- D[TT,]==1     # cross-sectional: treated unit
         pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]==1) # a matrix indicating before treatment
@@ -3969,11 +4011,7 @@ preView <- function(formula,
         id.tr <- which(tr==1)
         id.co <- which(tr==0)
 
-        ## DID timing
         D.tr <- as.matrix(D[,which(tr==1)])
-        T0 <- apply(D.tr==0,2,sum) 
-        DID <- length(unique(T0))==1
-
         I.tr <- as.matrix(I[,which(tr==1)])
         Y.tr <- as.matrix(Y[,which(tr==1)])
         Y.co <- as.matrix(Y[,which(tr==0)])
@@ -4034,6 +4072,7 @@ preView <- function(formula,
     ##          part 2: plot
     ## ------------------------------------- ##
     outcome <- NULL ## global variable
+    labels1 <- labels2 <- labels3 <- NULL
     
     if (is.null(xlim)==FALSE) {
         if (is.numeric(xlim)==FALSE) {
@@ -4088,7 +4127,7 @@ preView <- function(formula,
     } else {
         angle <- 0
         x.v <- 0
-        if (type=="missing") {
+        if (type == "missing") {
             x.h <- 0.5
         } else {
             x.h <- 0
@@ -4096,8 +4135,12 @@ preView <- function(formula,
     }
     
     if (type == "missing") {
-        if (is.null(id)==TRUE) {
-            id <- colnames(obs.missing)
+        if (is.null(id) == TRUE) {
+            if (is.null(show.id) == TRUE) {
+                id <- colnames(obs.missing)
+            } else {
+                id <- colnames(obs.missing)[show.id]
+            }
         }
         m.l <- length(id)
         for (i in 1:m.l) {
@@ -4408,68 +4451,108 @@ preView <- function(formula,
 
             if (length(unique(unit.type))==1) {
                 if (1%in%unit.type) {
-                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
-                                     legend, nrow = 2, heights = c (1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))   
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
+                                         legend, nrow = 2, heights = c (1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    } else {
+                        suppressWarnings(grid.arrange(p1 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }   
                 }
                 else if (2%in%unit.type) {
-                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"),
-                                     legend, nrow = 2, heights = c (1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"),
+                                         legend, nrow = 2, heights = c (1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2)))) 
+                    } else {
+                        suppressWarnings(grid.arrange(p2 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }   
                 }
                 else if (3%in%unit.type) {
-                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p3 + theme(legend.position="none"),
-                                     legend, nrow = 2, heights = c (1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p3 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p3 + theme(legend.position="none"),
+                                         legend, nrow = 2, heights = c (1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2)))) 
+                    } else {
+                        suppressWarnings(grid.arrange(p3 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }  
                 }
             }
             else if (length(unique(unit.type))==2) {
                 if (!1%in%unit.type) {
-                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
-                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"), p3 + theme(legend.position="none"),
-                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p2 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p2 + theme(legend.position="none"), p3 + theme(legend.position="none"),
+                                         legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))  
+                    } else {
+                        suppressWarnings(grid.arrange(p2 + theme(legend.position="none"),
+                                         p3 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }  
                 }
                 else if (!2%in%unit.type) {
-                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
-                    p3 <- subplot(data3, limits3, set.labels, colors3, main3)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p3 + theme(legend.position="none"),
-                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))    
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p3 + theme(legend.position="none"),
+                                         legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))  
+                    } else {
+                        suppressWarnings(grid.arrange(p1 + theme(legend.position="none"),
+                                         p3 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }  
                 }
                 else if (!3%in%unit.type) {
-                    p1 <- subplot(data1, limits1, set.labels, colors1, main1)
-                    p2 <- subplot(data2, limits2, set.labels, colors2, main2)
-                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
-                                     legend, nrow = 3, heights = c (1, 1, 1/5)),
-                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))     
+                    p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                    p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                    if (legend.pos != "none") {
+                        suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                        legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                        suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
+                                         legend, nrow = 3, heights = c (1, 1, 1/5)),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))  
+                    } else {
+                        suppressWarnings(grid.arrange(p1 + theme(legend.position="none"),
+                                         p2 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                    }   
                 }
             }
             else {
-                p1 <- subplot(data1, limits1, set.labels, colors1, main1)
-                p2 <- subplot(data2, limits2, set.labels, colors2, main2)
-                p3 <- subplot(data3, limits3, set.labels, colors3, main3)
-                suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
-                legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-                suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
-                                 p3 + theme(legend.position="none"), legend, nrow = 4, heights = c (1, 1, 1, 1/5)),
-                                 top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                p1 <- subplot(data1, limits1, labels1, colors1, main1)
+                p2 <- subplot(data2, limits2, labels2, colors2, main2)
+                p3 <- subplot(data3, limits3, labels3, colors3, main3)
+                if (legend.pos != "none") {
+                    suppressWarnings(g <- ggplotGrob(p1 + theme(legend.position="bottom"))$grobs)
+                    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+                    suppressWarnings(grid.arrange(arrangeGrob(p1 + theme(legend.position="none"), p2 + theme(legend.position="none"),
+                                     p3 + theme(legend.position="none"), legend, nrow = 4, heights = c (1, 1, 1, 1/5)),
+                                     top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                } else {
+                    suppressWarnings(grid.arrange(p1 + theme(legend.position="none"),
+                                         p2 + theme(legend.position="none"),
+                                         p3 + theme(legend.position="none"),
+                                         top = textGrob(main, gp = gpar(fontsize=20,font=2))))
+                }
             }
             ## end of raw plot
         }
@@ -4493,10 +4576,15 @@ preView <- function(formula,
         }
 
         m <- obs.missing
+        
         if (!is.null(id)) {
             m <- as.matrix(m[show,which(colnames(m)%in%id)])
         } else {
-            m <- as.matrix(m[show,])
+            if (!is.null(show.id)) {
+                m <- as.matrix(m[show, c(show.id)])
+            } else {
+                m <- as.matrix(m[show,])
+            }
         }
 
         all <- unique(c(m))
@@ -4526,7 +4614,7 @@ preView <- function(formula,
             if (2%in%all) {
                 col <- c(col,"#B0C4DE")
                 breaks <- c(breaks,2)
-                label <- c(label,"Not Under Treatment")
+                label <- c(label,"Under Control")
             }
         }
         if (4%in%all) {
@@ -4542,11 +4630,22 @@ preView <- function(formula,
             }
         } 
         
+        N <- dim(m)[2]
         units <- rep(rev(1:N), each = TT)
         period <- rep(1:TT, N)
         res <- c(m)
         data <- cbind.data.frame(units=units, period=period, res=res)
         data[,"res"] <- as.factor(data[,"res"])
+
+        ## check if N >= 200
+        if (dim(m)[2] >= 200) {
+            if (axis.lab == "both") {
+                axis.lab <- "time"
+            }
+            else if (axis.lab == "unit") {
+                axis.lab <- "off"
+            }
+        }
 
         ## labels
         N.b <- 1:N

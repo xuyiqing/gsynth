@@ -1,11 +1,11 @@
-\name{preView}
-\alias{preView}
+\name{panelView}
+\alias{panelView}
 \title{Plotting data structure and raw outcome data before estimating a panel model}
 \description{Visualizes outcomes or treatment status before running the generalized synthetic control method.}
-\usage{preView(formula, data, index, na.rm = FALSE, type = "missing", 
+\usage{panelView(formula, data, index, na.rm = FALSE, type = "missing", 
                by.group = FALSE, xlim = NULL, ylim = NULL, xlab = NULL, 
                ylab = NULL, legendOff = FALSE, legend.labs = NULL, main = NULL, 
-               id = NULL, axis.adjust = FALSE, axis.lab = "both", 
+               id = NULL, show.id = NULL, axis.adjust = FALSE, axis.lab = "both", 
                axis.lab.gap = c(0, 0))
 }
 \arguments{
@@ -25,6 +25,7 @@
   \item{legend.labs}{a vector specifying the legend labels. Ignored when \code{legendOff=TRUE}.}
   \item{main}{a string that controls the title of the plot.}
   \item{id}{a vector specifying units to be shown in the \code{"missing"} plot. Useful when the number of units is very large.}
+  \item{show.id}{a numeric vector or sequence specifying the sorted order of units to be shown in the \code{"missing"} plot. Useful when the number of units is very large. Ignored if \code{!is.null("id")}.}
   \item{axis.adjust}{a logic flag indicating whether to adjust labels on the x-axis.  Useful when the class of time variable is string and there are many time periods.}
   \item{axis.lab}{a string indicating whether labels on the x- and y-axis will be shown. There are four options: \code{"both"} (default): labels on both axes will be shown; \code{"unit"}: only labels on y-axis will be shown; \code{"time"}: only labels on the x-axis will be shown; "none": no labels will be shown.}
   \item{axis.lab.gap}{a numeric vector setting the gaps between labels on the x- or y-axis for \code{"missing"} plot. Default is \code{axis.lab.gap = c(0, 0)}, which means that all labels will be shown. Useful for datasets with large N or T.}
@@ -52,8 +53,8 @@
 \examples{
 library(gsynth)
 data(gsynth)
-preView(Y ~ D + X1 + X2 , data = simdata, index = c("id","time")) 
-preView(Y ~ D + X1 + X2, data = simdata, index = c("id","time"), type = "raw") 
+panelView(Y ~ D + X1 + X2 , data = simdata, index = c("id","time")) 
+panelView(Y ~ D + X1 + X2, data = simdata, index = c("id","time"), type = "raw") 
 }
 
 
