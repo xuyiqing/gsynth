@@ -3798,6 +3798,21 @@ panelView <- function(formula,
     }
 
     p <- length(X)
+
+    ##store variable names
+    id.old <- id
+    data.old <- data
+    Yname <- Y
+    Dname <- D
+    Xname <- X
+    
+    id <- index[1]
+    time <- index[2]
+
+    TT <- length(unique(data[,time]))
+    N <- length(unique(data[,id]))
+    id.series <- unique(sort(data[,id])) ## unit id
+    time.uni <- unique(sort(data[,time])) ## period
     ##-------------------------------##
     ## Checking Parameters
     ##-------------------------------## 
@@ -3841,17 +3856,25 @@ panelView <- function(formula,
     }
 
     ## missing plot : y-axis
-    if (!is.null(show.id)) {
-        if (is.null(id) && !class(show.id) %in% c("numeric", "integer")) {
-            stop("\"show.id\" option misspecified. Try, for example, show.id = 1:100. \n")
-        } else {
-            if (!is.null(id)) {
-                if (class(show.id) != "numeric") {
-                    warning("\"show.id\" option misspecified. Using \"id\" option.\n")
-                } else if (class(show.id) == "numeric") {
-                    warning("Using \"id\" option.\n")
-                }
+    if (!is.null(id.old)) {
+        if (!is.null(show.id)) {
+           warning("Using \"id\" option.\n") 
+        }
+    } else {
+        if (!is.null(show.id)) {
+            if (length(show.id) > N ) {
+                stop("Length of \"show.id\" should not be larger than total number of units. \n")
             }
+            if (!class(show.id) %in% c("numeric", "integer")) {
+                stop("\"show.id\" option misspecified. Try, for example, show.id = 1:100. \n")
+            }
+            if (sum(show.id > N) > 0) {
+                stop("Some specified units are not in the data.\n")
+            }
+            if (length(unique(show.id)) != length(show.id)) {
+                stop("Repeated values in \"show.id\" option.")
+            }
+            id.old <- id.series[show.id] 
         }
     }
 
@@ -3859,20 +3882,6 @@ panelView <- function(formula,
     ##-------------------------------##
     ## Parsing raw data
     ##-------------------------------##  
-
-    ##store variable names
-    id.old <- id
-    data.old <- data
-    Yname <- Y
-    Dname <- D
-    Xname <- X
-    
-    id <- index[1]
-    time <- index[2]
-    TT <- length(unique(data[,time]))
-    N <- length(unique(data[,id]))
-    id.series <- unique(sort(data[,id])) ## unit id
-    time.uni <- unique(sort(data[,time])) ## period
 
     ## sort data
     data <- data[order(data[,id], data[,time]), ]
@@ -3986,7 +3995,11 @@ panelView <- function(formula,
     Y[which(I==0)] <- NA
 
     ## plot a part of outcomes: raw plot
-    if (!is.null(id.old) && type == "raw") {
+    if (!is.null(id.old)) {
+        if (length(unique(id.old)) != length(id.old)) {
+            stop("Repeated values in \"id\" option.")
+        }
+
         id.pos <- rep(NA, length(id.old))
         for (i in 1:length(id.old)) {
             if (id.old[i]%in%iname) {
@@ -4136,11 +4149,11 @@ panelView <- function(formula,
     
     if (type == "missing") {
         if (is.null(id) == TRUE) {
-            if (is.null(show.id) == TRUE) {
+            ## if (is.null(show.id) == TRUE) {
                 id <- colnames(obs.missing)
-            } else {
-                id <- colnames(obs.missing)[show.id]
-            }
+            ## } else {
+            ##     id <- colnames(obs.missing)[show.id]
+            ## }
         }
         m.l <- length(id)
         for (i in 1:m.l) {
@@ -4190,30 +4203,38 @@ panelView <- function(formula,
 
         if (by.group == FALSE) { ## DID-type plot
             ## time-line
-            if (length(id) == 1) {
-                time.bf <- time[T0[which(id == id.tr)]]
-            } else {
-                time.bf <- time[unique(T0)]
-            }
-            
-            pst <- D.tr
-            for (i in 1:Ntr) {
-                pst[T0[i], i] <- 1 ## paint the period right before treatment
-            }
-            time.pst <- c(pst[show,] * time[show])
-            time.pst <- time.pst[which(c(pst[show,])==1)]
-            Y.tr.pst <- c(Y.tr[show,])[which(pst[show,]==1)]
-            id.tr.pst <- matrix(rep(1:Ntr,each=TT),TT,Ntr,byrow=FALSE)[show,]
-            id.tr.pst <- c(id.tr.pst)[which(pst[show,]==1)]
+            if (Ntr >= 1) { ## with treatment group
+                if (length(id) == 1) {
+                    time.bf <- time[T0[which(id == id.tr)]]
+                } else {
+                    time.bf <- time[unique(T0)]
+                }
+                pst <- D.tr
+                for (i in 1:Ntr) {
+                    pst[T0[i], i] <- 1 ## paint the period right before treatment
+                }
+                time.pst <- c(pst[show,] * time[show])
+                time.pst <- time.pst[which(c(pst[show,])==1)]
+                Y.tr.pst <- c(Y.tr[show,])[which(pst[show,]==1)]
+                id.tr.pst <- matrix(rep(1:Ntr,each=TT),TT,Ntr,byrow=FALSE)[show,]
+                id.tr.pst <- c(id.tr.pst)[which(pst[show,]==1)]
 
-            data <- cbind.data.frame("time" = c(rep(time[show], N), time.pst),
-                                     "outcome" = c(c(Y.tr[show,]),
-                                                   c(Y.co[show,]),
-                                                   Y.tr.pst),
-                                     "type" = c(rep("tr",(Ntr*nT)),
-                                                rep("co",(Nco*nT)),
-                                                rep("tr.pst",length(Y.tr.pst))),
-                                     "id" = c(rep(1:N,each = nT), id.tr.pst*(-1)))
+                data <- cbind.data.frame("time" = c(rep(time[show], N), time.pst),
+                                         "outcome" = c(c(Y.tr[show,]),
+                                                       c(Y.co[show,]),
+                                                       Y.tr.pst),
+                                         "type" = c(rep("tr",(Ntr*nT)),
+                                                    rep("co",(Nco*nT)),
+                                                    rep("tr.pst",length(Y.tr.pst))),
+                                         "id" = c(rep(1:N,each = nT), id.tr.pst*(-1)))
+            } else {
+                data <- cbind.data.frame("time" = c(rep(time[show], N)),
+                                         "outcome" = c(c(Y.tr[show,]),
+                                                       c(Y.co[show,])),
+                                         "type" = c(rep("tr",(Ntr*nT)),
+                                                    rep("co",(Nco*nT))),
+                                         "id" = c(rep(1:N,each = nT)))
+            }
         
             ## theme
             p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
@@ -4226,7 +4247,7 @@ panelView <- function(formula,
 
         
         
-            if (DID==TRUE) {
+            if (DID == TRUE && Ntr >= 1) {
                 p <- p + geom_vline(xintercept=time.bf,colour="white",size = 2) +
                     annotate("rect", xmin= time.bf, xmax= Inf,
                              ymin=-Inf, ymax=Inf, alpha = .3) 
@@ -4580,11 +4601,11 @@ panelView <- function(formula,
         if (!is.null(id)) {
             m <- as.matrix(m[show,which(colnames(m)%in%id)])
         } else {
-            if (!is.null(show.id)) {
-                m <- as.matrix(m[show, c(show.id)])
-            } else {
+            ## if (!is.null(show.id)) {
+            ##     m <- as.matrix(m[show, c(show.id)])
+            ## } else {
                 m <- as.matrix(m[show,])
-            }
+            ## }
         }
 
         all <- unique(c(m))

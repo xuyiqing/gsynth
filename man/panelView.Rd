@@ -25,13 +25,13 @@
   \item{legend.labs}{a vector specifying the legend labels. Ignored when \code{legendOff=TRUE}.}
   \item{main}{a string that controls the title of the plot.}
   \item{id}{a vector specifying units to be shown in the \code{"missing"} plot. Useful when the number of units is very large.}
-  \item{show.id}{a numeric vector or sequence specifying the sorted order of units to be shown in the \code{"missing"} plot. Useful when the number of units is very large. Ignored if \code{!is.null("id")}.}
+  \item{show.id}{a numeric vector or sequence specifying the sorted order of units to be shown. Useful when the number of units is very large. Ignored if \code{!is.null("id")}.}
   \item{axis.adjust}{a logic flag indicating whether to adjust labels on the x-axis.  Useful when the class of time variable is string and there are many time periods.}
   \item{axis.lab}{a string indicating whether labels on the x- and y-axis will be shown. There are four options: \code{"both"} (default): labels on both axes will be shown; \code{"unit"}: only labels on y-axis will be shown; \code{"time"}: only labels on the x-axis will be shown; "none": no labels will be shown.}
   \item{axis.lab.gap}{a numeric vector setting the gaps between labels on the x- or y-axis for \code{"missing"} plot. Default is \code{axis.lab.gap = c(0, 0)}, which means that all labels will be shown. Useful for datasets with large N or T.}
 }
 \details{
-  \code{preView} visualizes treatment status, missing values, and the raw outcome data of a  time-series cross-sectional dataset.
+  \code{panelView} visualizes treatment status, missing values, and the raw outcome data of a  time-series cross-sectional dataset.
 }
 % \value{
 %    \item{obs.missing}{a matrix showing status of each unit at each time point. 
