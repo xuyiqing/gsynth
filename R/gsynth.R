@@ -32,8 +32,11 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    X = NULL, # time-varying covariates
                    na.rm = FALSE, # remove missing values
                    index, # c(unit, time) indicators
+                   weight = NULL, # weighting
                    force = "unit", # fixed effects demeaning
                    r = 0, # nubmer of factors
+                   n.lambda = 10, ## mc method: regularization parameter
+                   type = "fe", ## fe or mc
                    CV = TRUE, # cross-validation
                    EM = FALSE, # EM algorithm
                    se = FALSE, # report uncertainties
@@ -58,8 +61,11 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            X = NULL, # time-varying covariates
                            na.rm = FALSE, # remove missing values
                            index, # c(unit, time) indicators
+                           weight = NULL,
                            force = "unit", # fixed effects demeaning
                            r = 0, # nubmer of factors
+                           n.lambda = 10, ## mc method: regularization parameter
+                           type = "fe", ## fe or mc
                            CV = TRUE, # cross-validation
                            EM = FALSE, # EM algorithm 
                            se = FALSE, # report uncertainties
@@ -85,7 +91,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
     ## run the model
     out <- gsynth.default(formula = NULL, data = data, Y = Yname,
                           D = Dname, X = Xname,
-                          na.rm, index, force, r,
+                          na.rm, index, weight, force, r, n.lambda, type,
                           CV, EM, se, nboots, 
                           inference, cov.ar, 
                           parallel, cores, tol, seed, min.T0, 
@@ -106,8 +112,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            X = NULL, # time-varying covariates
                            na.rm = FALSE, # remove missing values
                            index, # c(unit, time) indicators
+                           weight = NULL,
                            force = "unit", # fixed effects demeaning
                            r = 0, # nubmer of factors
+                           n.lambda = 0, ## mc method: regularization parameter
+                           type = "fe", ## fe or mc
                            CV = TRUE, # cross-validation
                            EM = FALSE, # EM algorithm 
                            se = FALSE, # report uncertainties
@@ -221,6 +230,13 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         stop("\"tol\" option misspecified. Try using the default option.")
     }
 
+    ## mc inference
+    if (type == "mc" && se == 1) {
+        if (inference=="parametric") {
+            stop("For matrix completion method, please use nonparametric bootstrap.")
+        }
+    }
+
     ## seed
     if (is.null(seed) == FALSE) {
         if (is.numeric(seed) == FALSE) {
@@ -234,7 +250,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     } 
 
     if (na.rm == TRUE) {
-    	data <- data[,c(index, Y, D, X)] ## some variables may not be used
+    	data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
         data <- na.omit(data)
     } 
     ##-------------------------------##
@@ -246,6 +262,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     Yname <- Y
     Dname <- D
     Xname <- X
+    Wname <- weight
 
     ## normalize
     norm.para <- NULL
@@ -334,6 +351,13 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     D <- apply(D, 2, function(vec){cumsum(vec)})
     D <- ifelse(D > 0, 1, 0)
 
+    ## weighting variable
+    if (is.null(Wname)) {
+        W <- NULL
+    } else {
+        W <- matrix(data[, Wname], TT, N)
+    }
+
     ##outcome variable
     Y <- matrix(data[, Yname], TT, N)
     tr <- D[TT,] == 1     # cross-sectional: treated unit
@@ -362,46 +386,48 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     id.tr <- which(tr == 1)
     id.co <- which(tr == 0)
     
-    if ( (length(r) == 1) & (!CV) ) {
+    if (type == "fe") {
+        if ( (length(r) == 1) & (!CV) ) {
  
-        if (sum(T0 >= min.T0) == 0) {
-            stop ("All treated units have been removed.\n")
-        }       
+            if (sum(T0 >= min.T0) == 0) {
+                stop ("All treated units have been removed.\n")
+            }       
  
-        T0.min.2 <- min(T0[which(T0 >= min.T0)])
+            T0.min.2 <- min(T0[which(T0 >= min.T0)])
 
-        con1 <- (T0.min.2 < r.end) & (force%in%c(0,2))
-        con2 <- (T0.min.2 <= r.end) & (force%in%c(1,3))
-        if (con1) {
-            T0.min.e <- r.end
+            con1 <- (T0.min.2 < r.end) & (force%in%c(0,2))
+            con2 <- (T0.min.2 <= r.end) & (force%in%c(1,3))
+            if (con1) {
+                T0.min.e <- r.end
+            }
+            if (con2) {
+                T0.min.e <- r.end + 1
+            }
+            if (con1 | con2) {
+                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
+            } 
         }
-        if (con2) {
-            T0.min.e <- r.end + 1
-        }
-        if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
-        } 
-    }
 
-    if (CV) {
+        if (CV) {
         
-        if (sum(T0 >= min.T0) == 0) {
-            stop ("All treated units have been removed.\n")
-        }
+            if (sum(T0 >= min.T0) == 0) {
+                stop ("All treated units have been removed.\n")
+            }
 
-        T0.min.2 <- min(T0[which(T0 >= min.T0)])
+            T0.min.2 <- min(T0[which(T0 >= min.T0)])
 
-        con1 <- (T0.min.2 < r.end + 1) & (force%in%c(0,2))
-        con2 <- (T0.min.2 < r.end + 2) & (force%in%c(1,3))
-        if (con1) {
-            T0.min.e <- r.end + 1
+            con1 <- (T0.min.2 < r.end + 1) & (force%in%c(0,2))
+            con2 <- (T0.min.2 < r.end + 2) & (force%in%c(1,3))
+            if (con1) {
+                T0.min.e <- r.end + 1
+            }
+            if (con2) {
+                T0.min.e <- r.end + 2
+            }
+            if (con1 | con2) {
+                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
+            } 
         }
-        if (con2) {
-            T0.min.e <- r.end + 2
-        }
-        if (con1 | con2) {
-            stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
-        } 
     }
 
     ## T0.min : minimum T0,  min.T0: manually set
@@ -531,32 +557,39 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ##-------------------------------##
 
     if (se == FALSE) {
-        if (EM == FALSE) { # the algorithm suggested in the paper 
-            out <- synth.core(Y = Y, X = X, D = D, I = I,
-                              r = r, r.end = r.end, force = force,
-                              CV = CV, tol = tol, 
-                              AR1 = AR1, norm.para = norm.para)
+        if (type == "fe") {
+            if (EM == FALSE) { # the algorithm suggested in the paper 
+                out <- synth.core(Y = Y, X = X, D = D, I = I, W = W,
+                                  r = r, r.end = r.end, force = force,
+                                  CV = CV, tol = tol, 
+                                  AR1 = AR1, norm.para = norm.para)
 
-        } else { # EM algorithm
-            if (CV == FALSE) { 
-                out <- synth.em(Y = Y, X = X, D = D, I = I,
-                                r = r, force = force,
-                                tol = tol, AR1 = AR1, norm.para = norm.para)
+            } else { # EM algorithm
+                if (CV == FALSE) { 
+                    out <- synth.em(Y = Y, X = X, D = D, I = I, W = W,
+                                    r = r, force = force,
+                                    tol = tol, AR1 = AR1, norm.para = norm.para)
 
                 
-            } else { # cross-validation
-                out <- synth.em.cv(Y = Y,X = X, D = D, I = I,
-                                   r = r, r.end = r.end, force = force,
-                                   tol = tol, AR1 = AR1, norm.para = norm.para)
+                } else { # cross-validation
+                    out <- synth.em.cv(Y = Y,X = X, D = D, I = I, W = W,
+                                       r = r, r.end = r.end, force = force,
+                                       tol = tol, AR1 = AR1, norm.para = norm.para)
 
-            } 
+                } 
+            }
+        } else {
+            out <- synth.mc(Y = Y, X = X, D = D, I = I, W = W,
+                            n.lambda = n.lambda, force = force,
+                            tol = tol, AR1 = AR1, norm.para = norm.para)
         } 
     } else  {
         if (is.null(seed) == FALSE) {
             set.seed(seed)
         }
-        out <- synth.boot(Y = Y, X = X, D = D, I=I, EM = EM,
-                          r = r, r.end = r.end, force = force,
+        out <- synth.boot(Y = Y, X = X, D = D, I=I, W = W, EM = EM,
+                          r = r, r.end = r.end, n.lambda = n.lambda,
+                          type = type, force = force,
                           CV = CV, tol = tol,
                           nboots = nboots, inference = inference,
                           cov.ar = cov.ar,
@@ -631,15 +664,18 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     colnames(out$eff) <- iname[which(out$tr == 1)]
     rownames(out$eff) <- tname
 
-    if (out$r.cv>0) {
-        colnames(out$wgt.implied) <- iname[which(out$tr == 1)]
-        rownames(out$wgt.implied) <- iname[which(out$tr == 0)]
+    if (type == "fe") {
+        if (out$r.cv>0) {
+            colnames(out$wgt.implied) <- iname[which(out$tr == 1)]
+            rownames(out$wgt.implied) <- iname[which(out$tr == 0)]
+        }
     }
    
     output <- c(list(Y.dat = Y,
                      Y = Yname,
                      D = Dname,
                      X = Xname,
+                     W = Wname,
                      index = index,
                      id = iname,
                      time = tname,
@@ -667,6 +703,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                      X, # Explanatory variables:  (T*N*p) array
                      D, #  Indicator for treated unit (tr==1) 
                      I,
+                     W = NULL,
                      r=0, # initial number of factors considered if CV==1
                      r.end,
                      force,
@@ -705,6 +742,10 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     D.tr <- as.matrix(D[,which(tr == 1)])
     T0.ub <- apply(D.tr == 0, 2, sum) 
     T0.ub.min <- min(T0.ub) ## unbalanced data
+
+    if (!is.null(W)) {
+        W.tr <- as.matrix(W[,which(tr == 1)])
+    }
 
     Ntr <- sum(tr)
     Nco <- N - Ntr
@@ -1160,13 +1201,19 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## counterfactuals and averages
     Y.ct <- as.matrix(Y.tr - eff)
     
-    if (!0%in%I) {
-        Y.tr.bar <- rowMeans(Y.tr)
-        Y.ct.bar <- rowMeans(Y.ct)
-        Y.co.bar <- rowMeans(Y.co)  
+    if (is.null(W)) {
+        if (!0%in%I) {
+            Y.tr.bar <- rowMeans(Y.tr)
+            Y.ct.bar <- rowMeans(Y.ct)
+            Y.co.bar <- rowMeans(Y.co)  
+        } else {
+            Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
+            Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+            Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+        }
     } else {
-        Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
-        Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+        Y.tr.bar <- rowSums(Y.tr * W.tr)/rowSums(W.tr)
+        Y.ct.bar <- rowSums(Y.ct * W.tr)/rowSums(W.tr)
         Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
     }
 
@@ -1176,38 +1223,77 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     
     ## ATT and average outcomes
     if (DID == TRUE) { ## diff-in-diffs: same timing
-        if (!0%in%I.tr) {
-            att <- rowMeans(eff)
+        if (is.null(W)) {
+            if (!0%in%I.tr) {
+                att <- rowMeans(eff)
+            } else {
+                att <- rowSums(eff)/rowSums(I.tr)
+            }
         } else {
-            att <- rowSums(eff)/rowSums(I.tr)
+            att <- rowSums(eff * W.tr)/rowSums(W.tr)
         }
     } else { ## diff timing, centered the att
         if (!0%in%I.tr) {
-            eff.cnt <- Y.tr.center <- matrix(NA,TT,Ntr)
+            eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
+            }
             for (j in 1:Ntr) {
                 eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT, j]  
                 Y.tr.center[1:(TT+T0.min-T0[j]), j] <- Y.tr[(T0[j]-T0.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.min-T0[j]), j] <- W.tr[(T0[j]-T0.min+1):TT, j]   
+                }
             }
-            att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
-            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
-            Y.ct.cnt <- Y.tr.cnt - att
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
         } else {
             T0.ub <- apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) 
             T0.ub.min <- min(T0.ub)
             eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
             eff[which(I.tr == 0)] <- NA
             Y.tr[which(I.tr == 0)] <- NA
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
+                W.tr[which(I.tr == 0)] <- NA
+            }
             for (j in 1:Ntr) {
                 eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT, j]  
                 Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.ub.min-T0.ub[j]), j] <- W.tr[(T0.ub[j]-T0.ub.min+1):TT, j]   
+                }
             }
-            att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
-            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
-            Y.ct.cnt <- Y.tr.cnt - att
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
         }
     }
     eff[which(is.na(eff))] <- 0 ## to calulate att
-    att.avg <- sum(eff * post)/sum(post)
+    if (is.null(W)) {
+        att.avg <- sum(eff * post)/sum(post)
+    } else {
+        att.avg <- sum(eff * post * W.tr)/sum(post * W.tr)
+    }
 
     ## AR1: calculate accumulative effect
     if (AR1 == TRUE) {
@@ -1359,6 +1445,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                    X, # Explanatory variables:  (T*N*p) array
                    D, # indicator for treated unit (tr==1) 
                    I,
+                   W = NULL,
                    r = 0, # number of factors
                    force, # specifying fixed effects
                    tol = 1e-5,
@@ -1408,6 +1495,10 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         DID <- length(unique(T0.ub)) == 1
     }
 
+    if (!is.null(W)) {
+        W.tr <- as.matrix(W[,which(tr == 1)])
+    }
+
     
     id <- 1:N
     time <- 1:TT
@@ -1427,7 +1518,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     ## Main Algorithm
     ##-------------------------------##
 
-    init<-synth.core(Y = Y, X = X, D = D, I = I,
+    init<-synth.core(Y = Y, X = X, D = D, I = I, W = W,
                      r = r, force = force,
                      CV = 0, tol = tol, AR1 = AR1, norm.para = NULL)
     
@@ -1503,53 +1594,99 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##  
     
     ## counterfactuals and averages
-    if (!0%in%I) {
-        Y.tr.bar <- rowMeans(Y.tr)
-        Y.ct.bar <- rowMeans(Y.ct)
-        Y.co.bar <- rowMeans(Y.co)  
+    if (is.null(W)) {
+        if (!0%in%I) {
+            Y.tr.bar <- rowMeans(Y.tr)
+            Y.ct.bar <- rowMeans(Y.ct)
+            Y.co.bar <- rowMeans(Y.co)  
+        } else {
+            Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
+            Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+            Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+        }
     } else {
-        Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
-        Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+        Y.tr.bar <- rowSums(Y.tr * W.tr)/rowSums(W.tr)
+        Y.ct.bar <- rowSums(Y.ct * W.tr)/rowSums(W.tr)
         Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
     }
+
     ##Y.tr and Y.ct
     Y.bar <- cbind(Y.tr.bar,Y.ct.bar,Y.co.bar)
     colnames(Y.bar) <- c("Y.tr.bar","Y.ct.bar","Y.co.bar")
 
     ## ATT and average outcomes
     if (DID == TRUE) { ## diff-in-diffs: same timing
-        if (!0%in%I.tr) {
-            att <- rowMeans(eff)
+        if (is.null(W)) {
+            if (!0%in%I.tr) {
+                att <- rowMeans(eff)
+            } else {
+                att <- rowSums(eff)/rowSums(I.tr)
+            }
         } else {
-            att <- rowSums(eff)/rowSums(I.tr)
+            att <- rowSums(eff * W.tr)/rowSums(W.tr)
         }
-    }  else { ## diff timing, centered the att
+    } else { ## diff timing, centered the att
         if (!0%in%I.tr) {
-            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
-            for (j in 1:Ntr) {
-                eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT,j]  
-                Y.tr.center[1:(TT+T0.min-T0[j]),j] <- Y.tr[(T0[j]-T0.min+1):TT,j]
+            eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
             }
-            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
-            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
-            Y.ct.cnt <- Y.tr.cnt-att
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT, j]  
+                Y.tr.center[1:(TT+T0.min-T0[j]), j] <- Y.tr[(T0[j]-T0.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.min-T0[j]), j] <- W.tr[(T0[j]-T0.min+1):TT, j]   
+                }
+            }
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
         } else {
-            T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
-            T0.ub.min<-min(T0.ub)
-            eff.cnt <- Y.tr.center<-matrix(NA,TT,Ntr)
-            eff[which(I.tr==0)] <- NA
-            Y.tr[which(I.tr==0)] <- NA
-            for (j in 1:Ntr) {
-                eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT,j]  
-                Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT,j]
+            T0.ub <- apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) 
+            T0.ub.min <- min(T0.ub)
+            eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
+            eff[which(I.tr == 0)] <- NA
+            Y.tr[which(I.tr == 0)] <- NA
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
+                W.tr[which(I.tr == 0)] <- NA
             }
-            att <- apply(eff.cnt, 1, mean, na.rm=TRUE)
-            Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm=TRUE)
-            Y.ct.cnt <- Y.tr.cnt-att
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT, j]  
+                Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.ub.min-T0.ub[j]), j] <- W.tr[(T0.ub[j]-T0.ub.min+1):TT, j]   
+                }
+            }
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
         }
     }
     eff[which(is.na(eff))] <- 0 ## to calulate att
-    att.avg<-sum(eff * post)/sum(post)
+    if (is.null(W)) {
+        att.avg <- sum(eff * post)/sum(post)
+    } else {
+        att.avg <- sum(eff * post * W.tr)/sum(post * W.tr)
+    }
 
     ## fixed effects
     mu<-est$mu
@@ -1719,6 +1856,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                       X, # Explanatory variables:  (T*N*p) array
                       D, # indicator for treated unit (tr==1) 
                       I,
+                      W = NULL,
                       r = 0, # number of factors: starting point
                       r.end = 5, # end point
                       force, # specifying fixed effects
@@ -1797,7 +1935,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
         for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts
       
             r <- CV.out[i,"r"]
-            est<-synth.em(Y = Y,X = X, D = D, I = I, r = r, force = force,
+            est<-synth.em(Y = Y,X = X, D = D, I = I, W = W, r = r, force = force,
                           tol = tol, AR1 = AR1, norm.para = norm.para)
             sigma2<-est$sigma2
             IC<-est$IC
@@ -1812,7 +1950,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                 ## if (0%in%I.tr) {
                 ##     D.cv[which(I==0)] <- 0
                 ## } not necessary! synth.em can detect pre and post period for ub data
-                out <- synth.em(Y = Y, X = X, D = D.cv, I = I, r = r, force = force,
+                out <- synth.em(Y = Y, X = X, D = D.cv, I = I, W = W, r = r, force = force,
                                 tol = tol, AR1 = AR1, norm.para = norm.para)
 
                 e <- out$eff[which(time == lv),]
@@ -1859,6 +1997,440 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
 } ## EM cross validation ends
 
 
+###################################################################
+## Matrix Completion Function
+###################################################################
+synth.mc<-function(Y, # Outcome variable, (T*N) matrix
+                   X, # Explanatory variables:  (T*N*p) array
+                   D, #  Indicator for treated unit (tr==1) 
+                   I,
+                   W = NULL,
+                   n.lambda = 10,
+                   lambda.cv = NULL,
+                   force,
+                   tol, # tolerance level
+                   AR1 = 0,
+                   norm.para = NULL){  
+    
+    
+    ##-------------------------------##
+    ## Parsing data
+    ##-------------------------------##  
+    na.pos <- NULL
+    CV <- is.null(lambda.cv)
+    ## unit id and time
+    TT <- dim(Y)[1]
+    N <- dim(Y)[2]
+    if (is.null(X) == FALSE) {p <- dim(X)[3]} else {p <- 0}
+     
+    ## treatement indicator
+    tr <- D[TT,] == 1  ## cross-sectional: treated unit
+    co <- D[TT,] == 0
+    I.tr <- as.matrix(I[,tr]) ## maybe only 1 treated unit
+    I.co <- I[,co]
+
+    ## replicate data
+    YY <- Y
+    II <- I
+    ## treat post-treatment period treated units as missing
+    YY[which(D==1)] <- 0
+    II[which(D==1)] <- 0
+
+    if (!0%in%I.tr) {
+        ## a (TT*Ntr) matrix, time dimension: before treatment
+        pre <- as.matrix(D[,which(tr == 1)] == 0)
+        post <- as.matrix(D[,which(tr == 1)] == 1)   
+    } else {
+        pre <- as.matrix(D[,which(tr == 1)] == 0 & I[,which(tr == 1)] == 1)
+        post <- as.matrix(D[,which(tr == 1)] == 1 & I[,which(tr == 1)] == 1)
+    }
+
+    D.tr <- as.matrix(D[,which(tr == 1)])
+    T0.ub <- apply(D.tr == 0, 2, sum) 
+    T0.ub.min <- min(T0.ub) ## unbalanced data
+
+    if (!is.null(W)) {
+        W.tr <- as.matrix(W[,which(tr == 1)])
+    }
+
+    Ntr <- sum(tr)
+    Nco <- N - Ntr
+    ## careful: only valid for balanced panel
+    T0 <- apply(pre, 2, sum) 
+    T0.min <- min(T0)
+    sameT0 <- length(unique(T0)) == 1 ## treatment kicks in at the same time 
+                                      ## unbalanced case needs more conditions
+    if (!0%in%I.tr) {
+        DID <- sameT0
+    } else {
+        DID <- length(unique(T0.ub)) == 1
+    }
+    
+    id <- 1:N
+    time <- 1:TT
+    id.tr <- which(tr == 1) ## treated id
+    id.co <- which(tr == 0)
+
+    ## parsing data
+    Y.tr <- as.matrix(Y[,id.tr])
+    Y.co <- as.matrix(Y[,id.co])
+    
+    ##-------------------------------##
+    ## Main Algorithm
+    ##-------------------------------##
+
+    validX <- 1 ## no multi-colinearity
+    
+    if (!is.null(lambda.cv)) { ## case: CV==0 or no factor  
+        ## matrix completion
+        est.best <- inter_fe_mc(YY, X, II, 1, lambda.cv, force, tol) 
+
+        if (p > 0) {
+            na.pos <- is.nan(est.best$beta)
+        }     
+    }  else if (is.null(lambda.cv)) { 
+        
+        ##-------------------------------##
+        ## Cross-validation of lambda
+        ##-------------------------------##
+        
+        ## initial values
+        cat("Cross-validating ...","\r")
+
+        tot.id <- which(c(II)==1) ## observed control data
+        cv.count <- ceiling((sum(II)*sum(II))/(N*TT))
+
+        ## create the hyper-parameter sequence
+        lambda.max <- log10(max(svd(YY)$d)*2/(N*TT-sum(II)))
+        lambda <- rep(NA, n.lambda)
+        lambda.by <- 3/(n.lambda - 2)
+        for (i in 1:(n.lambda - 1)) {
+            lambda[i] <- 10^(lambda.max - (i - 1) * lambda.by)
+        }
+        lambda[n.lambda] <- 0
+        
+        ## store all MSPE
+        CV.out <- matrix(NA, length(lambda), 3)
+        colnames(CV.out) <- c("lambda", "sigma2", "MSPE")
+        CV.out[,"lambda"] <- c(lambda)
+        CV.out[,"MSPE"] <- 1e20
+        for (i in 1:length(lambda)) {    
+            k <- 5
+            SSE <- 0
+            for (ii in 1:k) {
+                YY.cv <- YY
+                II.cv <- II
+                cv.id <- sample(tot.id, as.integer(sum(II) - cv.count), replace = FALSE)
+                YY.cv[cv.id] <- 0
+                II.cv[cv.id] <- 0
+                est.cv.fit <- inter_fe_mc(YY.cv, X, II.cv, 1, lambda[i], force, tol)$fit
+                SSE <- SSE + sum((YY[cv.id]-est.cv.fit[cv.id])^2)
+            }
+            MSPE <- SSE/(k*(sum(II) - cv.count))
+
+            est.cv <- inter_fe_mc(YY, X, II, 1, lambda[i], force, tol) ## overall
+            sigma2 <- est.cv$sigma2 
+
+            if(!is.null(norm.para)){
+                MSPE <- MSPE*(norm.para[1]^2)
+                sigma2 <- sigma2*(norm.para[1]^2)
+            }
+
+            if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
+                ## at least 5% improvement for MPSE
+                est.best <- est.cv  
+                lambda.cv <- lambda[i]
+            } else {
+                if (i > 1) {
+                    if (lambda.cv == lambda[i-1]) cat("*")
+                }
+            }
+            CV.out[i, "MSPE"] <- MSPE
+            CV.out[i, "sigma2"] <- sigma2 
+
+            cat("\n lambda = ",
+            sprintf("%.5f",lambda[i]),"; sigma2 = ",
+            sprintf("%.5f",sigma2),"; MSPE = ",
+            sprintf("%.5f",MSPE),sep="")
+
+        } 
+        cat("\n\n lambda* = ",lambda.cv, sep="")
+        cat("\n\n")
+        MSPE.best <- min(CV.out[,"MSPE"])
+    } ## End of Cross-Validation
+
+    validX <- est.best$validX
+    
+    ##-------------------------------##
+    ## ATT and Counterfactuals 
+    ##-------------------------------##
+    
+    ## variance of the error term
+    if (is.null(norm.para)) {
+        sigma2 <- est.best$sigma2   
+    } else {
+        sigma2 <- est.best$sigma2 * (norm.para[1]^2)       
+    }
+ 
+    ## effect
+    Y.fit <- est.best$fit
+    Y.ct <- as.matrix(Y.fit[,tr])
+    if (0%in%I.tr) {
+        Y.ct[which(I.tr==0)] <- 0 ## adjust    
+    }
+    eff <- Y.tr - Y.ct
+    res <- est.best$residuals
+
+
+    if (p>0) {
+        beta <- est.best$beta
+        if (est.best$validX == 0) {
+            beta <- matrix(0, p, 1) 
+        } else {
+            beta <- est.best$beta
+            beta[is.nan(est.best$beta)] <- 0
+        }
+    } else {
+        beta <- NA
+    }
+    
+    mu <- est.best$mu 
+    Y.fe.bar <- rep(mu, TT)
+    
+    if (force%in%c(2,3)) {
+        xi <- est.best$xi ## a (TT*1) matrix
+        Y.fe.bar <- Y.fe.bar + xi
+    }
+
+    if (0%in%I.tr) {
+        eff[which(I.tr == 0)] <- 0 ## adjust    
+    } ## missing data will be adjusted to NA finally
+   
+    ##-------------------------------##
+    ## Summarize
+    ##-------------------------------##  
+    
+    ## counterfactuals and averages
+    
+    if (is.null(W)) {
+        if (!0%in%I) {
+            Y.tr.bar <- rowMeans(Y.tr)
+            Y.ct.bar <- rowMeans(Y.ct)
+            Y.co.bar <- rowMeans(Y.co)  
+        } else {
+            Y.tr.bar <- rowSums(Y.tr)/rowSums(I.tr)
+            Y.ct.bar <- rowSums(Y.ct)/rowSums(I.tr)
+            Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+        }
+    } else {
+        Y.tr.bar <- rowSums(Y.tr * W.tr)/rowSums(W.tr)
+        Y.ct.bar <- rowSums(Y.ct * W.tr)/rowSums(W.tr)
+        Y.co.bar <- rowSums(Y.co)/rowSums(I.co)
+    }
+
+    ##Y.tr and Y.ct
+    Y.bar <- cbind(Y.tr.bar, Y.ct.bar, Y.co.bar)
+    colnames(Y.bar) <- c("Y.tr.bar", "Y.ct.bar", "Y.co.bar")
+    
+    ## ATT and average outcomes
+    if (DID == TRUE) { ## diff-in-diffs: same timing
+        if (is.null(W)) {
+            if (!0%in%I.tr) {
+                att <- rowMeans(eff)
+            } else {
+                att <- rowSums(eff)/rowSums(I.tr)
+            }
+        } else {
+            att <- rowSums(eff * W.tr)/rowSums(W.tr)
+        }
+    } else { ## diff timing, centered the att
+        if (!0%in%I.tr) {
+            eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
+            }
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.min-T0[j]), j] <- eff[(T0[j]-T0.min+1):TT, j]  
+                Y.tr.center[1:(TT+T0.min-T0[j]), j] <- Y.tr[(T0[j]-T0.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.min-T0[j]), j] <- W.tr[(T0[j]-T0.min+1):TT, j]   
+                }
+            }
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
+        } else {
+            T0.ub <- apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) 
+            T0.ub.min <- min(T0.ub)
+            eff.cnt <- Y.tr.center <- matrix(NA, TT, Ntr)
+            eff[which(I.tr == 0)] <- NA
+            Y.tr[which(I.tr == 0)] <- NA
+            if (!is.null(W)) {
+                W.tr.center <- matrix(NA, TT, Ntr)
+                W.tr[which(I.tr == 0)] <- NA
+            }
+            for (j in 1:Ntr) {
+                eff.cnt[1:(TT+T0.ub.min-T0.ub[j]), j] <- eff[(T0.ub[j]-T0.ub.min+1):TT, j]  
+                Y.tr.center[1:(TT+T0.ub.min-T0.ub[j]),j] <- Y.tr[(T0.ub[j]-T0.ub.min+1):TT, j]
+                if (!is.null(W)) {
+                    W.tr.center[1:(TT+T0.ub.min-T0.ub[j]), j] <- W.tr[(T0.ub[j]-T0.ub.min+1):TT, j]   
+                }
+            }
+            if (is.null(W)) {
+                att <- apply(eff.cnt, 1, mean, na.rm = TRUE)
+                Y.tr.cnt <- apply(Y.tr.center, 1, mean, na.rm = TRUE)
+                Y.ct.cnt <- Y.tr.cnt - att
+            } else {
+                eff.cnt[which(is.na(eff.cnt))] <- 0
+                Y.tr.center[which(is.na(Y.tr.center))] <- 0
+                W.tr.center[which(is.na(W.tr.center))] <- 0
+                att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.ct.cnt <- Y.tr.cnt - att
+            }
+        }
+    }
+    eff[which(is.na(eff))] <- 0 ## to calulate att
+    if (is.null(W)) {
+        att.avg <- sum(eff * post)/sum(post)
+    } else {
+        att.avg <- sum(eff * post * W.tr)/sum(post * W.tr)
+    }
+
+    ## AR1: calculate accumulative effect
+    if (AR1 == TRUE) {
+        rho <- est.best$beta[1]
+        if (length(beta) > 1) {
+            beta <- beta[-1]
+        } 
+        eff.tmp <- eff * D[, id.tr]
+        eff.acc <- matrix(0, TT, Ntr)
+        for (t in (T0.min + 1):TT) {
+            for (i in 0:(t-T0.min-1)) {
+                eff.acc[t,] <- eff.acc[t,] + eff.tmp[t-i,] * (rho^i)
+            }
+        }      
+    } 
+    
+    ## final adjust unbalanced output
+    if (0%in%I) {
+        eff[which(I.tr == 0)] <- NA
+        Y.ct[which(I.tr == 0)] <- NA
+        Y.tr[which(I.tr == 0)] <- NA
+        res[which(II == 0)] <- NA
+        Y.co[which(I.co == 0)] <- NA
+    }
+    ## adjust beta: invariant covar
+    if (p > 0) {
+        if( sum(na.pos) > 0 ) {
+            beta[na.pos] <- NA
+        }
+    }
+
+    ## final adjustment
+    if (!is.null(norm.para)) {
+        mu <- mu * norm.para[1]
+        ## if (p>0) {
+        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
+        ## }
+        if (force%in%c(1, 3)) {
+            est.best$alpha <- est.best$alpha * norm.para[1]
+        }
+        if (force%in%c(2,3)) {
+            xi <- xi * norm.para[1]
+        }
+        res <- res * norm.para[1] 
+        Y.tr <- Y.tr * norm.para[1] 
+        Y.ct <- Y.ct * norm.para[1]
+        Y.co <- Y.co * norm.para[1]
+        eff <- eff * norm.para[1]
+        Y.bar <- Y.bar * norm.para[1]
+        att <- att * norm.para[1]
+        att.avg <- att.avg * norm.para[1]
+        if ( sameT0 == FALSE | 0%in%I.tr ) {
+            eff.cnt <- eff.cnt * norm.para[1]
+            Y.tr.cnt <- Y.tr.cnt * norm.para[1]
+            Y.ct.cnt <- Y.ct.cnt * norm.para[1]
+        }
+    }
+
+    T0<-apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) ## for plot
+
+    
+    ##-------------------------------##
+    ## Storage 
+    ##-------------------------------##  
+
+    ##control group residuals
+    out<-list(
+        ## main results
+        D.tr = D.tr,
+        I.tr = I.tr,
+        Y.tr = Y.tr,
+        Y.ct = Y.ct,
+        Y.co = Y.co, 
+        eff = eff,
+        Y.bar = Y.bar,
+        att = att,
+        att.avg = att.avg,
+        ## supporting
+        force = force,
+        DID = DID,
+        T = TT,
+        N = N,
+        p = p,
+        Ntr = Ntr,
+        Nco = Nco,
+        T0 = T0,
+        tr = tr,
+        pre = pre,
+        post = post,
+        lambda.cv = lambda.cv, 
+        beta = beta,
+        est = est.best,
+        mu = mu,
+        validX = validX,
+        niter = est.best$niter
+    )
+
+    out <- c(out,list(sigma2 = sigma2, res=res))
+    
+
+    if ( DID == FALSE ) {
+        out<-c(out,list(eff.cnt = eff.cnt,
+                        Y.tr.cnt = Y.tr.cnt,
+                        Y.ct.cnt = Y.ct.cnt))
+    }
+    if (CV) {
+        out<-c(out, list(MSPE = MSPE.best,
+                         CV.out = CV.out))
+    } 
+    if (force==1) {
+        out<-c(out, list(alpha= est.best$alpha))
+    } else if (force == 2) {
+        out<-c(out,list(xi = xi))
+    } else if (force == 3) {
+        out<-c(out,list(alpha= est.best$alpha,
+                        xi = xi))
+    }
+    if (AR1 == TRUE) {
+        out<-c(out,list(rho = rho,
+                        eff.acc = eff.acc))
+    }
+
+    return(out)
+} ## Core functions ends
+
+
 ###############################################
 ## Inference 
 ###############################################
@@ -1867,8 +2439,11 @@ synth.boot<-function(Y,
                      X,
                      D, ## input
                      I,
+                     W = NULL, 
                      EM, ## EM algorithm
                      r=0, r.end,
+                     n.lambda = 10,
+                     type,
                      force,
                      CV, ## cross validation
                      nboots,
@@ -1922,31 +2497,36 @@ synth.boot<-function(Y,
     time.pre<-split(rep(time,Ntr)[which(pre.v==1)],id.tr.pre.v) 
     
     ## estimation
-    if (EM == FALSE) {
-        out<-synth.core(Y = Y, X = X, D = D, I=I, r = r, r.end = r.end, 
-                        force = force, CV = CV, tol=tol,
-                        AR1 = AR1, norm.para= norm.para)
-    } else { # the case with EM
-        if (CV == FALSE) {
-            out<-synth.em(Y = Y,X = X, D = D, I=I, r = r, force = force,
-                          tol = tol, AR1 = AR1, norm.para = norm.para)
-        } else {
-            out<-synth.em.cv(Y = Y, X = X, D = D, I=I, r = r, r.end = r.end,
-                             force = force, tol=tol,
-                             AR1 = AR1, norm.para = norm.para)
+    if (type=="fe") {
+        if (EM == FALSE) {
+            out<-synth.core(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end, 
+                            force = force, CV = CV, tol=tol,
+                            AR1 = AR1, norm.para= norm.para)
+        } else { # the case with EM
+            if (CV == FALSE) {
+                out<-synth.em(Y = Y,X = X, D = D, I=I, W=W, r = r, force = force,
+                              tol = tol, AR1 = AR1, norm.para = norm.para)
+            } else {
+                out<-synth.em.cv(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end,
+                                 force = force, tol=tol,
+                                 AR1 = AR1, norm.para = norm.para)
+            }
+        }
+        ## for parametric bootstarp: some control group units may not be suitble
+        if (inference == "parametric") {
+            co.pre <- apply(as.matrix(I.co[1:T0.ub.min,]),2,sum)
+            co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT,]),2,sum)
+            if (force%in%c(1,3)) {
+                valid.co <- id.co[(co.pre >= out$r.cv+1)&(co.post >= 1)]
+            } else {
+                valid.co <- id.co[(co.pre >= out$r.cv)&(co.post >= 1)]
+            }
         }
     }
-
-    ## for parametric bootstarp: some control group units may not be suitble
-    if (inference == "parametric") {
-        co.pre <- apply(as.matrix(I.co[1:T0.ub.min,]),2,sum)
-        co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT,]),2,sum)
-        if (force%in%c(1,3)) {
-            valid.co <- id.co[(co.pre >= out$r.cv+1)&(co.post >= 1)]
-        } else {
-            valid.co <- id.co[(co.pre >= out$r.cv)&(co.post >= 1)]
-        }
-        
+    else if (type=="mc") {
+        out<-synth.mc(Y = Y, X = X, D = D, I=I, W=W, n.lambda = n.lambda, 
+                      force = force, tol=tol,
+                      AR1 = AR1, norm.para= norm.para)
     }
 
 
@@ -1972,7 +2552,11 @@ synth.boot<-function(Y,
         beta.it <- beta <-matrix(0,0,1)
     }
     
-    error.co<-out$res.co ## error terms (T*Nco) contains NA unbalanced data
+    if (type == "fe") {
+        error.co<-out$res.co ## error terms (T*Nco) contains NA unbalanced data
+    } else {
+        error <- out$res
+    }
     
 
     Y.tr.bar=out$Y.bar[,1]
@@ -1990,9 +2574,57 @@ synth.boot<-function(Y,
     if (inference=="nonparametric") { ## nonparametric bootstrap
 
         cat("\rBootstrapping ...\n")
-        if (EM == FALSE) {
-            one.nonpara <- function(){
+        if (type == "fe") {
+            if (EM == FALSE) {
+                one.nonpara <- function(){
 
+                    repeat {
+                        fake.co <- sample(id.co,Nco, replace=TRUE)
+                        if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                            break
+                        }
+                    }
+
+                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                
+                    X.boot<-X[,boot.id,,drop=FALSE]
+                    W.boot <- NULL
+                    if (!is.null(W)) {
+                        W.boot <- W[,boot.id]
+                    }
+                    boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
+                                     W = W.boot, force = force, r = out$r.cv, CV=0,
+                                     tol = tol, AR1 = AR1,
+                                     beta0 = beta.it, norm.para = norm.para)
+                    return(boot)
+                
+                } 
+            } else { # the case of EM
+                one.nonpara <- function(){
+                
+                    repeat {
+                        fake.co <- sample(id.co,Nco, replace=TRUE)
+                        if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                            break
+                        }
+                    }
+
+                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                
+                    X.boot<-X[,boot.id,,drop=FALSE]
+                    W.boot <- NULL
+                    if (!is.null(W)) {
+                        W.boot <- W[,boot.id]
+                    }
+                    boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
+                                   W = W.boot, force = force, r = out$r.cv,
+                                   tol = tol, AR1 = AR1, norm.para = norm.para)
+                    return(boot)
+                
+                } 
+            }
+        } else { ## mc
+            one.nonpara <- function(){
                 repeat {
                     fake.co <- sample(id.co,Nco, replace=TRUE)
                     if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
@@ -2003,31 +2635,15 @@ synth.boot<-function(Y,
                 boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
                 
                 X.boot<-X[,boot.id,,drop=FALSE]
-                boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
-                                 force = force, r = out$r.cv, CV=0,
-                                 tol = tol, AR1 = AR1,
-                                 beta0 = beta.it, norm.para = norm.para)
-                return(boot)
-                
-            } 
-        } else { # the case of EM
-            one.nonpara <- function(){
-                
-                repeat {
-                    fake.co <- sample(id.co,Nco, replace=TRUE)
-                    if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
-                        break
-                    }
+                W.boot <- NULL
+                if (!is.null(W)) {
+                    W.boot <- W[,boot.id]
                 }
-
-                boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
-                
-                X.boot<-X[,boot.id,,drop=FALSE]
-                boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
-                               force = force, r = out$r.cv,
+                boot<-synth.mc(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
+                               W = W.boot, force = force, lambda.cv = out$lambda.cv, 
                                tol = tol, AR1 = AR1, norm.para = norm.para)
                 return(boot)
-                
+            
             } 
         }
         ## computing
@@ -2108,10 +2724,13 @@ synth.boot<-function(Y,
                 D.pseudo<-D[,c(id.tr,id.co.pseudo)]  ## fake.tr + control left
                 Y.pseudo<-Y[,id.pseudo]
                 X.pseudo<-X[,id.pseudo,,drop=FALSE]
-
+                W.pseudo <- NULL
+                if (!is.null(W)) {
+                    W.boot <- W[,id.pseudo]
+                }
                 ## output
                 synth.out <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
-                                        I = I.id.pseudo,
+                                        I = I.id.pseudo, W = W.pseudo,
                                         force = force, r = out$r.cv, CV = 0,
                                         tol = tol, AR1 = AR1, beta0 = beta.it,
                                         norm.para = norm.para)
@@ -2205,10 +2824,14 @@ synth.boot<-function(Y,
                 X.boot<-X[,id.boot,,drop=FALSE] 
                 D.boot<-D[,id.boot] 
                 I.boot<-I[,id.boot]
+                W.boot <- NULL
+                if (!is.null(W)) {
+                    W.boot <- W[,id.boot]
+                }
                 
                 ## re-estimate the model 
                 boot <- synth.core(Y.boot, X.boot, D.boot, I=I.boot,
-                                   force = force, r = out$r.cv,
+                                   W = W.boot, force = force, r = out$r.cv,
                                    CV = 0, tol = tol, AR1 = AR1,
                                    beta0 = beta.it, norm.para = norm.para)
 
@@ -2256,7 +2879,7 @@ synth.boot<-function(Y,
                 }
                                 
                 ## re-estimate the model
-                boot<-synth.em(Y.boot, X, D, I=I, force=force, r=out$r.cv,
+                boot<-synth.em(Y.boot, X, D, I=I, W=W, force=force, r=out$r.cv,
                                tol=tol, AR1 = AR1, norm.para = norm.para)
 
                 b.out <- list(eff = boot$eff + out$eff,

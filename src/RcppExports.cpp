@@ -131,6 +131,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// panel_FE
+arma::mat panel_FE(arma::mat E, double lambda);
+RcppExport SEXP _gsynth_panel_FE(SEXP ESEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type E(ESEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(panel_FE(E, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// panel_FE_ub
+List panel_FE_ub(arma::mat E, arma::mat I, double lambda, double tolerate);
+RcppExport SEXP _gsynth_panel_FE_ub(SEXP ESEXP, SEXP ISEXP, SEXP lambdaSEXP, SEXP tolerateSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type E(ESEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type I(ISEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type tolerate(tolerateSEXP);
+    rcpp_result_gen = Rcpp::wrap(panel_FE_ub(E, I, lambda, tolerate));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fe_ad_iter
 List fe_ad_iter(arma::mat Y, arma::mat I, int force, double tolerate);
 RcppExport SEXP _gsynth_fe_ad_iter(SEXP YSEXP, SEXP ISEXP, SEXP forceSEXP, SEXP tolerateSEXP) {
@@ -165,23 +191,25 @@ BEGIN_RCPP
 END_RCPP
 }
 // fe_ad_inter_iter
-List fe_ad_inter_iter(arma::mat Y, arma::mat I, int force, int r, double tolerate);
-RcppExport SEXP _gsynth_fe_ad_inter_iter(SEXP YSEXP, SEXP ISEXP, SEXP forceSEXP, SEXP rSEXP, SEXP tolerateSEXP) {
+List fe_ad_inter_iter(arma::mat Y, arma::mat I, int force, int mc, int r, double lambda, double tolerate);
+RcppExport SEXP _gsynth_fe_ad_inter_iter(SEXP YSEXP, SEXP ISEXP, SEXP forceSEXP, SEXP mcSEXP, SEXP rSEXP, SEXP lambdaSEXP, SEXP tolerateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type I(ISEXP);
     Rcpp::traits::input_parameter< int >::type force(forceSEXP);
+    Rcpp::traits::input_parameter< int >::type mc(mcSEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< double >::type tolerate(tolerateSEXP);
-    rcpp_result_gen = Rcpp::wrap(fe_ad_inter_iter(Y, I, force, r, tolerate));
+    rcpp_result_gen = Rcpp::wrap(fe_ad_inter_iter(Y, I, force, mc, r, lambda, tolerate));
     return rcpp_result_gen;
 END_RCPP
 }
 // fe_ad_inter_covar_iter
-List fe_ad_inter_covar_iter(arma::cube XX, arma::mat xxinv, arma::mat alpha_X, arma::mat xi_X, arma::mat mu_X, arma::mat Y, arma::mat I, int force, int r, double tolerate);
-RcppExport SEXP _gsynth_fe_ad_inter_covar_iter(SEXP XXSEXP, SEXP xxinvSEXP, SEXP alpha_XSEXP, SEXP xi_XSEXP, SEXP mu_XSEXP, SEXP YSEXP, SEXP ISEXP, SEXP forceSEXP, SEXP rSEXP, SEXP tolerateSEXP) {
+List fe_ad_inter_covar_iter(arma::cube XX, arma::mat xxinv, arma::mat alpha_X, arma::mat xi_X, arma::mat mu_X, arma::mat Y, arma::mat I, int force, int mc, int r, double lambda, double tolerate);
+RcppExport SEXP _gsynth_fe_ad_inter_covar_iter(SEXP XXSEXP, SEXP xxinvSEXP, SEXP alpha_XSEXP, SEXP xi_XSEXP, SEXP mu_XSEXP, SEXP YSEXP, SEXP ISEXP, SEXP forceSEXP, SEXP mcSEXP, SEXP rSEXP, SEXP lambdaSEXP, SEXP tolerateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -193,9 +221,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type I(ISEXP);
     Rcpp::traits::input_parameter< int >::type force(forceSEXP);
+    Rcpp::traits::input_parameter< int >::type mc(mcSEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     Rcpp::traits::input_parameter< double >::type tolerate(tolerateSEXP);
-    rcpp_result_gen = Rcpp::wrap(fe_ad_inter_covar_iter(XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, r, tolerate));
+    rcpp_result_gen = Rcpp::wrap(fe_ad_inter_covar_iter(XX, xxinv, alpha_X, xi_X, mu_X, Y, I, force, mc, r, lambda, tolerate));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -265,6 +295,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// inter_fe_mc
+List inter_fe_mc(arma::mat Y, arma::cube X, arma::mat I, int r, double lambda, int force, double tol);
+RcppExport SEXP _gsynth_inter_fe_mc(SEXP YSEXP, SEXP XSEXP, SEXP ISEXP, SEXP rSEXP, SEXP lambdaSEXP, SEXP forceSEXP, SEXP tolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< arma::cube >::type X(XSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type I(ISEXP);
+    Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< int >::type force(forceSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    rcpp_result_gen = Rcpp::wrap(inter_fe_mc(Y, X, I, r, lambda, force, tol));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_gsynth_data_ub_adj", (DL_FUNC) &_gsynth_data_ub_adj, 2},
@@ -276,14 +323,17 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gsynth_panel_beta", (DL_FUNC) &_gsynth_panel_beta, 4},
     {"_gsynth_panel_factor", (DL_FUNC) &_gsynth_panel_factor, 2},
     {"_gsynth_panel_factor_ub", (DL_FUNC) &_gsynth_panel_factor_ub, 4},
+    {"_gsynth_panel_FE", (DL_FUNC) &_gsynth_panel_FE, 2},
+    {"_gsynth_panel_FE_ub", (DL_FUNC) &_gsynth_panel_FE_ub, 4},
     {"_gsynth_fe_ad_iter", (DL_FUNC) &_gsynth_fe_ad_iter, 4},
     {"_gsynth_fe_ad_covar_iter", (DL_FUNC) &_gsynth_fe_ad_covar_iter, 9},
-    {"_gsynth_fe_ad_inter_iter", (DL_FUNC) &_gsynth_fe_ad_inter_iter, 5},
-    {"_gsynth_fe_ad_inter_covar_iter", (DL_FUNC) &_gsynth_fe_ad_inter_covar_iter, 10},
+    {"_gsynth_fe_ad_inter_iter", (DL_FUNC) &_gsynth_fe_ad_inter_iter, 7},
+    {"_gsynth_fe_ad_inter_covar_iter", (DL_FUNC) &_gsynth_fe_ad_inter_covar_iter, 12},
     {"_gsynth_beta_iter", (DL_FUNC) &_gsynth_beta_iter, 6},
     {"_gsynth_beta_iter_ub", (DL_FUNC) &_gsynth_beta_iter_ub, 7},
     {"_gsynth_inter_fe", (DL_FUNC) &_gsynth_inter_fe, 6},
     {"_gsynth_inter_fe_ub", (DL_FUNC) &_gsynth_inter_fe_ub, 7},
+    {"_gsynth_inter_fe_mc", (DL_FUNC) &_gsynth_inter_fe_mc, 7},
     {NULL, NULL, 0}
 };
 

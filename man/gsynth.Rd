@@ -3,8 +3,9 @@
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
-\usage{gsynth(formula=NULL, data, Y, D, X=NULL, na.rm = FALSE, index, 
-       force = "unit", r = 0, CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
+\usage{gsynth(formula=NULL, data, Y, D, X=NULL, na.rm = FALSE, 
+       index, weight = NULL, force = "unit", r = 0, n.lambda = 10,
+       type = "fe", CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
        normalize = FALSE)  
@@ -22,12 +23,19 @@ on interactive fixed effect models.}
   exist.}
 \item{index}{a two-element string vector specifying the unit (group)
     and time indicators. Must be of length 2.}
+\item{weight}{a string specifying the weighting variable(if any) to estmate 
+    the weighted average treatment effect. Default is \code{weight = NULL}.}
 \item{force}{a string indicating whether unit or time fixed effects will be
     imposed. Must be one of the following,
     "none", "unit", "time", or "two-way". The default is "unit".}
 \item{r}{an integer specifying the number of factors. If \code{CV = TRUE}, 
   the cross validation procedure will select the optimal number of
   factors from \code{r} to 5.}
+\item{n.lambda}{an integer specifying the length of hyper-parameter sequence 
+  for matrix completion method. Default is \code{n.lambda = 10}.}
+\item{type}{a string specifying the algorithm. \code{"fe"} stands for the 
+  interacitve fixed effects model and \code{"mc"} stands for the matrix 
+  completion method. Default is \code{type="fe"}.}
 \item{CV}{a logical flag indicating whether cross-validation will be
   performed to select the optimal number of factors. If \code{r} is not
   specified, the procedure will search through \code{r = 0} to \code{5}.}
@@ -39,7 +47,8 @@ on interactive fixed effect models.}
   runs. Ignored if \code{se = FALSE}.}
 \item{inference}{a string specifying which type of inferential method
   will be used, either "parametric" or "nonparametric". "parametric" is
-  recommended when the number of treated units is small.}
+  recommended when the number of treated units is small. parametric bootsrap 
+  is not valid for matrix completion method.}
 \item{cov.ar}{an integer specifying order of the auto regression process
   that the residuals follow. Used for parametric bootstrap procedure when data
   is in the form of unbalanced panel. The default value is 1.}
@@ -109,6 +118,8 @@ on interactive fixed effect models.}
   \item{post}{a matrix indicating the post-treatment status.}
   \item{r.cv}{the number of factors included in the model -- either
     supplied by users or automatically chosen via cross-validation.}
+  \item{lambda.cv}{the optimal hyper-parameter in matrix completion method
+  chosen via cross-validation.}
   \item{res.co}{residuals of the control group units.}
   \item{beta}{coefficients of time-varying observables from the
     interactive fixed effect model.}
@@ -155,8 +166,12 @@ on interactive fixed effect models.}
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25, 
   Iss. 1, January 2017, pp. 57-76. Available at: \url{https://doi.org/10.1017/pan.2016.2}.
+
+  Athey S, Bayati M, Doudchenko N, et al. Matrix completion methods for causal panel data models[J]. arXiv preprint arXiv:1710.10251, 2017.
   
-  For more details, see \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html}. 
+  For more details, see \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html}.
+
+  For more details about the matrix completion method, see \url{https://github.com/susanathey/MCPanel}. 
 }
 \seealso{
   \code{\link{plot.gsynth}} and \code{\link{print.gsynth}}
