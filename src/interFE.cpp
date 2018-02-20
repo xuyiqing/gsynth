@@ -309,7 +309,8 @@ List panel_factor (arma::mat E, int r) {
   
 }
 
-/* Obtain factors and loading given error for ub data */
+/* Obtain factors and loading given error for ub data,
+   useless under the assumption of non-zero grandmean */
 // [[Rcpp::export]]
 List panel_factor_ub (arma::mat E, arma::mat I, int r, double tolerate) {
   int T = E.n_rows ;
@@ -391,7 +392,8 @@ arma::mat panel_FE (arma::mat E, double lambda) {
   return(FE) ;
 }
 
-/* Obtain interactive fe directly: matrix completion */
+/* Obtain interactive fe directly: matrix completion,
+   useless under the assumption of non-zero grandmean */
 // [[Rcpp::export]]
 List panel_FE_ub (arma::mat E, arma::mat I, // I: indicator matrix
                 double lambda, double tolerate) {
@@ -619,6 +621,7 @@ List fe_ad_inter_iter (arma::mat Y,
   // double mu_old = 0 ;
   double dif = 1.0 ;
   int niter = 0 ;
+  int validF = 1 ; // whether has a factor structure
 
   arma::mat VNT(r, r) ;
   arma::mat FE_add_use(T, N, arma::fill::zeros) ;
@@ -693,11 +696,16 @@ List fe_ad_inter_iter (arma::mat Y,
   arma::mat e = YY - fit ;
   e = FE_adj(e, I) ;
 
+  if (arma::accu(abs(FE_inter_use)) < 1e-10) {
+    validF = 0 ;
+  }
+
   List result;
   result["mu"] = mu ;
   result["niter"] = niter ;
   result["fit"] = fit ;
   result["e"] = e ;
+  result["validF"] = validF ;
   if (force==1||force==3) {
     alpha = as<arma::mat>(Y_fe_ad["alpha"]) ;
     result["alpha"] = alpha ;
@@ -734,6 +742,7 @@ List fe_ad_inter_covar_iter (arma::cube XX,
   int p = XX.n_slices ;
   double dif = 1.0 ;
   int niter = 0 ;
+  int validF = 1 ;
 
   arma::mat beta(p, 1, arma::fill::zeros) ;
   arma::mat beta_old = beta ;
@@ -820,12 +829,17 @@ List fe_ad_inter_covar_iter (arma::cube XX,
   arma::mat e = YY - fit ;
   e = FE_adj(e, I) ;
 
+  if (arma::accu(abs(FE_inter_use)) < 1e-10) {
+    validF = 0 ;
+  }
+
   List result;
   result["mu"] = as<double>(Y_fe_ad["mu"]) ;
   result["niter"] = niter ;
   result["e"] = e ;
   result["beta"] = beta ;
   result["fit"] = fit ;
+  result["validF"] = validF ;
 
   if (force==1||force==3) {
     alpha = as<arma::mat>(Y_fe_ad["alpha"]) ;
@@ -911,7 +925,8 @@ List beta_iter (arma::cube X,
   return(result)  ;
 }
 
-/* Main iteration for beta: unbalanced without additive fixed effects */
+/* Main iteration for beta: unbalanced without additive fixed effects,
+   useless under the assumption of non-zero grandmean */
 // [[Rcpp::export]]
 List beta_iter_ub (arma::cube X,
                    arma::mat xxinv,
@@ -1211,14 +1226,12 @@ List inter_fe (arma::mat Y,
 List inter_fe_ub (arma::mat Y,
                   arma::cube X,
                   arma::mat I,
-                  int r,
+                  int r, // r > 0, the outcome has a factor-type fixed effect; r = 0 else
                   int force,
-                  arma::mat beta0, 
                   double tol = 1e-5
                   ) {
   
   /* Dimensions */
-  int b_r = beta0.n_rows ; 
   int T = Y.n_rows ;
   int N = Y.n_cols ;
   int p = X.n_slices ;
@@ -1226,8 +1239,6 @@ List inter_fe_ub (arma::mat Y,
   int niter = 0 ;
   arma::mat factor ;
   arma::mat lambda ;
-  arma::mat FE_0(T, N, arma::fill::zeros) ;
-  //arma::mat FE(T, N, arma::fill::zeros) ;
   arma::mat VNT ;
   arma::mat beta ; 
   arma::mat U ;
@@ -1240,38 +1251,30 @@ List inter_fe_ub (arma::mat Y,
   arma::mat xi(T, 1, arma::fill::zeros) ;
   arma::mat xi_Y(T, 1, arma::fill::zeros) ;
   arma::mat xi_X(T, p, arma::fill::zeros) ;
-  double sigma2 ;
-  double IC ;
+  arma::mat fit(T, N, arma::fill::zeros) ;
+  double sigma2 = 0 ;
+  double IC = 0 ;
 
-  arma::mat invXX (p, p, arma::fill::zeros) ;
+  arma::mat invXX ;
   //arma::mat subX(T, N, arma::fill::zeros) ;
 
   /* duplicate data */
   arma::mat YY = Y;
   arma::cube XX = X;
 
-  // force = 0: unbalanced panel: de global mean
-  if (force == 0) {
-    mu_Y = accu(YY)/obs ;
-    YY = FE_adj(YY - mu_Y, I) ;
-    if (p>0) {
-      for (int i = 0; i < p; i++) {
-        mu_X(i,0)  =  accu( XX.slice(i) )/obs ;
-        XX.slice(i) =  FE_adj( XX.slice(i)- mu_X(i,0) , I);
-      }
-    }
-  }
   
-  // force != 0 : use EM  
-  if (force != 0 && p>0) {
+  // mu_X 
+  if (p > 0) {
     for (int i = 0; i < p; i++) {
       mu_X(i,0)  =  accu(XX.slice(i))/(N*T) ;
-      //XX.slice(i) =  XX.slice(i)- mu_X(i,0) ;
+      if (force == 0) {
+        XX.slice(i) =  XX.slice(i)- mu_X(i,0) ;
+      }
     }
   }
 
   /* unit fixed effects */
-  if (force ==1){
+  if (force == 1) {
     if (p > 0) {
       for (int i = 0; i < p; i++) {
         alpha_X.col(i)  = mean(XX.slice(i), 0).t(); // colMeans 
@@ -1320,47 +1323,47 @@ List inter_fe_ub (arma::mat Y,
     j++;
   }
 
-  int validX = 1;
+  int validX = 1 ;
   if(p1==0){
-    validX = 0;
+    validX = 0 ;
+    if (force == 0 && r == 0) { // no covariate and force == 0 and r == 0 
+      mu_Y = accu(YY)/obs ;
+      mu = mu_Y ;
+      YY = FE_adj(YY - mu_Y, I) ;
+    }
   }
 
   /* Main Algorithm */ 
   if (p1 == 0) {
     if (r > 0) {
-      if (force==0) {
-        List pf = panel_factor_ub(YY, I, r, tol)  ;
-        factor = as<arma::mat>(pf["factor"]) ;
-        lambda = as<arma::mat>(pf["lambda"]) ;
-        VNT = as<arma::mat>(pf["VNT"]) ;
-        niter = as<int>(pf["niter"]) ;
-        FE_0 = FE_adj(factor * lambda.t(), I) ;
-        U  =  YY - FE_0 ;
-      } else {
-        // add fe ; inter fe ; iteration
-        List fe_ad_inter = fe_ad_inter_iter(YY, I, force, 0, r, 0, tol) ;
-        factor = as<arma::mat>(fe_ad_inter["factor"]) ;
-        lambda = as<arma::mat>(fe_ad_inter["lambda"]) ;
-        VNT = as<arma::mat>(fe_ad_inter["VNT"]) ;
-        mu = as<double>(fe_ad_inter["mu"]) ;
-        U = as<arma::mat>(fe_ad_inter["e"]) ;
-        if (force==1||force==3) {
-          alpha = as<arma::mat>(fe_ad_inter["alpha"]) ;
-        }
-        if (force==2||force==3) {
-          xi = as<arma::mat>(fe_ad_inter["xi"]) ;
-        }
-        niter = as<int>(fe_ad_inter["niter"]) ;
+      // add fe ; inter fe ; iteration
+      List fe_ad_inter = fe_ad_inter_iter(YY, I, force, 0, r, 0, tol) ;
+      mu = as<double>(fe_ad_inter["mu"]) ;
+      U = as<arma::mat>(fe_ad_inter["e"]) ;
+      fit = as<arma::mat>(fe_ad_inter["fit"]) ;
+
+      factor = as<arma::mat>(fe_ad_inter["factor"]) ;
+      lambda = as<arma::mat>(fe_ad_inter["lambda"]) ;
+      VNT = as<arma::mat>(fe_ad_inter["VNT"]) ;
+
+      if (force==1||force==3) {
+        alpha = as<arma::mat>(fe_ad_inter["alpha"]) ;
       }
+      if (force==2||force==3) {
+        xi = as<arma::mat>(fe_ad_inter["xi"]) ;
+      }
+      niter = as<int>(fe_ad_inter["niter"]) ;
     } 
     else {
       if (force==0) {
         U = YY ;
+        fit.fill(mu) ;
       } else {
         // add fe; iteration
         List fe_ad = fe_ad_iter(YY, I, force, tol) ;
         mu = as<double>(fe_ad["mu"]) ;
         U = as<arma::mat>(fe_ad["e"]) ;
+        fit = as<arma::mat>(fe_ad["fit"]) ;
         if (force==1||force==3) {
           alpha = as<arma::mat>(fe_ad["alpha"]) ;
         }
@@ -1374,65 +1377,48 @@ List inter_fe_ub (arma::mat Y,
   else {
     /* starting value:  the OLS estimator */
     invXX = XXinv(XX) ; // compute (X'X)^{-1}, outside beta iteration 
-    if ((accu(abs(beta0))< 1e-10 || r==0 || b_r != p1)&&force==0) {  //
-      beta0 = panel_beta(XX, invXX, YY, arma::zeros<arma::mat>(T,N)) ; 
-    }
     if (r==0) {
-      if (force==0) {
-        beta  =  beta0 ;
-        U = YY;
-        for (int k = 0; k < p1; k++) {
-          U =  U - XX.slice(k) * beta(k,0);
-        }
-      } else {
-        // add fe, covar; iteration
-        List fe_ad = fe_ad_covar_iter(XX, invXX, alpha_X, xi_X, mu_X,
-                                      YY, I, force, tol) ;
-        mu = as<double>(fe_ad["mu"]) ;
-        beta = as<arma::mat>(fe_ad["beta"]) ;
-        U = as<arma::mat>(fe_ad["e"]) ;
-        if (force==1||force==3) {
-          alpha = as<arma::mat>(fe_ad["alpha"]) ;
-        }
-        if (force==2||force==3) {
-          xi = as<arma::mat>(fe_ad["xi"]) ;
-        }
-        niter = as<int>(fe_ad["niter"]) ;
+      // add fe, covar; iteration
+      List fe_ad = fe_ad_covar_iter(XX, invXX, alpha_X, xi_X, mu_X,
+                                    YY, I, force, tol) ;
+      mu = as<double>(fe_ad["mu"]) ;
+      beta = as<arma::mat>(fe_ad["beta"]) ;
+      U = as<arma::mat>(fe_ad["e"]) ;
+      fit = as<arma::mat>(fe_ad["fit"]) ;
+      if (force==1||force==3) {
+        alpha = as<arma::mat>(fe_ad["alpha"]) ;
       }
+      if (force==2||force==3) {
+        xi = as<arma::mat>(fe_ad["xi"]) ;
+      }
+      niter = as<int>(fe_ad["niter"]) ;
     } 
     else if (r > 0) {       
-      if (force==0) {
-        List out  =  beta_iter_ub(XX, invXX, YY, I, r, tol, beta0) ;
-        beta  =  as<arma::mat>(out["beta"]) ;
-        factor  =  as<arma::mat>(out["factor"]) ;
-        lambda  =  as<arma::mat>(out["lambda"]) ;
-        VNT  =  as<arma::mat>(out["VNT"]) ;
-        U  =  as<arma::mat>(out["e"]) ;
-        niter = as<int>(out["niter"]) ;
-      } else {
-        // add, covar, interactive, iteration
-        List fe_ad_inter_covar = fe_ad_inter_covar_iter(XX, invXX,
-                 alpha_X, xi_X, mu_X, YY, I, force, 0, r, 0, tol) ;
-        mu = as<double>(fe_ad_inter_covar["mu"]) ;
-        beta = as<arma::mat>(fe_ad_inter_covar["beta"]) ;
-        U = as<arma::mat>(fe_ad_inter_covar["e"]) ;
-        if (force==1||force==3) {
-          alpha = as<arma::mat>(fe_ad_inter_covar["alpha"]) ;
-        }
-        if (force==2||force==3) {
-          xi = as<arma::mat>(fe_ad_inter_covar["xi"]) ;
-        }
-        factor = as<arma::mat>(fe_ad_inter_covar["factor"]) ;
-        lambda = as<arma::mat>(fe_ad_inter_covar["lambda"]) ;
-        VNT = as<arma::mat>(fe_ad_inter_covar["VNT"]) ;
-        niter = as<int>(fe_ad_inter_covar["niter"]) ;
+      // add, covar, interactive, iteration
+      List fe_ad_inter_covar = fe_ad_inter_covar_iter(XX, invXX,
+               alpha_X, xi_X, mu_X, YY, I, force, 0, r, 0, tol) ;
+      mu = as<double>(fe_ad_inter_covar["mu"]) ;
+      beta = as<arma::mat>(fe_ad_inter_covar["beta"]) ;
+      U = as<arma::mat>(fe_ad_inter_covar["e"]) ;
+      fit = as<arma::mat>(fe_ad_inter_covar["fit"]) ;
+
+      factor = as<arma::mat>(fe_ad_inter_covar["factor"]) ;
+      lambda = as<arma::mat>(fe_ad_inter_covar["lambda"]) ;
+      VNT = as<arma::mat>(fe_ad_inter_covar["VNT"]) ;
+
+      if (force==1||force==3) {
+        alpha = as<arma::mat>(fe_ad_inter_covar["alpha"]) ;
       }
+      if (force==2||force==3) {
+        xi = as<arma::mat>(fe_ad_inter_covar["xi"]) ;
+      }
+      niter = as<int>(fe_ad_inter_covar["niter"]) ;
     }
   } 
     
   /* sigma2 and IC */
   sigma2 = trace(U * U.t())/ (obs - r * (N + T) + pow(double(r),2) - p1 ) ;
-  
+
   IC = log(sigma2) + (r * ( N + T ) - pow(double(r),2) + p1)
    * log ( obs ) / ( obs ) ;
     
@@ -1443,14 +1429,6 @@ List inter_fe_ub (arma::mat Y,
   List output ;
   // output["p1"] = p1 ;
   // output["beta_valid"] = beta ;
-
-  if (force == 0) {
-    if (p1>0) {
-      mu = mu_Y - crossprod(mu_X, beta)(0,0) ;
-    } else {
-      mu = mu_Y ;
-    }
-  }  
 
   if(p>0) {
     // output["beta_valid"] = beta ;
@@ -1479,16 +1457,10 @@ List inter_fe_ub (arma::mat Y,
     // output["beta_tot"] = beta_tot;
   }
 
-  output["mu"] = mu ;      
+  output["mu"] = mu ;   
+  output["fit"] = fit ;  
 
-  if (r > 0) {
-    output["factor"] = factor ;
-    output["lambda"] = lambda ;
-    //FE = FE_adj(factor * lambda.t(), I) ;
-    //output["FE"] = FE;
-    output["VNT"] = VNT ;
-  }
-  if ( !(force==0&&r==0) ) {
+  if ( !(force == 0 && r == 0 && p1 == 0) ) {
     output["niter"] = niter ;
   }
   if (force ==1 || force == 3) {
@@ -1496,6 +1468,13 @@ List inter_fe_ub (arma::mat Y,
   }
   if (force ==2 || force == 3) {
     output["xi"] = xi ;
+  }
+  if (r > 0) {
+    output["factor"] = factor ;
+    output["lambda"] = lambda ;
+    output["VNT"] = VNT ;
+    //FE = factor * lambda.t() ;
+    //output["FE"] = FE ;
   }
   output["residuals"] = U ;
   output["sigma2"] = sigma2 ;
@@ -1523,6 +1502,7 @@ List inter_fe_mc (arma::mat Y,
   int p = X.n_slices ;
   double obs = accu(I) ;
   int niter = 0 ;
+  int validF = 1 ;
   //arma::mat factor ;
   //arma::mat lambda ;
   //arma::mat FE_0(T, N, arma::fill::zeros) ;
@@ -1540,17 +1520,16 @@ List inter_fe_mc (arma::mat Y,
   arma::mat xi_Y(T, 1, arma::fill::zeros) ;
   arma::mat xi_X(T, p, arma::fill::zeros) ;
   arma::mat fit(T, N, arma::fill::zeros) ;
-  double sigma2 ;
-  double IC ;
+  double sigma2 = 0;
+  //double IC ;
 
-  arma::mat invXX (p, p, arma::fill::zeros) ;
+  arma::mat invXX ;
   //arma::mat subX(T, N, arma::fill::zeros) ;
 
   /* duplicate data */
   arma::mat YY = Y;
   arma::cube XX = X;
 
-  
   // mu_X 
   if (p > 0) {
     for (int i = 0; i < p; i++) {
@@ -1636,10 +1615,13 @@ List inter_fe_mc (arma::mat Y,
         xi = as<arma::mat>(fe_ad_inter["xi"]) ;
       }
       niter = as<int>(fe_ad_inter["niter"]) ;
+      validF = as<int>(fe_ad_inter["validF"]) ;
     } 
     else {
       if (force==0) {
         U = YY ;
+        fit.fill(mu) ;
+        validF = 0 ;
       } else {
         // add fe; iteration
         List fe_ad = fe_ad_iter(YY, I, force, tol) ;
@@ -1653,6 +1635,7 @@ List inter_fe_mc (arma::mat Y,
           xi = as<arma::mat>(fe_ad["xi"]) ;
         }
         niter = as<int>(fe_ad["niter"]) ;
+        validF = 0 ;
       }
     } 
   } 
@@ -1674,6 +1657,7 @@ List inter_fe_mc (arma::mat Y,
         xi = as<arma::mat>(fe_ad["xi"]) ;
       }
       niter = as<int>(fe_ad["niter"]) ;
+      validF = 0 ;
     } 
     else if (r > 0) {       
       // add, covar, interactive, iteration
@@ -1690,6 +1674,7 @@ List inter_fe_mc (arma::mat Y,
         xi = as<arma::mat>(fe_ad_inter_covar["xi"]) ;
       }
       niter = as<int>(fe_ad_inter_covar["niter"]) ;
+      validF = as<int>(fe_ad_inter_covar["validF"]) ;
     }
   } 
     
@@ -1732,7 +1717,8 @@ List inter_fe_mc (arma::mat Y,
   }
 
   output["mu"] = mu ;   
-  output["fit"] = fit ;  
+  output["fit"] = fit ; 
+  output["validF"] = validF ; 
 
   if ( !(force == 0 && r == 0 && p1 == 0) ) {
     output["niter"] = niter ;
@@ -1745,7 +1731,6 @@ List inter_fe_mc (arma::mat Y,
   }
   output["residuals"] = U ;
   output["sigma2"] = sigma2 ;
-  output["IC"] = IC;
   output["validX"] = validX;
   return(output);
  

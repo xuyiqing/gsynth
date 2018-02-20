@@ -279,8 +279,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // inter_fe_ub
-List inter_fe_ub(arma::mat Y, arma::cube X, arma::mat I, int r, int force, arma::mat beta0, double tol);
-RcppExport SEXP _gsynth_inter_fe_ub(SEXP YSEXP, SEXP XSEXP, SEXP ISEXP, SEXP rSEXP, SEXP forceSEXP, SEXP beta0SEXP, SEXP tolSEXP) {
+List inter_fe_ub(arma::mat Y, arma::cube X, arma::mat I, int r, int force, double tol);
+RcppExport SEXP _gsynth_inter_fe_ub(SEXP YSEXP, SEXP XSEXP, SEXP ISEXP, SEXP rSEXP, SEXP forceSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -289,9 +289,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type I(ISEXP);
     Rcpp::traits::input_parameter< int >::type r(rSEXP);
     Rcpp::traits::input_parameter< int >::type force(forceSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type beta0(beta0SEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(inter_fe_ub(Y, X, I, r, force, beta0, tol));
+    rcpp_result_gen = Rcpp::wrap(inter_fe_ub(Y, X, I, r, force, tol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -332,7 +331,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gsynth_beta_iter", (DL_FUNC) &_gsynth_beta_iter, 6},
     {"_gsynth_beta_iter_ub", (DL_FUNC) &_gsynth_beta_iter_ub, 7},
     {"_gsynth_inter_fe", (DL_FUNC) &_gsynth_inter_fe, 6},
-    {"_gsynth_inter_fe_ub", (DL_FUNC) &_gsynth_inter_fe_ub, 7},
+    {"_gsynth_inter_fe_ub", (DL_FUNC) &_gsynth_inter_fe_ub, 6},
     {"_gsynth_inter_fe_mc", (DL_FUNC) &_gsynth_inter_fe_mc, 7},
     {NULL, NULL, 0}
 };

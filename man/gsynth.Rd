@@ -3,9 +3,10 @@
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
-\usage{gsynth(formula=NULL, data, Y, D, X=NULL, na.rm = FALSE, 
-       index, weight = NULL, force = "unit", r = 0, n.lambda = 10,
-       type = "fe", CV = TRUE, EM = FALSE, se = FALSE, nboots = 200, 
+\usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE, 
+       index, weight = NULL, force = "unit", r = 0, lambda = NULL,
+       nlambda = 10, CV = TRUE, EM = FALSE, MC = FALSE,
+       se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
        normalize = FALSE)  
@@ -31,16 +32,18 @@ on interactive fixed effect models.}
 \item{r}{an integer specifying the number of factors. If \code{CV = TRUE}, 
   the cross validation procedure will select the optimal number of
   factors from \code{r} to 5.}
-\item{n.lambda}{an integer specifying the length of hyper-parameter sequence 
-  for matrix completion method. Default is \code{n.lambda = 10}.}
-\item{type}{a string specifying the algorithm. \code{"fe"} stands for the 
-  interacitve fixed effects model and \code{"mc"} stands for the matrix 
-  completion method. Default is \code{type="fe"}.}
+\item{lambda}{a single or sequence of positive numbers specifying the 
+  hyper-parameter sequence for matrix completion method. If \code{lambda} 
+  is a sequence and \code{CV = 1}, cross-validation will be performed.}
+\item{nlambda}{an integer specifying the length of hyper-parameter sequence 
+  for matrix completion method. Default is \code{nlambda = 10}.}
 \item{CV}{a logical flag indicating whether cross-validation will be
-  performed to select the optimal number of factors. If \code{r} is not
-  specified, the procedure will search through \code{r = 0} to \code{5}.}
+  performed to select the optimal number of factors or hyper-parameter 
+  in matrix completion algorithm. If \code{r} is not specified, the procedure will search through \code{r = 0} to \code{5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016).}
+\item{MC}{a logical flag indicating whether matrix completion algorithm 
+  will be used.}
 \item{se}{a logical flag indicating whether uncertainty estimates will
   be produced.}
 \item{nboots}{an integer specifying the number of bootstrap

@@ -73,8 +73,8 @@ inter_fe <- function(Y, X, r, force, beta0, tol = 1e-5) {
     .Call('_gsynth_inter_fe', PACKAGE = 'gsynth', Y, X, r, force, beta0, tol)
 }
 
-inter_fe_ub <- function(Y, X, I, r, force, beta0, tol = 1e-5) {
-    .Call('_gsynth_inter_fe_ub', PACKAGE = 'gsynth', Y, X, I, r, force, beta0, tol)
+inter_fe_ub <- function(Y, X, I, r, force, tol = 1e-5) {
+    .Call('_gsynth_inter_fe_ub', PACKAGE = 'gsynth', Y, X, I, r, force, tol)
 }
 
 inter_fe_mc <- function(Y, X, I, r, lambda, force, tol = 1e-5) {

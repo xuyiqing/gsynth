@@ -188,8 +188,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
         out<-inter_fe(Y = Y, X = X, r = r, beta0 = as.matrix(rep(0,p)),
                       force = force)
     } else {
-        out<-inter_fe_ub(Y = Y, X = X, I = I, r = r,
-                         beta0 = as.matrix(rep(0,p)), force = force)
+        out<-inter_fe_ub(Y = Y, X = X, I = I, r = r, force = force)
     }
     
     if (is.null(norm.para)) {
@@ -244,7 +243,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
                                       force=force, beta0 = beta0)
             } else {
                 inter.out <- inter_fe_ub(Y=Y.boot, X=X.boot, I=I, r=r,
-                                         force=force, beta0 = beta0)
+                                         force=force)
             }
             
             if (is.null(norm.para)) {

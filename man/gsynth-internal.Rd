@@ -50,7 +50,7 @@
 \alias{synth.em.cv} 
 \alias{synth.mc}
 \alias{res.vcov}   
-\alias{ct.adjsut}   
+\alias{ct.adjsut} 
 \title{Internal Gsynth Functions}
 \description{
  Internal Gsynth functions
