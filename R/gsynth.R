@@ -734,7 +734,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                      tol, # tolerance level
                      AR1 = 0,
                      beta0 = NULL, # starting value 
-                     norm.para = NULL) {  
+                     norm.para = NULL,
+                     boot = 0) { # bootstrap: needn't to calculate weight  
     
     
     ##-------------------------------##
@@ -1209,7 +1210,14 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             lambda.tr <- lambda.tr[, 1:r.cv, drop = FALSE] 
         }
 
-        wgt.implied <- t(ginv(t(as.matrix(lambda.tr)))%*%t(as.matrix(est.co.best$lambda)))
+        if (boot == 0) {
+            inv.tr <- try(
+                ginv(t(as.matrix(lambda.tr))), silent = TRUE
+            )
+            if (!'try-error' %in% class(inv.tr)) {
+                wgt.implied <- t(inv.tr%*%t(as.matrix(est.co.best$lambda)))
+            }
+        }
 
     } ## end of r!=0 case
 
@@ -1436,9 +1444,13 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                        niter = est.co.best$niter,
                        factor = as.matrix(est.co.best$factor),
                        lambda.co = as.matrix(est.co.best$lambda),
-                       lambda.tr = as.matrix(lambda.tr), ## Ntr*r
-                       wgt.implied = wgt.implied
-                   )) 
+                       lambda.tr = as.matrix(lambda.tr) ## Ntr*r
+                   ))
+        if (boot == 0) {
+            if (!'try-error' %in% class(inv.tr)) {
+                out <- c(out, list(wgt.implied = wgt.implied))
+            }
+        } 
     } 
     if (force==1) {
         out<-c(out, list(
@@ -1473,7 +1485,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                    force, # specifying fixed effects
                    tol = 1e-5,
                    AR1 = 0,
-                   norm.para
+                   norm.para,
+                   boot = 0
                    ){
 
     
@@ -1543,7 +1556,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 
     init<-synth.core(Y = Y, X = X, D = D, I = I, W = W,
                      r = r, force = force,
-                     CV = 0, tol = tol, AR1 = AR1, norm.para = NULL)
+                     CV = 0, tol = tol, AR1 = AR1, 
+                     norm.para = NULL, boot = boot)
     
     ## throw out error: may occur during bootstrap
     if(length(init) == 2 || length(init) == 3) {
@@ -1727,7 +1741,14 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         lambda <- est$lambda
         lambda.tr <- lambda[id.tr,,drop=FALSE]
         lambda.co <- lambda[id.co,]
-        wgt.implied <- t(ginv(t(as.matrix(lambda.tr)))%*%t(as.matrix(lambda.co)))
+        if (boot == 0) {
+            inv.tr <- try(
+                ginv(t(as.matrix(lambda.tr))), silent = TRUE
+            )
+            if (!'try-error' %in% class(inv.tr)) {
+                wgt.implied <- t(inv.tr%*%t(as.matrix(est.co.best$lambda)))
+            }
+        }
     }
     ## AR1: calculate accumulative effect
     if (AR1 == TRUE) {
@@ -1845,9 +1866,13 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     if (r > 0) {
         out<-c(out,list(factor=as.matrix(est$factor),
                         lambda.co=as.matrix(lambda.co),
-                        lambda.tr=as.matrix(lambda.tr),
-                        wgt.implied = wgt.implied
+                        lambda.tr=as.matrix(lambda.tr)
                         )) 
+        if (boot == 0) {
+            if (!'try-error' %in% class(inv.tr)) {
+                out <- c(out, list(wgt.implied = wgt.implied))
+            }
+        }
     } 
     if (force == 1) {
         out<-c(out,list(
@@ -1959,7 +1984,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
       
             r <- CV.out[i,"r"]
             est<-synth.em(Y = Y,X = X, D = D, I = I, W = W, r = r, force = force,
-                          tol = tol, AR1 = AR1, norm.para = norm.para)
+                          tol = tol, AR1 = AR1, norm.para = norm.para, boot = 0)
             sigma2<-est$sigma2
             IC<-est$IC
         
@@ -1974,7 +1999,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                 ##     D.cv[which(I==0)] <- 0
                 ## } not necessary! synth.em can detect pre and post period for ub data
                 out <- synth.em(Y = Y, X = X, D = D.cv, I = I, W = W, r = r, force = force,
-                                tol = tol, AR1 = AR1, norm.para = norm.para)
+                                tol = tol, AR1 = AR1, norm.para = norm.para, boot = 0)
 
                 e <- out$eff[which(time == lv),]
               
@@ -2129,7 +2154,8 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
 
         if (is.null(lambda) || length(lambda) == 1) {
             ## create the hyper-parameter sequence
-            lambda.max <- log10(max(svd(Y)$d)*2/(N*TT-sum(II)))
+            ## lambda.max <- log10(max(svd(Y)$d)*2/(N*TT-sum(II)))
+            lambda.max <- log10(max(svd(Y)$d))
             lambda <- rep(NA, nlambda)
             lambda.by <- 3/(nlambda - 2)
             for (i in 1:(nlambda - 1)) {
@@ -2540,11 +2566,11 @@ synth.boot<-function(Y,
         if (EM == FALSE) {
             out<-synth.core(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end, 
                             force = force, CV = CV, tol=tol,
-                            AR1 = AR1, norm.para= norm.para)
+                            AR1 = AR1, norm.para= norm.para, boot = 0)
         } else { # the case with EM
             if (CV == FALSE) {
                 out<-synth.em(Y = Y,X = X, D = D, I=I, W=W, r = r, force = force,
-                              tol = tol, AR1 = AR1, norm.para = norm.para)
+                              tol = tol, AR1 = AR1, norm.para = norm.para, boot = 0)
             } else {
                 out<-synth.em.cv(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end,
                                  force = force, tol=tol,
@@ -2634,7 +2660,7 @@ synth.boot<-function(Y,
                     boot<-synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
                                      W = W.boot, force = force, r = out$r.cv, CV=0,
                                      tol = tol, AR1 = AR1,
-                                     beta0 = beta.it, norm.para = norm.para)
+                                     beta0 = beta.it, norm.para = norm.para, boot = 1)
                     return(boot)
                 
                 } 
@@ -2657,7 +2683,7 @@ synth.boot<-function(Y,
                     }
                     boot<-synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
                                    W = W.boot, force = force, r = out$r.cv,
-                                   tol = tol, AR1 = AR1, norm.para = norm.para)
+                                   tol = tol, AR1 = AR1, norm.para = norm.para, boot = 1)
                     return(boot)
                 
                 } 
@@ -2774,7 +2800,7 @@ synth.boot<-function(Y,
                                         I = I.id.pseudo, W = W.pseudo,
                                         force = force, r = out$r.cv, CV = 0,
                                         tol = tol, AR1 = AR1, beta0 = beta.it,
-                                        norm.para = norm.para)
+                                        norm.para = norm.para, boot = 1)
                 if (is.null(norm.para)) {
                     output <- synth.out$eff
                 } else {
@@ -2874,7 +2900,7 @@ synth.boot<-function(Y,
                 boot <- synth.core(Y.boot, X.boot, D.boot, I=I.boot,
                                    W = W.boot, force = force, r = out$r.cv,
                                    CV = 0, tol = tol, AR1 = AR1,
-                                   beta0 = beta.it, norm.para = norm.para)
+                                   beta0 = beta.it, norm.para = norm.para, boot = 1)
 
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
@@ -2921,7 +2947,7 @@ synth.boot<-function(Y,
                                 
                 ## re-estimate the model
                 boot<-synth.em(Y.boot, X, D, I=I, W=W, force=force, r=out$r.cv,
-                               tol=tol, AR1 = AR1, norm.para = norm.para)
+                               tol=tol, AR1 = AR1, norm.para = norm.para, boot = 1)
 
                 b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
