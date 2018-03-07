@@ -50,6 +50,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
                    min.T0 = 5,
+                   conf.lvl = 0.95,
                    normalize = FALSE
                    ) {
     UseMethod("gsynth")
@@ -80,6 +81,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
+                           conf.lvl = 0.95,
                            normalize = FALSE
                            ) {
     ## parsing
@@ -97,7 +99,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                           na.rm, index, weight, force, r, lambda, nlambda, 
                           CV, EM, MC, se, nboots, 
                           inference, cov.ar, 
-                          parallel, cores, tol, seed, min.T0, 
+                          parallel, cores, tol, seed, min.T0, conf.lvl,
                           normalize)
     
     out$call <- match.call()
@@ -132,6 +134,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
+                           conf.lvl = 0.95,
                            normalize = FALSE
                            ) {  
     
@@ -251,6 +254,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## tol
     if (tol <= 0) {
         stop("\"tol\" option misspecified. Try using the default option.")
+    }
+
+    ## cl
+    if (conf.lvl <= 0 || conf.lvl >= 1) {
+        stop("\"conf.lvl\" should be in the range of 0 and 1. Try, for example, conf.lvl = 0.95.")    
     }
 
     ## mc inference
@@ -617,7 +625,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                           nboots = nboots, inference = inference,
                           cov.ar = cov.ar,
                           parallel = parallel, cores = cores,           
-                          AR1 = AR1, norm.para = norm.para)
+                          AR1 = AR1, norm.para = norm.para,
+                          conf.lvl = conf.lvl)
 
     } 
 
@@ -1746,7 +1755,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                 ginv(t(as.matrix(lambda.tr))), silent = TRUE
             )
             if (!'try-error' %in% class(inv.tr)) {
-                wgt.implied <- t(inv.tr%*%t(as.matrix(est.co.best$lambda)))
+                wgt.implied <- t(inv.tr%*%t(lambda.co))
             }
         }
     }
@@ -2518,6 +2527,7 @@ synth.boot<-function(Y,
                      AR1 = FALSE,
                      norm.para,
                      parallel = TRUE,
+                     conf.lvl = 0.95,
                      cores = NULL){
     
     
@@ -3017,7 +3027,11 @@ synth.boot<-function(Y,
     }
     
     ## ATT estimates
-    CI.att <- t(apply(att.boot, 1, function(vec) quantile(vec,c(0.025,0.975), na.rm=TRUE)))
+    conf.lvl.lb <- (1 - conf.lvl)/2
+    conf.lvl.ub <- conf.lvl.lb + conf.lvl
+
+    CI.att <- t(apply(att.boot, 1, function(vec) 
+        quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
     se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
     pvalue.att <- apply(att.boot, 1, get.pvalue)
 
@@ -3052,7 +3066,7 @@ synth.boot<-function(Y,
     }
     
     ## average (over time) ATT
-    CI.avg <- quantile(att.avg.boot, c(0.025,0.975), na.rm=TRUE)
+    CI.avg <- quantile(att.avg.boot, c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)
     se.avg <- sd(att.avg.boot, na.rm=TRUE)
     pvalue.avg <- get.pvalue(att.avg.boot)
     est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
@@ -3061,7 +3075,7 @@ synth.boot<-function(Y,
     ## individual effects
     if (inference == "parametric") {
         CI.ind <- apply(eff.boot,c(1,2),function(vec)
-            quantile(vec,c(0.025,0.975), na.rm=TRUE)) ## 2*T*Ntr
+            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)) ## 2*T*Ntr
         est.ind <- array(NA,dim=c(TT, 5, Ntr)) ## eff, se, CI.lower, CI.upper
         est.ind[,1,] <- eff
         est.ind[,2,] <- apply(eff.boot,c(1,2),sd)
@@ -3074,7 +3088,7 @@ synth.boot<-function(Y,
     ## regression coefficents
     if (p>0) {
         CI.beta<-t(apply(beta.boot, 1, function(vec)
-            quantile(vec,c(0.025, 0.975), na.rm=TRUE)))
+            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
         se.beta<-apply(beta.boot, 1, function(vec)sd(vec,na.rm=TRUE))
         pvalue.beta <- apply(beta.boot, 1, get.pvalue)
         beta[na.pos] <- NA

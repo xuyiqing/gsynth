@@ -9,7 +9,7 @@ on interactive fixed effect models.}
        se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
-       normalize = FALSE)  
+       conf.lvl = 0.95, normalize = FALSE)  
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of
@@ -69,6 +69,8 @@ on interactive fixed effect models.}
   periods. Treated units with pre-treatment periods less than that will be removed automatically. This item is important for unbalanced panels. If users 
   want to perform cross validation procedure to select the optimal number of factors from \code{(r.min, r.max)}, they should set \code{min.T0} larger than 
   \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} otherwise. If there are too few pre-treatment periods among all treated units, a smaller value of \code{r.max} is recommended.}
+\item{conf.lvl}{a positive number in the range of 0 and 1 specifying confidence 
+ levels for uncertainty estimates. The default value is 0.95.}
 \item{normalize}{a logic flag indicating whether to scale outcome and 
   covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
 }
