@@ -2183,8 +2183,8 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
             SSE <- 0
             for (ii in 1:k) {
                 YY.cv <- YY
-                II.cv <- II
                 repeat{
+                    II.cv <- II
                     cv.id <- sample(tot.id, as.integer(sum(II) - cv.count), replace = FALSE)
                     II.cv[cv.id] <- 0
                     con1 <- sum(apply(II.cv, 1, sum) > 0) == TT
