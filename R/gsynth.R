@@ -1390,7 +1390,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         Y.bar <- Y.bar * norm.para[1]
         att <- att * norm.para[1]
         att.avg <- att.avg * norm.para[1]
-        if ( sameT0 == FALSE | 0%in%I.tr ) {
+        if ( !is.null(eff.cnt) ) {
             eff.cnt <- eff.cnt * norm.para[1]
             Y.tr.cnt <- Y.tr.cnt * norm.para[1]
             Y.ct.cnt <- Y.ct.cnt * norm.para[1]
@@ -1817,7 +1817,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         Y.bar <- Y.bar*norm.para[1]
         att <- att*norm.para[1]
         att.avg <- att.avg*norm.para[1]
-        if ( sameT0 == FALSE | 0%in%I.tr ) {
+        if ( !is.null(eff.cnt) ) {
             eff.cnt <- eff.cnt*norm.para[1]
             Y.tr.cnt <- Y.tr.cnt*norm.para[1]
             Y.ct.cnt <- Y.ct.cnt*norm.para[1]
@@ -2428,7 +2428,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         Y.bar <- Y.bar * norm.para[1]
         att <- att * norm.para[1]
         att.avg <- att.avg * norm.para[1]
-        if ( sameT0 == FALSE | 0%in%I.tr ) {
+        if ( !is.null(eff.cnt) ) {
             eff.cnt <- eff.cnt * norm.para[1]
             Y.tr.cnt <- Y.tr.cnt * norm.para[1]
             Y.ct.cnt <- Y.ct.cnt * norm.para[1]
