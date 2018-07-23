@@ -35,12 +35,12 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    index, # c(unit, time) indicators
                    weight = NULL, # weighting
                    force = "unit", # fixed effects demeaning
-                   r = 0, # nubmer of factors
-                   lambda = NULL, # mc method: regularization parameter
-                   nlambda = 10, ## mc method: regularization parameter
+                   r = 0, # number of factors
+                   lambda = NULL, # MC method: regularization parameter
+                   nlambda = 10, ## MC method: regularization parameter
                    CV = TRUE, # cross-validation
                    EM = FALSE, # EM algorithm
-                   MC = FALSE, # mc method
+                   MC = FALSE, # MC method
                    se = FALSE, # report uncertainties
                    nboots = 200, # number of bootstraps
                    inference = "nonparametric", # type of inference
@@ -66,12 +66,12 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
-                           r = 0, # nubmer of factors
-                           lambda = NULL, # mc method: regularization parameter
-                           nlambda = 10, ## mc method: regularization parameter
+                           r = 0, # number of factors
+                           lambda = NULL, # MC method: regularization parameter
+                           nlambda = 10, ## MC method: regularization parameter
                            CV = TRUE, # cross-validation
                            EM = FALSE, # EM algorithm
-                           MC = FALSE, # mc method 
+                           MC = FALSE, # MC method 
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
@@ -119,12 +119,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
-                           r = 0, # nubmer of factors
-                           lambda = NULL, ## mc method: regularization parameter
-                           nlambda = 10, ## mc method: regularization parameter
+                           r = 0, # number of factors
+                           lambda = NULL, ## MC method: regularization parameter
+                           nlambda = 10, ## MC method: regularization parameter
                            CV = TRUE, # cross-validation
                            EM = FALSE, # EM algorithm 
-                           MC = FALSE, # mc method
+                           MC = FALSE, # MC method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
@@ -502,7 +502,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 }
                 if(!is.na(tot.var.unit)) {
                     if (tot.var.unit == 0) {
-                        ## time invariant covar can be removed
+                        ## time invariant covariates can be removed
                         cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
                     }
                 }
@@ -636,7 +636,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     if ( (out$validX == 0) & (p!=0) ) {
-        warning("Multi-colinearity among covariates. Try removing some of them.\r")
+        warning("Multi-collinearity among covariates. Try removing some of them.\r")
     }
     
     
@@ -718,7 +718,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 
     if (1 %in% rm.tr.id) {
         output <- c(output,list(tr.remove.id = tr.remove.id))
-        cat("list of removed treated units:",tr.remove.id)
+        cat("List of removed treated units:",tr.remove.id)
         cat("\n\n")
     }
     output <- c(output, list(call = match.call()))
@@ -826,7 +826,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## Main Algorithm
     ##-------------------------------##
 
-    validX <- 1 ## no multi-colinearity
+    validX <- 1 ## no multi-collinearity
     
     if (CV == FALSE) { ## case: CV==0
         
@@ -1306,7 +1306,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             }
         }
     }
-    eff[which(is.na(eff))] <- 0 ## to calulate att
+    eff[which(is.na(eff))] <- 0 ## to calculate att
     if (is.null(W)) {
         att.avg <- sum(eff * post)/sum(post)
     } else {
@@ -1336,7 +1336,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         res.co[which(I.co == 0)] <- NA
         Y.co[which(I.co == 0)] <- NA
     }
-    ## adjust beta: invariant covar
+    ## adjust beta: invariant covariates
     if (p > 0) {
         if( sum(na.pos) > 0 ) {
             beta[na.pos] <- NA
@@ -1697,7 +1697,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
             }
         }
     }
-    eff[which(is.na(eff))] <- 0 ## to calulate att
+    eff[which(is.na(eff))] <- 0 ## to calculate att
     if (is.null(W)) {
         att.avg <- sum(eff * post)/sum(post)
     } else {
@@ -2554,7 +2554,7 @@ synth.boot<-function(Y,
                                  AR1 = AR1, norm.para = norm.para)
             }
         }
-        ## for parametric bootstarp: some control group units may not be suitble
+        ## for parametric bootstrap: some control group units may not be suitble
         if (inference == "parametric") {
             co.pre <- apply(as.matrix(I.co[1:T0.ub.min,]),2,sum)
             co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT,]),2,sum)
@@ -2665,7 +2665,7 @@ synth.boot<-function(Y,
                 
                 } 
             }
-        } else { ## mc
+        } else { ## MC
             one.nonpara <- function(){
                 repeat {
                     fake.co <- sample(id.co,Nco, replace=TRUE)
@@ -3052,7 +3052,7 @@ synth.boot<-function(Y,
     }
 
     
-    ## regression coefficents
+    ## regression coefficients
     if (p>0) {
         CI.beta<-t(apply(beta.boot, 1, function(vec)
             quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
