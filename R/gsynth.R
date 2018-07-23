@@ -154,7 +154,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     
     unique_label <- unique(paste(data[,index[1]],"_",data[,index[2]],sep=""))
     if (length(unique_label)!= dim(data)[1]) {
-        stop("Some records may be replicated or wrongly marked in the data set.")
+        stop("Some records may be duplicates or wrongly marked in the data set.")
     }
 
     ## force
@@ -168,7 +168,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         force <- 3
     }
     if (!force %in% c(0, 1, 2, 3)) {
-        stop("\"force\" option misspecified; choose from c(\"none\", \"unit\", \"time\", \"two-way\").")
+        stop("\"force\" option misspecified; please choose from c(\"none\", \"unit\", \"time\", \"two-way\").")
     } 
 
     ## r
@@ -234,7 +234,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         inference <- "nonparametric"
     }
     if (!inference %in% c("parametric", "nonparametric")) {
-        stop("\"inference\" option misspecified; choose from c(\"parametric\", \"nonparametric\").")
+        stop("\"inference\" option misspecified; please choose from c(\"parametric\", \"nonparametric\").")
     }
 
     ## nboots
@@ -323,7 +323,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     if (!(1%in%data[, Dname] & 0%in%data[,Dname] & length(unique(data[,Dname])) == 2)) {
-        stop(paste("Error values in variable \"", Dname,"\".", sep = ""))
+        stop("The treatment indicator must be dichotomous")
     }
 
     if (p > 0) {
@@ -397,7 +397,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (0%in%I.tr.use) {
         for (i in 1:TT) {
             if (I.tr.use[i] == 0) {
-                cat("There are not any observations in control group at ",time.uni[i],", drop observations in treated group units at that period.\n")
+                cat("No observations exist in control group at ",time.uni[i],"; drop observations in the treatment group at that period.\n")
             }
         }
         TT <- TT - sum(I.tr.use == 0)
@@ -435,7 +435,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 T0.min.e <- r.end + 1
             }
             if (con1 | con2) {
-                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
+                stop("Some treated units have too few pre-treatment periods. Please set a larger value \"min.T0\" to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
             } 
         }
 
@@ -456,7 +456,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 T0.min.e <- r.end + 2
             }
             if (con1 | con2) {
-                stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
+                stop("Some treated units has too few pre-treatment periods. Please set a larger value \"min.T0\" to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
             } 
         }
     }
@@ -876,17 +876,9 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             r.cv <- 0
             cat("Cross validation cannot be performed since available pre-treatment records of treated units are too few. So set r.cv = 0.\n ")
             if (!0%in%I.co) {
-                ## if (force!=0) {
-                    est.co.best <- inter_fe(Y.co, X.co, 0, force = force, beta0 = beta0, tol) 
-                ## } else {
-                ##     est.co.best<-inter_fe(Y.co, abind(I.co, X.co, along=3), 0, force=0, beta0 = beta0) 
-                ## }  
+              est.co.best <- inter_fe(Y.co, X.co, 0, force = force, beta0 = beta0, tol) 
             } else {
-                ## if (force!=0) {
-                    est.co.best <- inter_fe_ub(Y.co, X.co, I.co, 0, force = force, tol)
-                ## } else {
-                ##     est.co.best<-inter_fe_ub(Y.co, abind(I.co, X.co, along=3), I.co, 0, force=0, beta0 = beta0)
-                ## }
+              est.co.best <- inter_fe_ub(Y.co, X.co, I.co, 0, force = force, tol)
             }
 
         } else {
@@ -900,30 +892,16 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 ## inter FE based on control, before & after 
                 r <- CV.out[i, "r"]
                 if (!0%in%I.co) {
-                    ## if (force!=0) {
-                        est.co <- inter_fe(Y = Y.co, X = X.co, r,
-                                           force = force, beta0 = beta0, tol)
-                    ## } else {
-                    ##     est.co<-inter_fe(Y = Y.co, X = abind(I.co, X.co, along=3), 
-                    ##                      r, force = 0, beta0 = beta0)                        
-                    ## }
+                  est.co <- inter_fe(Y = Y.co, X = X.co, r,
+                   force = force, beta0 = beta0, tol)
                 } else {
-                    ## if (force!=0) {
-                        est.co <- inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r,
-                                              force = force, tol)
-                    ## } else {
-                    ##     est.co<-inter_fe_ub(Y = Y.co, X = abind(I.co, X.co, along=3), 
-                    ##                         I = I.co, r, force = 0, beta0 = beta0)                        
-                    ## }
+                  est.co <- inter_fe_ub(Y = Y.co, X = X.co, I = I.co, r, force = force, tol)
                 }       
    
                 if (p > 0) {
                     na.pos <- is.nan(est.co$beta)
-                    ## if (est.co$validX == 0) {
-                    ##     beta <- matrix(0, p, 1) 
-                    ## }
                     beta <- est.co$beta
-                    beta[is.nan(est.co$beta)] <- 0 ## time invariant covar
+                    beta[is.nan(est.co$beta)] <- 0 ## time invariant covariates
                 } 
             
                 if (is.null(norm.para)) {
@@ -1601,17 +1579,9 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
 
         ## M step
         if (!0%in%I) {
-            ## if (force!=0) {
-                est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0, tol)
-            ## } else {
-            ##     est<-inter_fe(Y.e, abind(I,X,along=3), r, force=0, beta0 = beta0)
-            ## }
+          est<-inter_fe(Y.e, X, r, force=force, beta0 = beta0, tol)
         } else {
-            ## if (force!=0) {
-                est<-inter_fe_ub(Y.e, X, I, r, force=force, tol)
-            ## } else {
-            ##     est<-inter_fe_ub(Y.e, abind(I,X,along=3), I, r, force=0, beta0 = beta0)
-            ## }
+          est<-inter_fe_ub(Y.e, X, I, r, force=force, tol)
         }
         Y.ct <- as.matrix(Y.e[,id.tr] - est$residuals[,id.tr]) # T * Ntr
 
@@ -1795,9 +1765,6 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         ## final adjustment
     if (!is.null(norm.para)) {
         mu <- mu*norm.para[1]
-        ## if (p>0) {
-        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
-        ## }
         if (r>0) {
             lambda.tr <- lambda.tr*norm.para[1]
             lambda.co <- lambda.co*norm.para[1]
@@ -1982,7 +1949,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
         r.max<-max(min((T0.min-2),r.end),0)
     }
     if (r.max==0) {
-        stop("Cross validation cannot be performed since available pre-treatment records of treated units are too few. r.cv = 0.\n ")
+        stop("Cross-validation cannot be performed since available pre-treatment periods of the treated units are too few. r.cv = 0.\n ")
     } else {
         CV.out<-matrix(NA,(r.max-r+1),4)
         colnames(CV.out)<-c("r","sigma2","IC","MSPE")
@@ -3257,7 +3224,7 @@ plot.gsynth <- function(x,
     }
     if (type == "counterfactual") {
         if (! raw %in% c("none","band","all")) {
-            cat("\"raw\" option misspecifed. Reset to \"none\".")
+            cat("\"raw\" option misspecified. Reset to \"none\".")
             raw <- "none" 
         }
         if (is.null(id)==FALSE) {
