@@ -5,7 +5,7 @@
 on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE, 
        index, weight = NULL, force = "unit", r = 0, lambda = NULL,
-       nlambda = 10, CV = TRUE, EM = FALSE, MC = FALSE,
+       nlambda = 10, CV = TRUE, k = 5, EM = FALSE, MC = FALSE,
        se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
@@ -40,6 +40,8 @@ on interactive fixed effect models.}
 \item{CV}{a logical flag indicating whether cross-validation will be
   performed to select the optimal number of factors or hyper-parameter 
   in matrix completion algorithm. If \code{r} is not specified, the procedure will search through \code{r = 0} to \code{5}.}
+\item{k}{a positive interger specifying cross-validation times for matrix 
+ completion algorithm. Default is \code{k = 5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016).}
 \item{MC}{a logical flag indicating whether matrix completion algorithm 

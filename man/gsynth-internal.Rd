@@ -1,12 +1,11 @@
 
 \name{gsynth-internal}
+\alias{panelView}
 \alias{XXinv}
 \alias{beta_iter}
-\alias{beta_iter_ub}
 \alias{data_ub_adj}
 \alias{Y_demean}
 \alias{fe_add}
-\alias{fe_add2}
 \alias{fe_ad_iter}
 \alias{fe_ad_covar_iter}
 \alias{fe_ad_inter_iter}
@@ -15,7 +14,6 @@
 \alias{gsynth.formula}
 \alias{_gsynth_XXinv}
 \alias{_gsynth_beta_iter}
-\alias{_gsynth_beta_iter_ub}
 \alias{_gsynth_inter_fe}
 \alias{_gsynth_inter_fe_ub}
 \alias{_gsynth_inter_fe_mc}
@@ -23,12 +21,9 @@
 \alias{_gsynth_panel_beta}
 \alias{_gsynth_panel_est}
 \alias{_gsynth_panel_factor}
-\alias{_gsynth_panel_factor_ub}
 \alias{_gsynth_panel_fe}
-\alias{_gsynth_panel_fe_ub}
 \alias{_gsynth_Y_demean}
 \alias{_gsynth_fe_add}
-\alias{_gsynth_fe_add2}
 \alias{_gsynth_fe_ad_iter}
 \alias{_gsynth_fe_ad_covar_iter}
 \alias{_gsynth_fe_ad_inter_iter}
@@ -41,9 +36,7 @@
 \alias{panel_beta}
 \alias{panel_est}
 \alias{panel_factor}
-\alias{panel_factor_ub}
 \alias{panel_fe}
-\alias{panel_fe_ub}
 \alias{synth.boot}
 \alias{synth.core}
 \alias{synth.em}
@@ -51,6 +44,7 @@
 \alias{synth.mc}
 \alias{res.vcov}   
 \alias{ct.adjsut} 
+\alias{initialFit}
 \title{Internal Gsynth Functions}
 \description{
  Internal Gsynth functions

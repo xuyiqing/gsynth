@@ -159,49 +159,116 @@ interFE.default <- function(formula=NULL, data, # a data frame
     ## parse data
     Y <- matrix(data[,Yname],T,N)
     
-    ## check time-varying covariates
-    if (p==0) {
-        X<-c()
-    } else {
-        X<-array(0,dim=c(T, N, p))
-        for (i in 1: p) {
+    ## time-varying covariates
+    X <- array(0, dim = c(T, N, p))
+    xp <- rep(0, p) ## label invariant x
+    x.pos <- 0
+
+    if (p > 0) {
+        x.pos <- 1:p
+        for (i in 1:p) {
             X[,,i] <- matrix(data[, Xname[i]], T, N)
-            tot.var.unit <- sum(apply(X[, , i], 2, var))
-            if (tot.var.unit == 0) {
-                cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+            if (force %in% c(1,3)) {
+                if (!0%in%I) {
+                    tot.var.unit <- sum(apply(X[, , i], 2, var))
+                } else {
+                    Xi <- X[,,i]
+                    Xi[which(I == 0)] <- NA
+                    tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
+                }
+                if(!is.na(tot.var.unit)) {
+                    if (tot.var.unit == 0) {
+                        ## time invariant covar can be removed
+                        xp[i] <- 1
+                        cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+                    }
+                }
             }
             if (force %in% c(2, 3)) {
-                tot.var.time <- sum(apply(X[, , i], 1, var))
-                if (tot.var.time == 0) {
-                    cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                if (!0%in%I) {
+                    tot.var.time <- sum(apply(X[, , i], 1, var))
+                } else {
+                    Xi <- X[,,i]
+                    Xi[which(I == 0)] <- NA
+                    tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
+                } 
+                if (!is.na(tot.var.time)) {
+                    if (tot.var.time == 0) {
+                        ## can be removed in inter_fe
+                        xp[i] <- 1
+                        cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+                    }
                 }
             } 
         } 
+    }
+
+    if (sum(xp) > 0) {
+        if (sum(xp) == p) {
+            X <- array(0, dim = c(T, N, 0))
+            p <- 0
+        } else {
+            x.pos <- which(xp == 0)
+            Xsub <- array(0, dim = c(T, N, length(x.pos)))
+            for (i in 1:length(x.pos)) {
+                Xsub[,,i] <- X[,,x.pos[i]] 
+            }
+            X <- Xsub
+            p <- length(x.pos)
+        }
     } 
   
     ##-------------------------------#
     ## Estimation
-    ##-------------------------------# 
+    ##-------------------------------#
+    initialOut <- Y0 <- NULL
+    beta0 <- matrix(0,1,1)
+    if (p > 0) {
+        beta0 <- as.matrix(rep(0, p))
+    }
+
+    if (0 %in% I) {
+        data.ini <- matrix(NA, (T*N), (2 + 1 + p))
+        data.ini[, 1] <- rep(1:N, each = T)         ## unit fe
+        data.ini[, 2] <- rep(1:T, N)                ## time fe
+        data.ini[, 3] <- c(Y)                       ## outcome
+        if (p > 0) {                                ## covar
+            for (i in 1:p) {
+                data.ini[, (3 + i)] <- c(X[, , i])
+            }
+        }
+
+        initialOut <- initialFit(data.ini, force, which(c(I) == 1))
+
+        Y0 <- initialOut$Y0
+        if (p > 0) {
+            beta0 <- initialOut$beta0
+        }
+    } 
 
     ## estimates
     if (!0%in%I) {
-        out<-inter_fe(Y = Y, X = X, r = r, beta0 = as.matrix(rep(0,p)),
+        out<-inter_fe(Y = Y, X = X, r = r, beta0 = beta0,
                       force = force)
     } else {
-        out<-inter_fe_ub(Y = Y, X = X, I = I, r = r, force = force)
+        out<-inter_fe_ub(Y = Y, Y0 = Y0, X = X, I = I, beta0 = beta0, r = r, force = force)
     }
     
     if (is.null(norm.para)) {
         beta<-as.matrix(out$beta)
         mu <- out$mu
-        beta0 <- beta
-        beta0[is.nan(beta0)] <- 0
+        if (!0 %in% I) {
+            beta0 <- beta
+            beta0[is.nan(beta0)] <- 0
+        }
     } else {
         mu <- out$mu*norm.para[1]
         if (p>0) {
             beta<-as.matrix(out$beta)
-            beta0 <- beta
-            beta0[is.nan(beta0)] <- 0
+            if (!0 %in% I) {
+                beta0 <- beta
+                beta0[is.nan(beta0)] <- 0
+            }
             ## beta<-as.matrix(out$beta)*norm.para[1]/norm.para[2:length(norm.para)]
         }
     }
@@ -237,13 +304,16 @@ interFE.default <- function(formula=NULL, data, # a data frame
         for (i in 1:nboots) {
             smp<-sample(1:N, N , replace=TRUE)
             Y.boot<-Y[,smp]
+            if (0%in%I) {
+                Y0.boot<-Y0[,smp]
+            }
             X.boot<-X[,smp,,drop=FALSE]
             if (!0%in%I) {
                 inter.out <- inter_fe(Y=Y.boot, X=X.boot, r=r,
                                       force=force, beta0 = beta0)
             } else {
-                inter.out <- inter_fe_ub(Y=Y.boot, X=X.boot, I=I, r=r,
-                                         force=force)
+                inter.out <- inter_fe_ub(Y=Y.boot, Y0=Y0.boot, X=X.boot, I=I, 
+                                         beta0 = beta0, r=r, force=force)
             }
             
             if (is.null(norm.para)) {

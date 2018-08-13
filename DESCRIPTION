@@ -1,8 +1,8 @@
 Package: gsynth
 Type: Package
 Title: Generalized Synthetic Control Method
-Version: 1.0.8
-Date: 2018-1-17
+Version: 1.0.9
+Date: 2018-08-07
 Author: Yiqing Xu, Licheng Liu
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
 Description: Provides causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model that incorporates unit-specific intercepts interacted with time-varying coefficients. This method generalizes the synthetic control method to the case of multiple treated units and variable treatment periods, and improves efficiency and interpretability. This version supports unbalanced panels. Reference: Yiqing Xu (2017) <doi:10.1017/pan.2016.2>.
@@ -10,7 +10,7 @@ URL: http://yiqingxu.org/software/gsynth/gsynth_examples.html
 NeedsCompilation: yes
 License: GPL-2
 Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1),
-        doParallel (>= 1.0.10), foreach (>= 1.4.3), abind (>= 1.4-0), mvtnorm (>= 1.0-6), MASS (>= 7.3.47), gridExtra, grid
+        doParallel (>= 1.0.10), foreach (>= 1.4.3), abind (>= 1.4-0), mvtnorm (>= 1.0-6), MASS (>= 7.3.47), panelView(>= 1.0.1)
 SystemRequirements: A C++11 compiler.
 Depends: R (>= 2.10)
 LinkingTo: Rcpp, RcppArmadillo
