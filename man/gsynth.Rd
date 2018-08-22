@@ -15,7 +15,7 @@ on interactive fixed effect models.}
 \item{formula}{an object of class "formula": a symbolic description of
   the model to be fitted.}
 \item{data}{a data frame (must be with a dichotomous treatment but balanced
-  is not reqiored).}
+  is not required).}
 \item{Y}{outcome.}
 \item{D}{treatment.}
 \item{X}{time-varying covariates.}
@@ -24,7 +24,7 @@ on interactive fixed effect models.}
   exist.}
 \item{index}{a two-element string vector specifying the unit (group)
     and time indicators. Must be of length 2.}
-\item{weight}{a string specifying the weighting variable(if any) to estmate 
+\item{weight}{a string specifying the weighting variable(if any) to estimate 
     the weighted average treatment effect. Default is \code{weight = NULL}.}
 \item{force}{a string indicating whether unit or time fixed effects will be
     imposed. Must be one of the following,
@@ -40,7 +40,7 @@ on interactive fixed effect models.}
 \item{CV}{a logical flag indicating whether cross-validation will be
   performed to select the optimal number of factors or hyper-parameter 
   in matrix completion algorithm. If \code{r} is not specified, the procedure will search through \code{r = 0} to \code{5}.}
-\item{k}{a positive interger specifying cross-validation times for matrix 
+\item{k}{a positive integer specifying cross-validation times for matrix 
  completion algorithm. Default is \code{k = 5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016).}
@@ -52,7 +52,7 @@ on interactive fixed effect models.}
   runs. Ignored if \code{se = FALSE}.}
 \item{inference}{a string specifying which type of inferential method
   will be used, either "parametric" or "nonparametric". "parametric" is
-  recommended when the number of treated units is small. parametric bootsrap 
+  recommended when the number of treated units is small. parametric bootstrap 
   is not valid for matrix completion method.}
 \item{cov.ar}{an integer specifying order of the auto regression process
   that the residuals follow. Used for parametric bootstrap procedure when data
@@ -85,7 +85,7 @@ on interactive fixed effect models.}
   of multiple treated units and variable treatment periods, and improves
   efficiency and interpretability. It allows the treatment to be
   correlated with unobserved unit and time heterogeneities under
-  reasonable modelling assumptions. With a built-in cross-validation
+  reasonable modeling assumptions. With a built-in cross-validation
   procedure, it avoids specification searches and thus is easy to
   implement. Data must be with a dichotomous treatment.
 }
@@ -97,7 +97,7 @@ on interactive fixed effect models.}
   \item{index}{name of the unit and time indicators.}
   \item{id}{a vector of unit IDs.}
   \item{time}{a vector of time periods.}
-  \item{obs.missing}{a matrix stroing status of each unit at each time point. 
+  \item{obs.missing}{a matrix storing status of each unit at each time point. 
     \code{0} for missing, \code{1} for control group units, \code{2} for treat group units at pre-treatment period, \code{3} for treat group units at post-treatment period, and \code{4} for removed treated group units. Useful for unbalanced panel data.}
   \item{id.tr}{a vector of IDs for the treatment units.}
   \item{id.co}{a vector of IDs for the control units.}

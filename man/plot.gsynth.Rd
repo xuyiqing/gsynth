@@ -4,7 +4,8 @@
 \description{Visualizes estimation results of the generalized synthetic control method.}
 \usage{\method{plot}{gsynth}(x, type = "gap", xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL, legendOff = FALSE, raw = "none",
-            main = NULL, nfactors = NULL, id = NULL, axis.adjust = FALSE, \dots)
+            main = NULL, nfactors = NULL, id = NULL, axis.adjust = FALSE, 
+            theme.bw = FALSE, \dots)
 }
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}
@@ -15,7 +16,7 @@
     "loadings" (plotting the distribution of estimated factor
     loadings); "missing" (plotting status of each unit at each time point).}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis. When 
-    class of time varible is string, must specify not original value but a counting number e.g. \code{xlim=c(1,30)}.}
+    class of time variable is string, must specify not original value but a counting number e.g. \code{xlim=c(1,30)}.}
   \item{ylim}{a two-element numeric vector specifying the range of y-axis.}
   \item{xlab}{a string indicating the label of the x-axis.}
   \item{ylab}{a string indicating the label of the y-axis.}
@@ -35,8 +36,9 @@
     the difference between actual and predicted counterfactual is to be shown. 
     It can also be a vector specifying units to be plotted if \code{type=="missing"} when data magitude is large. Ignored if \code{type} is none of 
     "missing", "counterfactual", "gap".}
-  \item{axis.adjust}{a logic flag indicating whether to adjust labels on x-axis. 
+  \item{axis.adjust}{a logical flag indicating whether to adjust labels on x-axis. 
     Useful when class of time variable is string and data magnitude is large.}
+  \item{theme.bw}{a logical indicating whether to use a black/white theme.}
   \item{\dots}{other argv.}
 }
 \details{

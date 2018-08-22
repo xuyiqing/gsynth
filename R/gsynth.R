@@ -1,8 +1,8 @@
 ## Synthetic Control for Multiple Treated Units
 ## (Causal Inference with Interactive Fixed Effects Models)
-## Version 1.03
-## Author: Yiqing Xu, University of California, San Diego
-## Date: 2018.1.20
+## Version 1.0.9
+## Authors: Yiqing Xu, University of California, San Diego; Licheng Liu (Tsinghua University)
+## Date: 2018.8.22
 
 ## MAIN FUNCTION
 ## gsynth.formula()
@@ -3396,6 +3396,7 @@ plot.gsynth <- function(x,
                         nfactors = NULL, 
                         id = NULL,
                         axis.adjust = FALSE,
+                        theme.bw = FALSE
                         ...){
 
 
@@ -3568,6 +3569,13 @@ plot.gsynth <- function(x,
 
     ## parameters
     line.width <- c(1.2,0.5)
+
+    ## color of axes
+    if (theme.bw == TRUE) {
+      line.color <- "#AAAAAA50"
+    } else {
+      line.color <- "white"
+    }
   
     ## type of plots
     if (type == "raw"| type == "counterfactual" | 
@@ -3692,9 +3700,8 @@ plot.gsynth <- function(x,
         
         
         if (x$DID==TRUE) {
-            p <- p + geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                annotate("rect", xmin= time.bf, xmax= Inf,
-                         ymin=-Inf, ymax=Inf, alpha = .3) 
+            p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) 
+            # + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
         }
         
         ## main
@@ -3709,7 +3716,11 @@ plot.gsynth <- function(x,
         set.labels = c("Treated (Pre)",
                        "Treated (Post)",
                        "Controls")
-        set.colors = c("#FC8D6280","red","#99999950")
+        if (theme.bw == FALSE) {
+          set.colors = c("#FC8D6280","red","#99999950")
+        } else {
+          set.colors = c("#4671D565","#06266F","5e5e5e50")
+        }
         set.linetypes = c("solid","solid","solid")
         set.linewidth = c(0.5, 0.5, 0.5)
         
@@ -3740,6 +3751,11 @@ plot.gsynth <- function(x,
         ## ylim
         if (is.null(ylim) == FALSE) {
             p <- p + coord_cartesian(ylim = ylim)
+        }
+
+        ## black/white theme
+        if (theme.bw == TRUE) {
+          p <- p + theme_bw()
         }
         suppressWarnings(print(p))
         
@@ -3800,8 +3816,8 @@ plot.gsynth <- function(x,
              
             ## plotting
             p <- ggplot(data) +
-                geom_vline(xintercept = time.bf, colour="white",size = 2) +
-                geom_hline(yintercept = 0, colour="white",size = 2) +
+                geom_vline(xintercept = time.bf, colour=line.color,size = 2) +
+                geom_hline(yintercept = 0, colour=line.color,size = 2) +
                 ## annotate("rect", xmin= time.bf, xmax= Inf,
                 ##          ymin=-Inf, ymax=Inf, alpha = .1,
                 ##          fill = "yellow") +
@@ -3833,6 +3849,10 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
+            }
+            ## black/white theme
+            if (theme.bw == TRUE) {
+              p <- p + theme_bw()
             }
             suppressWarnings(print(p))
         }  ## end of "gap" (in case of no id error)
@@ -3875,9 +3895,9 @@ plot.gsynth <- function(x,
                                                             rep("ct",nT)))
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -3892,7 +3912,7 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","ct")
                         set.labels = c("Treated", "Estimated Y(0)")
-                        set.colors = c("red","steelblue")
+                        set.colors = c("black","steelblue")
                         set.linetypes = c("solid","longdash")
                         set.linewidth = rep(line.width[1],2)
                         p <- p + scale_colour_manual(limits = set.limits,
@@ -3928,9 +3948,9 @@ plot.gsynth <- function(x,
                     
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -3952,7 +3972,7 @@ plot.gsynth <- function(x,
                         set.limits = c("tr","co.band","ct")
                         set.labels = c("Treated", "Controls (5-95% Quantiles)",
                                        "Estimated Y(0)")
-                        set.colors = c("red","#4682B480","steelblue")
+                        set.colors = c("black","#4682B480","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],4,line.width[1])
 
@@ -3989,9 +4009,9 @@ plot.gsynth <- function(x,
                     
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4009,7 +4029,7 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","raw.co","ct")
                         set.labels = c("Treated","Controls","Estimated Y(0)")
-                        set.colors = c("red","#99999950","steelblue")
+                        set.colors = c("black","#4682B410","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],line.width[2],line.width[1])
                     
@@ -4043,9 +4063,9 @@ plot.gsynth <- function(x,
                                                             rep("co",nT))) 
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4062,7 +4082,7 @@ plot.gsynth <- function(x,
                         set.limits = c("tr","co")
                         set.labels = c("Treated Average",
                                        "Estimated Y(0) Average")
-                        set.colors = c("red","steelblue")
+                        set.colors = c("black","steelblue")
                         set.linetypes = c("solid","longdash")
                         set.linewidth = rep(line.width[1],2)
                         p <- p + scale_colour_manual(limits = set.limits,
@@ -4099,9 +4119,9 @@ plot.gsynth <- function(x,
                     
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4126,7 +4146,7 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated 5-95% Quantiles",
                                        "Controls 5-95% Quantiles")
-                        set.colors = c("red","steelblue","#FF000030","#4682B480")
+                        set.colors = c("black","steelblue","#77777750","#4682B480")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = c(rep(line.width[1],2),4,4)
 
@@ -4165,9 +4185,9 @@ plot.gsynth <- function(x,
                                                               each = nT))) 
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                            annotate("rect", xmin= time.bf, xmax= Inf,
-                                     ymin=-Inf, ymax=Inf, alpha = .3) +
+                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                            # annotate("rect", xmin= time.bf, xmax= Inf,
+                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4186,7 +4206,7 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated Raw Data",
                                        "Controls Raw Data")
-                        set.colors = c("red","steelblue","#FC8D6280","#99999950")
+                        set.colors = c("black","steelblue","#77777750","#4682B410")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = rep(line.width,each=2)
                     
@@ -4221,6 +4241,10 @@ plot.gsynth <- function(x,
                 ## ylim
                 if (is.null(ylim) == FALSE) {
                     p <- p + coord_cartesian(ylim = ylim)
+                }
+                ## black/white theme
+                if (theme.bw == TRUE) {
+                  p <- p + theme_bw()
                 }
                 suppressWarnings(print(p))
             }
@@ -4262,9 +4286,9 @@ plot.gsynth <- function(x,
                                                     rep("co",nT))) 
                 ## theme 
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                    annotate("rect", xmin= time.bf, xmax= Inf,
-                                ymin=-Inf, ymax=Inf, alpha = .3) +
+                    geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                    # annotate("rect", xmin= time.bf, xmax= Inf,
+                    #             ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4281,7 +4305,7 @@ plot.gsynth <- function(x,
                 set.limits = c("tr","co")
                 set.labels = c("Treated Average",
                                "Estimated Y(0) Average")
-                set.colors = c("red","steelblue")
+                set.colors = c("black","steelblue")
                 set.linetypes = c("solid","longdash")
                 set.linewidth = rep(line.width[1],2)
                 p <- p + scale_colour_manual(limits = set.limits,
@@ -4313,9 +4337,9 @@ plot.gsynth <- function(x,
                     
                 ## theme 
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                    annotate("rect", xmin= time.bf, xmax= Inf,
-                             ymin=-Inf, ymax=Inf, alpha = .3) +
+                    geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                    # annotate("rect", xmin= time.bf, xmax= Inf,
+                    #          ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4336,7 +4360,7 @@ plot.gsynth <- function(x,
                 set.labels = c("Treated Average",
                                "Estimated Y(0) Average",
                                 "Treated 5-95% Quantiles")
-                set.colors = c("red","steelblue","#FF000030")
+                set.colors = c("black","steelblue","#77777750")
                 set.linetypes = c("solid","longdash","solid")
                 set.linewidth = c(rep(line.width[1],2),4)
 
@@ -4368,9 +4392,9 @@ plot.gsynth <- function(x,
                                                       each = nT))) 
                 ## theme
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                    geom_vline(xintercept=time.bf,colour="white",size = 2) +
-                    annotate("rect", xmin= time.bf, xmax= Inf,
-                             ymin=-Inf, ymax=Inf, alpha = .3) +
+                    geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                    # annotate("rect", xmin= time.bf, xmax= Inf,
+                    #          ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4388,7 +4412,7 @@ plot.gsynth <- function(x,
                 set.labels = c("Treated Average",
                                "Estimated Y(0) Average",
                                "Treated Raw Data")
-                set.colors = c("red","steelblue","#FC8D6280")
+                set.colors = c("black","steelblue","#77777750")
                 set.linetypes = c("solid","longdash","solid")
                 set.linewidth = c(rep(line.width[1],2),line.width[2])
                     
@@ -4416,6 +4440,10 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
+            }
+            ## black/white theme
+            if (theme.bw == TRUE) {
+              p <- p + theme_bw()
             }
             suppressWarnings(print(p))
         }
@@ -4450,7 +4478,7 @@ plot.gsynth <- function(x,
                                      "group" = as.factor(c(rep(1:r,each=nT))))
             ## theme
             p <- ggplot(data) + xlab(xlab) +  ylab(ylab) + ggtitle(main) +
-                geom_hline(yintercept=0,colour="white",size = 2) +
+                geom_hline(yintercept=0,colour=line.color,size = 2) +
                 theme(legend.position = legend.pos,
                       axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                       plot.title = element_text(size=20,
@@ -4472,6 +4500,10 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
+            }
+            ## black/white theme
+            if (theme.bw == TRUE) {
+              p <- p + theme_bw()
             }
             suppressWarnings(print(p))
         }
