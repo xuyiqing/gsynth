@@ -4491,7 +4491,7 @@ plot.gsynth <- function(x,
                                    group = group), size = 1.2)
 
 
-            brew.colors <- c("black","steelblue","#8DD3C7" "#FFFFB3" "#BEBADA" "#FB8072" "#80B1D3" "#FDB462" "#B3DE69" "#FCCDE5" "#D9D9D9")
+            brew.colors <- c("black","steelblue","#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9")
             set.colors = brew.colors[1:r]
             p <- p + scale_colour_manual(values =set.colors) 
 
@@ -4585,7 +4585,7 @@ plot.gsynth <- function(x,
                         theme(plot.title = element_text(hjust = 0.5))
                 }
             }
-            brew.colors <- c("black","steelblue","#8DD3C7" "#FFFFB3" "#BEBADA" "#FB8072" "#80B1D3" "#FDB462" "#B3DE69" "#FCCDE5" "#D9D9D9")
+            brew.colors <- c("black","steelblue","#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9")
             set.colors = brew.colors[1:nfactors]
             p <- p + scale_colour_manual(values =set.colors) 
 
