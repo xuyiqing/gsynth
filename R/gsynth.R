@@ -3700,8 +3700,8 @@ plot.gsynth <- function(x,
         
         
         if (x$DID==TRUE) {
-            p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) 
-            # + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+            p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) + 
+              annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
         }
         
         ## main
@@ -3896,8 +3896,8 @@ plot.gsynth <- function(x,
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                             annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -3949,8 +3949,8 @@ plot.gsynth <- function(x,
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                                annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4010,8 +4010,8 @@ plot.gsynth <- function(x,
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                             annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4064,8 +4064,8 @@ plot.gsynth <- function(x,
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                             annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4120,8 +4120,8 @@ plot.gsynth <- function(x,
                         ## theme 
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                             annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4136,7 +4136,7 @@ plot.gsynth <- function(x,
                         ## band
                         p <- p + geom_ribbon(data = data.band,
                                              aes(ymin = tr5, ymax = tr95, x=time),
-                                             alpha = 0.15, fill = "red") +
+                                             alpha = 0.15, fill = "black") +
                             geom_ribbon(data = data.band,
                                         aes(ymin = co5, ymax = co95, x=time),
                                         alpha = 0.15, fill = "steelblue")
@@ -4186,8 +4186,8 @@ plot.gsynth <- function(x,
                         ## theme
                         p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                            # annotate("rect", xmin= time.bf, xmax= Inf,
-                            #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                             annotate("rect", xmin= time.bf, xmax= Inf,
+                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
@@ -4287,8 +4287,8 @@ plot.gsynth <- function(x,
                 ## theme 
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                    # annotate("rect", xmin= time.bf, xmax= Inf,
-                    #             ymin=-Inf, ymax=Inf, alpha = .3) +
+                     annotate("rect", xmin= time.bf, xmax= Inf,
+                                 ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4338,8 +4338,8 @@ plot.gsynth <- function(x,
                 ## theme 
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                    # annotate("rect", xmin= time.bf, xmax= Inf,
-                    #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                     annotate("rect", xmin= time.bf, xmax= Inf,
+                              ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4393,8 +4393,8 @@ plot.gsynth <- function(x,
                 ## theme
                 p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                    # annotate("rect", xmin= time.bf, xmax= Inf,
-                    #          ymin=-Inf, ymax=Inf, alpha = .3) +
+                     annotate("rect", xmin= time.bf, xmax= Inf,
+                              ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
@@ -4470,7 +4470,7 @@ plot.gsynth <- function(x,
             } else if (main=="") {
                 main <- NULL
             }
-            ## prapre data
+            ## prepare data
             L.co<-x$lambda.co
             norm<-sqrt(diag(t(L.co)%*%L.co)/(x$N-x$Ntr))
             data <- cbind.data.frame("time" = rep(time[show],r),
@@ -4489,6 +4489,12 @@ plot.gsynth <- function(x,
             p <- p + geom_line(aes(time, factor,
                                    colour = group,
                                    group = group), size = 1.2)
+
+
+            brew.colors <- c("black","steelblue","#8DD3C7" "#FFFFB3" "#BEBADA" "#FB8072" "#80B1D3" "#FDB462" "#B3DE69" "#FCCDE5" "#D9D9D9")
+            set.colors = brew.colors[1:r]
+            p <- p + scale_colour_manual(values =set.colors) 
+
             ## legend
             p <- p + guides(colour = guide_legend(title="Factor(s)", ncol=4)) 
 
@@ -4578,7 +4584,12 @@ plot.gsynth <- function(x,
                                  title = main) +
                         theme(plot.title = element_text(hjust = 0.5))
                 }
-            } 
+            }
+            brew.colors <- c("black","steelblue","#8DD3C7" "#FFFFB3" "#BEBADA" "#FB8072" "#80B1D3" "#FDB462" "#B3DE69" "#FCCDE5" "#D9D9D9")
+            set.colors = brew.colors[1:nfactors]
+            p <- p + scale_colour_manual(values =set.colors) 
+
+
             suppressWarnings(print(p))
         }
            
