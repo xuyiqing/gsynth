@@ -3396,7 +3396,7 @@ plot.gsynth <- function(x,
                         nfactors = NULL, 
                         id = NULL,
                         axis.adjust = FALSE,
-                        theme.bw = FALSE
+                        theme.bw = FALSE,
                         ...){
 
 
