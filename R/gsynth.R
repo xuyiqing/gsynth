@@ -3572,7 +3572,7 @@ plot.gsynth <- function(x,
 
     ## color of axes
     if (theme.bw == TRUE) {
-      line.color <- "#AAAAAA50"
+      line.color <- "#AAAAAA70"
     } else {
       line.color <- "white"
     }
@@ -3689,15 +3689,18 @@ plot.gsynth <- function(x,
                                  "id" = c(rep(1:N,each = nT), id.tr.pst*(-1)))
         
         ## theme
-        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+        p <- ggplot(data) 
+        if (theme.bw == TRUE) {
+          p <- p + theme_bw()
+        }
+        ## labels and legend
+        p <- p + xlab(xlab) +  ylab(ylab) +
             theme(legend.position = legend.pos,
                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.h),
                   plot.title = element_text(size=20,
                                             hjust = 0.5,
                                             face="bold",
-                                            margin = margin(10, 0, 10, 0)))
-
-        
+                                            margin = margin(10, 0, 10, 0)))        
         
         if (x$DID==TRUE) {
             p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) + 
@@ -3753,10 +3756,7 @@ plot.gsynth <- function(x,
             p <- p + coord_cartesian(ylim = ylim)
         }
 
-        ## black/white theme
-        if (theme.bw == TRUE) {
-          p <- p + theme_bw()
-        }
+        
         suppressWarnings(print(p))
         
     } else if (type == "gap") { 
@@ -3814,9 +3814,13 @@ plot.gsynth <- function(x,
                 data <- cbind.data.frame(time, tb)[show,]
             }
              
-            ## plotting
-            p <- ggplot(data) +
-                geom_vline(xintercept = time.bf, colour=line.color,size = 2) +
+            ### plotting
+            p <- ggplot(data) 
+            ## black/white theme
+            if (theme.bw == TRUE) {
+              p <- p + theme_bw()
+            }
+            p <- p + geom_vline(xintercept = time.bf, colour=line.color,size = 2) +
                 geom_hline(yintercept = 0, colour=line.color,size = 2) +
                 ## annotate("rect", xmin= time.bf, xmax= Inf,
                 ##          ymin=-Inf, ymax=Inf, alpha = .1,
@@ -3849,11 +3853,8 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
-            }
-            ## black/white theme
-            if (theme.bw == TRUE) {
-              p <- p + theme_bw()
-            }
+            }            
+            
             suppressWarnings(print(p))
         }  ## end of "gap" (in case of no id error)
        
@@ -3894,8 +3895,12 @@ plot.gsynth <- function(x,
                                                  "type" = c(rep("tr",nT),
                                                             rep("ct",nT)))
                         ## theme
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
-                            geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
+                        geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                              annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
@@ -3947,7 +3952,11 @@ plot.gsynth <- function(x,
 
                     
                         ## theme 
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                                 annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4008,7 +4017,11 @@ plot.gsynth <- function(x,
                                                           rep(c(x$id.co), each = nT)))
                     
                         ## theme
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                              annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4029,7 +4042,7 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","raw.co","ct")
                         set.labels = c("Treated","Controls","Estimated Y(0)")
-                        set.colors = c("black","#4682B430","steelblue")
+                        set.colors = c("black","#4682B420","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],line.width[2],line.width[1])
                     
@@ -4061,8 +4074,12 @@ plot.gsynth <- function(x,
                                                                Yb[show,2]),
                                                  "type" = c(rep("tr",nT),
                                                             rep("co",nT))) 
-                        ## theme 
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                        ## theme
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                              annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4118,7 +4135,11 @@ plot.gsynth <- function(x,
                         colnames(data.band) <- c("time","tr5","tr95","co5","co95")
                     
                         ## theme 
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                              annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4184,7 +4205,11 @@ plot.gsynth <- function(x,
                                                           rep(c(x$id.tr,x$id.co),
                                                               each = nT))) 
                         ## theme
-                        p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                        p <- ggplot(data) 
+                        if (theme.bw == TRUE) {
+                          p <- p + theme_bw()
+                        }
+                        p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                              annotate("rect", xmin= time.bf, xmax= Inf,
                                       ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4206,7 +4231,7 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated Raw Data",
                                        "Controls Raw Data")
-                        set.colors = c("black","steelblue","#77777750","#4682B430")
+                        set.colors = c("black","steelblue","#77777750","#4682B420")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = rep(line.width,each=2)
                     
@@ -4241,11 +4266,7 @@ plot.gsynth <- function(x,
                 ## ylim
                 if (is.null(ylim) == FALSE) {
                     p <- p + coord_cartesian(ylim = ylim)
-                }
-                ## black/white theme
-                if (theme.bw == TRUE) {
-                  p <- p + theme_bw()
-                }
+                }                
                 suppressWarnings(print(p))
             }
         } else {
@@ -4284,8 +4305,12 @@ plot.gsynth <- function(x,
                                                        Yb[show,2]),
                                          "type" = c(rep("tr",nT),
                                                     rep("co",nT))) 
-                ## theme 
-                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                ## theme
+                p <- ggplot(data) 
+                if (theme.bw == TRUE) {
+                  p <- p + theme_bw()
+                }
+                p <- p  + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                      annotate("rect", xmin= time.bf, xmax= Inf,
                                  ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4335,8 +4360,12 @@ plot.gsynth <- function(x,
                 data.band <- cbind.data.frame(time, Y.tr.90)[show,]
                 colnames(data.band) <- c("time","tr5","tr95")
                     
-                ## theme 
-                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                ## theme
+                p <- ggplot(data) 
+                if (theme.bw == TRUE) {
+                  p <- p + theme_bw()
+                }
+                p <- p  + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                      annotate("rect", xmin= time.bf, xmax= Inf,
                               ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4391,7 +4420,11 @@ plot.gsynth <- function(x,
                                                   rep(c(x$id.tr),
                                                       each = nT))) 
                 ## theme
-                p <- ggplot(data) + xlab(xlab) +  ylab(ylab) +
+                p <- ggplot(data) 
+                if (theme.bw == TRUE) {
+                  p <- p + theme_bw()
+                }
+                p <- p + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
                      annotate("rect", xmin= time.bf, xmax= Inf,
                               ymin=-Inf, ymax=Inf, alpha = .3) +
@@ -4440,11 +4473,7 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
-            }
-            ## black/white theme
-            if (theme.bw == TRUE) {
-              p <- p + theme_bw()
-            }
+            }            
             suppressWarnings(print(p))
         }
 
@@ -4477,7 +4506,11 @@ plot.gsynth <- function(x,
                                      "factor" = c(F.hat[show,])*rep(norm,each=nT),
                                      "group" = as.factor(c(rep(1:r,each=nT))))
             ## theme
-            p <- ggplot(data) + xlab(xlab) +  ylab(ylab) + ggtitle(main) +
+            p <- ggplot(data) 
+            if (theme.bw == TRUE) {
+              p <- p + theme_bw()
+            }
+            p <- p + xlab(xlab) +  ylab(ylab) + ggtitle(main) +
                 geom_hline(yintercept=0,colour=line.color,size = 2) +
                 theme(legend.position = legend.pos,
                       axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
@@ -4506,11 +4539,7 @@ plot.gsynth <- function(x,
             ## ylim
             if (is.null(ylim) == FALSE) {
                 p <- p + coord_cartesian(ylim = ylim)
-            }
-            ## black/white theme
-            if (theme.bw == TRUE) {
-              p <- p + theme_bw()
-            }
+            }            
             suppressWarnings(print(p))
         }
         
