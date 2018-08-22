@@ -4516,82 +4516,80 @@ plot.gsynth <- function(x,
         
     } else if (type=="loadings") {
 
-        
-        if (x$r.cv==0) {
-            cat("No factors are included in the model.\n") 
-        } else {
+      
+      if (x$r.cv==0) {
+        cat("No factors are included in the model.\n") 
+      } else {
             ## number of loadings to be plotted
-            if (is.null(nfactors)==TRUE) {
-                nfactors<-min(x$r.cv,4) 
-            } else if (nfactors>x$r.cv) {
-                cat("Too many factors specified. ")
-                nfactors<-min(x$r.cv,4) 
-            }
-            if (nfactors == 1) {
-                cat("Loadings for the first factor are shown...\n")
-            } else if (nfactors < x$r.cv) {
-                cat(paste("Loadings for the first",nfactors,"factors are shown...\n"))
-            }
-            
-
-            ## title
-            if (is.null(main) == TRUE) {
-                main <- "Factor Loadings"
-            } else if (main=="") {
-                main <- NULL
-            }
-            
-            ## prepare data
-            L.hat <- rbind(x$lambda.tr, x$lambda.co)
-            Lname <- Llabel <- c()
-            for (i in 1:r) {
-                Lname<-c(Lname,paste("L",i,sep=""))
-                Llabel<-c(Llabel,paste("Factor",i))
-            }
-            colnames(L.hat) <- Lname
-            rownames(L.hat) <- c()
-            data <- cbind.data.frame(L.hat,
-                          "id"=c(x$id.tr, x$id.co),
-                          "group"=as.factor(c(rep("Treated",Ntr),
-                                              rep("Control",Nco))))
-
-            if (nfactors == 1) {
-                p <- ggplot(data, aes(x=group, y=L1, fill = group)) +
-                    geom_boxplot(alpha = 0.7) +
-                    coord_flip() + guides(fill=FALSE) +
-                    xlab("") + ylab("Factor Loading")
-            } else {
-                
-                if (x$Ntr < 5) {
-                    my_dens <- function(data, mapping, ...) {
-                        ggplot(data = data, mapping = mapping) +
-                            geom_density(..., fill = "gray", alpha = 0.7, color = "gray50")
-                    }
-                    p <- ggpairs(data, mapping = aes(color = group),
-                                 columns = 1:nfactors,
-                                 columnLabels = Llabel[1:nfactors],
-                                 diag = list(continuous = my_dens),
-                                 title = main)
-                } else {
-                    my_dens <- function(data, mapping, ...) {
-                        ggplot(data = data, mapping = mapping) +
-                            geom_density(..., alpha = 0.7, color = NA)
-                    }
-                    p <- ggpairs(data, mapping = aes(color = group, fill = group),
-                                 columns = 1:nfactors,
-                                 columnLabels = Llabel[1:nfactors],
-                                 diag = list(continuous = my_dens),
-                                 title = main) +
-                        theme(plot.title = element_text(hjust = 0.5))
-                }
-            }
-            brew.colors <- c("black","steelblue","#8DD3C7","#FFFFB3","#BEBADA","#FB8072","#80B1D3","#FDB462","#B3DE69","#FCCDE5","#D9D9D9")
-            set.colors = brew.colors[1:nfactors]
-            p <- p + scale_colour_manual(values =set.colors) 
-
-
-            suppressWarnings(print(p))
+        if (is.null(nfactors)==TRUE) {
+          nfactors<-min(x$r.cv,4) 
+        } else if (nfactors>x$r.cv) {
+          cat("Too many factors specified. ")
+          nfactors<-min(x$r.cv,4) 
         }
+        if (nfactors == 1) {
+          cat("Loadings for the first factor are shown...\n")
+        } else if (nfactors < x$r.cv) {
+          cat(paste("Loadings for the first",nfactors,"factors are shown...\n"))
+        }
+
+        ## title
+        if (is.null(main) == TRUE) {
+          main <- "Factor Loadings"
+        } else if (main=="") {
+          main <- NULL
+        }
+
+        ## prepare data
+        L.hat <- rbind(x$lambda.tr, x$lambda.co)
+        Lname <- Llabel <- c()
+        for (i in 1:r) {
+          Lname<-c(Lname,paste("L",i,sep=""))
+          Llabel<-c(Llabel,paste("Factor",i))
+        }
+        colnames(L.hat) <- Lname
+        rownames(L.hat) <- c()
+        data <- cbind.data.frame(L.hat,
+          "id"=c(x$id.tr, x$id.co),
+          "group"=as.factor(c(rep("Treated",Ntr),
+            rep("Control",Nco))))
+
+        if (nfactors == 1) {
+          p <- ggplot(data, aes(x=group, y=L1, fill = group)) +
+          geom_boxplot(alpha = 0.7) +
+          coord_flip() + guides(fill=FALSE) +
+          xlab("") + ylab("Factor Loading")  
+        } else {
+
+          if (x$Ntr < 5) {
+            my_dens <- function(data, mapping, ...) {
+              ggplot(data = data, mapping = mapping) +
+              geom_density(..., fill = "gray", alpha = 0.7, color = "gray50")
+            }
+            p <- ggpairs(data, mapping = aes(color = group),
+             columns = 1:nfactors,
+             columnLabels = Llabel[1:nfactors],
+             diag = list(continuous = my_dens),
+             title = main)
+          } else {
+            my_dens <- function(data, mapping, ...) {
+              ggplot(data = data, mapping = mapping) +
+              geom_density(..., alpha = 0.7, color = NA)
+            }
+            p <- ggpairs(data, mapping = aes(color = group, fill = group),
+             columns = 1:nfactors,
+             columnLabels = Llabel[1:nfactors],
+             diag = list(continuous = my_dens),
+             title = main) +
+            theme(plot.title = element_text(hjust = 0.5))
+          }
+        }
+
+        
+
+
+        suppressWarnings(print(p))
+      }
            
     } else if (type=="missing") {
         
