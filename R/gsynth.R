@@ -3719,7 +3719,7 @@ plot.gsynth <- function(x,
         if (theme.bw == FALSE) {
           set.colors = c("#FC8D6280","red","#99999950")
         } else {
-          set.colors = c("#4671D565","#06266F","5e5e5e50")
+          set.colors = c("#4671D565","#06266F","#5E5E5E50")
         }
         set.linetypes = c("solid","solid","solid")
         set.linewidth = c(0.5, 0.5, 0.5)
@@ -4029,7 +4029,7 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","raw.co","ct")
                         set.labels = c("Treated","Controls","Estimated Y(0)")
-                        set.colors = c("black","#4682B410","steelblue")
+                        set.colors = c("black","#4682B430","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],line.width[2],line.width[1])
                     
@@ -4206,7 +4206,7 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated Raw Data",
                                        "Controls Raw Data")
-                        set.colors = c("black","steelblue","#77777750","#4682B410")
+                        set.colors = c("black","steelblue","#77777750","#4682B430")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = rep(line.width,each=2)
                     
@@ -4584,10 +4584,6 @@ plot.gsynth <- function(x,
             theme(plot.title = element_text(hjust = 0.5))
           }
         }
-
-        
-
-
         suppressWarnings(print(p))
       }
            
