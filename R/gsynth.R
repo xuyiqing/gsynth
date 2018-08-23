@@ -45,7 +45,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    nboots = 200, # number of bootstraps
                    inference = "nonparametric", # type of inference
                    cov.ar = 1,
-                   parallel = TRUE, # parallel computing
+                   parallel = FALSE, # parallel computing
                    cores = NULL, # number of cores
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
@@ -77,7 +77,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
                            cov.ar = 1,
-                           parallel = TRUE, # parallel computing
+                           parallel = FALSE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
@@ -318,6 +318,19 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         data[,c(Yname, Xname)] <- data[,c(Yname, Xname)]/sd.Y
         norm.para <- sd.Y ## normalized parameter
     }
+
+    ## check index and treatment indicator
+    if (class(data[, Dname]) != "numeric") {
+        data[, Dname] <- as.numeric(as.character(data[, Dname]))
+    } 
+
+    if (class(data[, index[1]]) == "factor") {
+        data[, index[1]] <- as.character(data[, index[1]])
+    } 
+
+    if (class(data[, index[2]]) == "factor") {
+        data[, index[2]] <- as.character(data[, index[2]])
+    } 
     
     id <- index[1]
     time <- index[2]
@@ -722,8 +735,17 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## obs.missing[which(obs.missing==0)] <- "missing"
 
     colnames(obs.missing) <- unique(sort(data.old[,id]))
-    
-    rownames(obs.missing) <- tname
+    colnames(Y) <- iname
+    if (!is.null(out$res.co)) {
+        colnames(out$res.co) <- iname[which(out$tr == 0)]
+        rownames(out$res.co) <- tname
+    } else {
+        colnames(out$res) <- iname
+        rownames(out$res) <- tname
+    }
+    colnames(out$Y.co) <- iname[which(out$tr == 0)]
+    colnames(out$Y.ct) <- colnames(out$Y.tr) <- colnames(out$I.tr) <- colnames(out$D.tr) <- colnames(out$post) <- colnames(out$pre) <- iname[which(out$tr == 1)]
+    rownames(out$Y.ct) <- rownames(out$Y.tr) <- rownames(out$I.tr) <- rownames(out$D.tr) <- rownames(out$Y.co) <- rownames(out$post) <- rownames(out$pre) <- rownames(out$Y.bar) <- rownames(Y) <- rownames(obs.missing) <- tname
     
     if (AR1 == TRUE) {
         tname <- tname[-1]
@@ -732,12 +754,51 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (AR1 == TRUE) {
         Xname.tmp <- c(paste(Yname, "_lag", sep=""), Xname)
     }
+
+    ##  ----------- add label ---------- ##
+    ## beta
     rownames(out$beta) <- Xname.tmp
     if (se == TRUE) {
         rownames(out$est.beta) <- Xname.tmp
-    } 
+        rownames(out$beta.boot) <- Xname.tmp
+        dimnames(out$eff.boot)[[2]] <- iname[which(out$tr == 1)]
+    }
+    ## eff
     colnames(out$eff) <- iname[which(out$tr == 1)]
     rownames(out$eff) <- tname
+
+    ## individual eff
+    if (!is.null(out$est.ind)) {
+        dimnames(out$est.ind)[[3]] <- iname[which(out$tr == 1)]
+    }
+
+    ## cross validation
+    if (!is.null(out$CV.out)) {
+        rownames(out$CV.out) <- rep("", dim(out$CV.out)[1])
+    }
+    ## ife
+    if (!is.null(out$factor)) {
+        rownames(out$factor) <- tname
+        rownames(out$lambda.tr) <- iname[which(out$tr == 1)]
+        rownames(out$lambda.co) <- iname[which(out$tr == 0)]
+        colnames(out$lambda.tr) <- colnames(out$lambda.co) <- colnames(out$factor) <- sapply(1:dim(out$factor)[2], function(i){paste("r", i, sep = "")})
+    }
+
+    ## add fe
+    if (!is.null(out$xi)) {
+        rownames(out$xi) <- tname
+        colnames(out$xi) <- ""
+    }
+
+    if (!is.null(out$alpha.tr)) {
+        rownames(out$alpha.tr) <- iname[which(out$tr == 1)]
+        colnames(out$alpha.tr) <- ""
+    }
+
+    if (!is.null(out$alpha.co)) {
+        rownames(out$alpha.co) <- iname[which(out$tr == 0)]
+        colnames(out$alpha.co) <- ""
+    }
 
     if (MC == FALSE) {
         if (out$r.cv>0) {
@@ -758,6 +819,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                      id.tr = iname[which(out$tr == 1)],
                      id.co = iname[which(out$tr == 0)]),
                      out)
+    
+    if (!is.null(Wname)) {
+        output <- c(output, list(W = Wname))
+    }
                 
     if (1 %in% rm.tr.id) {
         output <- c(output,list(tr.remove.id = tr.remove.id))
@@ -1220,7 +1285,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 alpha.tr <- colMeans(U.tr.pre)
                 U.tr <- U.tr - matrix(alpha.tr, TT, Ntr, byrow = TRUE)
             } else {
-                alpha.tr <- sapply(U.tr.pre, mean)
+                alpha.tr <- as.matrix(sapply(U.tr.pre, mean))
                 U.tr <- U.tr - matrix(alpha.tr, TT, Ntr, byrow = TRUE)
             }
         }     
@@ -1846,8 +1911,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     
     if (force%in%c(1,3)) {
         alpha <- est$alpha
-        alpha.tr <- alpha[id.tr]
-        alpha.co <- alpha[id.co]
+        alpha.tr <- as.matrix(alpha[id.tr])
+        alpha.co <- as.matrix(alpha[id.co])
     }
     if (force%in%c(2,3)) {
         xi<-est$xi 
@@ -1888,15 +1953,17 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         beta <- NA
     }
     
-    res.co <- est$residuals[,id.co]
+    res <- est$residuals
+    res.co <- as.matrix(est$residuals[,id.co])
     
     
     if (0%in%I) {
         eff[which(I.tr==0)] <- NA 
         Y.ct[which(I.tr==0)] <- NA
         Y.tr[which(I.tr==0)] <- NA
-        res.co[which(I.co==0)] <- NA
+        res[which(II == 0)] <- NA
         Y.co[which(I.co==0)] <- NA
+        res.co[which(I.co==0)] <- NA
     }
 
         ## final adjustment
@@ -1970,7 +2037,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         validX = est$validX
     )
 
-    out <- c(out,list(sigma2 = sigma2, res.co = res.co))
+    out <- c(out,list(sigma2 = sigma2, res = res, res.co = res.co))
     
     
     if (DID==FALSE) {
@@ -2430,6 +2497,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     }
     eff <- Y.tr - Y.ct
     res <- est.best$residuals
+    res.co <- as.matrix(res[,id.co])
 
 
     if (p>0) {
@@ -2579,6 +2647,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         Y.tr[which(I.tr == 0)] <- NA
         res[which(II == 0)] <- NA
         Y.co[which(I.co == 0)] <- NA
+        res.co[which(I.co==0)] <- NA
     }
     ## adjust beta: invariant covar
     if (p > 0) {
@@ -2654,7 +2723,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         niter = est.best$niter
     )
 
-    out <- c(out,list(sigma2 = sigma2, res=res))
+    out <- c(out,list(sigma2 = sigma2, res = res, res.co = res.co))
     
 
     if ( DID == FALSE ) {
@@ -2667,11 +2736,11 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
                          CV.out = CV.out))
     } 
     if (force==1) {
-        out<-c(out, list(alpha= est.best$alpha))
+        out<-c(out, list(alpha.tr = as.matrix(est.best$alpha[id.tr,]), alpha.co = as.matrix(est.best$alpha[id.co,])))
     } else if (force == 2) {
         out<-c(out,list(xi = xi))
     } else if (force == 3) {
-        out<-c(out,list(alpha= est.best$alpha,
+        out<-c(out,list(alpha.tr = as.matrix(est.best$alpha[id.tr,]), alpha.co = as.matrix(est.best$alpha[id.co,]),
                         xi = xi))
     }
     if (AR1 == TRUE) {
@@ -3295,6 +3364,7 @@ synth.boot<-function(Y,
     pvalue.avg <- get.pvalue(att.avg.boot)
     est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
     colnames(est.avg) <- c("ATT.avg", "S.E.", "CI.lower", "CI.upper", "p.value")
+    rownames(est.avg) <- ""
     
     ## individual effects
     if (inference == "parametric") {
@@ -3306,7 +3376,12 @@ synth.boot<-function(Y,
         est.ind[,3,] <- CI.ind[1,,]
         est.ind[,4,] <- CI.ind[2,,]
         est.ind[,5,] <- apply(eff.boot,c(1,2),get.pvalue)
+
+        dimnames(est.ind)[[1]] <- rownames(est.att)
+        dimnames(est.ind)[[2]] <- c("EFF", "S.E.", "CI.lower", "CI.upper", "p.value")
     }
+
+    colboot <- sapply(1:nboots, function(i){paste("boot",i,sep="")})
 
     
     ## regression coefficents
@@ -3318,21 +3393,30 @@ synth.boot<-function(Y,
         ## beta[na.pos] <- NA
         est.beta<-cbind(beta, se.beta, CI.beta, pvalue.beta)
         colnames(est.beta)<-c("beta", "S.E.", "CI.lower", "CI.upper", "p.value")
+        colnames(beta.boot) <- colboot
     }
+
+    rownames(att.boot) <- rownames(est.att)
+    colnames(att.boot) <- colboot
+
+    dimnames(eff.boot)[[1]] <- rownames(est.att)
+    dimnames(eff.boot)[[3]] <- colboot
+
+
   
     ##storage
     result<-list(inference = inference,
                  est.att = est.att,
                  est.avg = est.avg,
-                 att.boot = att.boot
+                 att.boot = att.boot,
+                 eff.boot = eff.boot
                  )
     if (p>0) {
         result <- c(result,list(beta.boot = beta.boot))
     }
     
     if (inference == "parametric") {
-        result<-c(result,list(est.ind = est.ind,
-                              eff.boot = eff.boot))
+        result<-c(result,list(est.ind = est.ind))
     }
     if (p>0) {
         result<-c(result,list(est.beta = est.beta))

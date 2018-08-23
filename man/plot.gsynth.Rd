@@ -5,7 +5,7 @@
 \usage{\method{plot}{gsynth}(x, type = "gap", xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL, legendOff = FALSE, raw = "none",
             main = NULL, nfactors = NULL, id = NULL, axis.adjust = FALSE, 
-            theme.bw = FALSE, \dots)
+            theme.bw = FALSE, shade.post = NULL, \dots)
 }
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}

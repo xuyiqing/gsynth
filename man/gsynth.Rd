@@ -5,7 +5,7 @@
 on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE, 
        index, weight = NULL, force = "unit", r = 0, lambda = NULL,
-       nlambda = 10, CV = TRUE, k = 5, EM = FALSE, MC = FALSE,
+       nlambda = 10, CV = TRUE, k = 5, EM = FALSE, estimator = "ife",
        se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
