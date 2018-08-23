@@ -3811,7 +3811,7 @@ plot.gsynth <- function(x,
             if (length(id) == 1) { ## id specified
                 maintext <- paste(x$index[1],"=",id) 
             }  else {
-                maintext <- "Estimated Average Treatment Effect on the Treated"
+                maintext <- "Estimated ATT"
             } 
             
             ## contruct data for plotting
