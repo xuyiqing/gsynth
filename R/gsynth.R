@@ -40,12 +40,12 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    CV = TRUE, # cross-validation
                    k = 5, # cross-validation times
                    EM = FALSE, # EM algorithm
-                   MC = FALSE, # mc method
+                   estimator = "ife", # ife/mc method
                    se = FALSE, # report uncertainties
                    nboots = 200, # number of bootstraps
                    inference = "nonparametric", # type of inference
                    cov.ar = 1,
-                   parallel = FALSE, # parallel computing
+                   parallel = TRUE, # parallel computing
                    cores = NULL, # number of cores
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
@@ -72,12 +72,12 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            CV = TRUE, # cross-validation
                            k = 5, # cross-validation times
                            EM = FALSE, # EM algorithm
-                           MC = FALSE, # mc method 
+                           estimator = "ife", # ife/mc method 
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
                            cov.ar = 1,
-                           parallel = FALSE, # parallel computing
+                           parallel = TRUE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
@@ -106,7 +106,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
     out <- gsynth.default(formula = NULL, data = data, Y = Yname,
                           D = Dname, X = Xname,
                           na.rm, index, weight, force, r, lambda, nlambda, 
-                          CV, k, EM, MC, se, nboots, 
+                          CV, k, EM, estimator, se, nboots, 
                           inference, cov.ar, 
                           parallel, cores, tol, seed, min.T0, conf.lvl,
                           normalize)
@@ -134,7 +134,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            CV = TRUE, # cross-validation
                            k = 5, # cross-validation times
                            EM = FALSE, # EM algorithm 
-                           MC = FALSE, # mc method
+                           estimator = "ife", # ife/mc method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
@@ -181,6 +181,17 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         stop("\"force\" option misspecified; choose from c(\"none\", \"unit\", \"time\", \"two-way\").")
     } 
 
+    ## estimator
+    if (!estimator %in% c("ife","mc")) {
+      stop("\"estimator\" must be either \"ife\" or \"mc\".")
+    }
+    if (estimator == "mc") {
+      MC <- TRUE
+      inference <- "nonparametric"
+    } else {
+      MC <- FALSE
+    }
+
     ## r
     if ( MC == FALSE & r[1] < 0) {
         stop("\"r\" option misspecified. The number of factors must be non-negative.")
@@ -219,12 +230,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## EM
     if (is.logical(EM) == FALSE & !EM%in%c(0, 1)) {
         stop("EM is not a logical flag.")
-    }
-
-    ## MC
-    if (is.logical(MC) == FALSE & !MC%in%c(0, 1)) {
-        stop("MC is not a logical flag.")
-    }
+    }   
 
     ## se
     if (is.logical(se) == FALSE & !se%in%c(0, 1)) {
@@ -3397,6 +3403,7 @@ plot.gsynth <- function(x,
                         id = NULL,
                         axis.adjust = FALSE,
                         theme.bw = FALSE,
+                        shade.post = NULL,
                         ...){
 
 
@@ -3419,8 +3426,11 @@ plot.gsynth <- function(x,
     if (class(x)!="gsynth") {
         stop("Not a \"gsynth\" object.")
     }
-    if (!type %in% c("gap","counterfactual","factors","missing","loadings","raw")) {
-        stop("\"type\" option misspecified.")
+    if (!type %in% c("gap","counterfactual","ct","factors","missing","loadings","raw")) {
+        stop("\"type\" option misspecified.")        
+    }
+    if (type == "ct") {
+      type <- "counterfactual"
     }
     if (is.null(x$factor) & type == "factors") {
         stop("No factors to be plotted.")
@@ -3576,7 +3586,21 @@ plot.gsynth <- function(x,
     } else {
       line.color <- "white"
     }
-  
+
+    ## shade in the post-treatment period
+    if (is.null(shade.post) == TRUE) {
+      if (type %in% c("raw","counterfactual")) {
+        shade.post <- TRUE
+      }
+      if (type %in% c("gap","factors")) {
+        shade.post <- FALSE
+      }    
+    } else {
+      if (!class(shade.post) %in% c("logical","numeric")) {
+        stop("Wrong type for option \"shade.post\"")
+      }
+    }
+    
     ## type of plots
     if (type == "raw"| type == "counterfactual" | 
         type == "factors" |  length(id) == 1 | type =="missing" | 
@@ -3703,8 +3727,10 @@ plot.gsynth <- function(x,
                                             margin = margin(10, 0, 10, 0)))        
         
         if (x$DID==TRUE) {
-            p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) + 
-              annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+            p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) 
+            if (shade.post == TRUE) {
+              p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+            }  
         }
         
         ## main
@@ -3785,7 +3811,7 @@ plot.gsynth <- function(x,
             if (length(id) == 1) { ## id specified
                 maintext <- paste(x$index[1],"=",id) 
             }  else {
-                maintext <- "Estimated Average Treatment Effect"
+                maintext <- "Estimated Average Treatment Effect on the Treated"
             } 
             
             ## contruct data for plotting
@@ -3822,15 +3848,15 @@ plot.gsynth <- function(x,
             }
             p <- p + geom_vline(xintercept = time.bf, colour=line.color,size = 2) +
                 geom_hline(yintercept = 0, colour=line.color,size = 2) +
-                ## annotate("rect", xmin= time.bf, xmax= Inf,
-                ##          ymin=-Inf, ymax=Inf, alpha = .1,
-                ##          fill = "yellow") +
                 xlab(xlab) +  ylab(ylab) +
                 theme(legend.position = legend.pos,
                       plot.title = element_text(size=20,
                                                 hjust = 0.5,
                                                 face="bold",
                                                 margin = margin(10, 0, 10, 0)))
+            if (shade.post == TRUE) {
+              p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+            }  
            
             
             ## point estimates
@@ -3901,14 +3927,16 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                         geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                             annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0))) 
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }        
+
                         ## main
                         p <- p + geom_line(aes(time, outcome,
                                                colour = type,
@@ -3958,14 +3986,15 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                                annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0)))
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }      
 
                         ## main
                         p <- p + geom_line(aes(time, outcome,
@@ -4023,15 +4052,15 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                             annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0)))
-                    
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }  
                         ## main
                         p <- p + geom_line(aes(time, outcome,
                                                colour = type,
@@ -4081,14 +4110,15 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                             annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0)))
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }      
                         ## main
                         p <- p + geom_line(aes(time, outcome,
                                                colour = type,
@@ -4141,14 +4171,15 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                             annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0)))
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }      
                         ## main
                         p <- p + geom_line(aes(time, outcome,
                                                colour = type,
@@ -4211,14 +4242,15 @@ plot.gsynth <- function(x,
                         }
                         p <- p + xlab(xlab) +  ylab(ylab) +
                             geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                             annotate("rect", xmin= time.bf, xmax= Inf,
-                                      ymin=-Inf, ymax=Inf, alpha = .3) +
                             theme(legend.position = legend.pos,
                                   axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                                   plot.title = element_text(size=20,
                                                             hjust = 0.5,
                                                             face="bold",
                                                             margin = margin(10, 0, 10, 0))) 
+                        if (shade.post == TRUE) {
+                          p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                        }      
                         ## main
                         p <- p + geom_line(aes(time, outcome,
                                                colour = type,
@@ -4312,14 +4344,15 @@ plot.gsynth <- function(x,
                 }
                 p <- p  + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                     annotate("rect", xmin= time.bf, xmax= Inf,
-                                 ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
                                                     hjust = 0.5,
                                                     face="bold",
                                                     margin = margin(10, 0, 10, 0)))
+                if (shade.post == TRUE) {
+                  p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                }      
                 ## main
                 p <- p + geom_line(aes(time, outcome,
                                        colour = type,
@@ -4367,14 +4400,15 @@ plot.gsynth <- function(x,
                 }
                 p <- p  + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                     annotate("rect", xmin= time.bf, xmax= Inf,
-                              ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
                                                     hjust = 0.5,
                                                     face="bold",
                                                     margin = margin(10, 0, 10, 0)))
+                if (shade.post == TRUE) {
+                  p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                }      
                 ## main
                 p <- p + geom_line(aes(time, outcome,
                                        colour = type,
@@ -4426,14 +4460,15 @@ plot.gsynth <- function(x,
                 }
                 p <- p + xlab(xlab) +  ylab(ylab) +
                     geom_vline(xintercept=time.bf,colour=line.color,size = 2) +
-                     annotate("rect", xmin= time.bf, xmax= Inf,
-                              ymin=-Inf, ymax=Inf, alpha = .3) +
                     theme(legend.position = legend.pos,
                           axis.text.x = element_text(angle = angle, hjust=x.h, vjust=x.v),
                           plot.title = element_text(size=20,
                                                     hjust = 0.5,
                                                     face="bold",
                                                     margin = margin(10, 0, 10, 0))) 
+                if (shade.post == TRUE) {
+                  p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
+                }      
                 ## main
                 p <- p + geom_line(aes(time, outcome,
                                        colour = type,

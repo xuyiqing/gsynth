@@ -39,13 +39,14 @@ on interactive fixed effect models.}
   for matrix completion method. Default is \code{nlambda = 10}.}
 \item{CV}{a logical flag indicating whether cross-validation will be
   performed to select the optimal number of factors or hyper-parameter 
-  in matrix completion algorithm. If \code{r} is not specified, the procedure will search through \code{r = 0} to \code{5}.}
+  in matrix completion algorithm. If \code{r} is not specified, the procedure
+   will search through \code{r = 0} to \code{5}.}
 \item{k}{a positive integer specifying cross-validation times for matrix 
  completion algorithm. Default is \code{k = 5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016).}
-\item{MC}{a logical flag indicating whether matrix completion algorithm 
-  will be used.}
+\item{estimator}{a string that controls the estimation method, either 
+"ife" (interactive fixed effects) or "mc" (the matrix completion method).}
 \item{se}{a logical flag indicating whether uncertainty estimates will
   be produced.}
 \item{nboots}{an integer specifying the number of bootstrap
@@ -53,12 +54,12 @@ on interactive fixed effect models.}
 \item{inference}{a string specifying which type of inferential method
   will be used, either "parametric" or "nonparametric". "parametric" is
   recommended when the number of treated units is small. parametric bootstrap 
-  is not valid for matrix completion method.}
+  is not valid for matrix completion method. Ignored if \code{estimator = "mc"}.}
 \item{cov.ar}{an integer specifying order of the auto regression process
   that the residuals follow. Used for parametric bootstrap procedure when data
   is in the form of unbalanced panel. The default value is 1.}
 \item{parallel}{a logical flag indicating whether parallel computing
-  will be used in bootstrapping and/or cross-validation. Ignored if
+  will be used in bootstrapping and/or cross-validation. Ignored if 
   \code{se = FALSE}.}
 \item{cores}{an integer indicating the number of cores to be used in
   parallel computing. If not specified, the algorithm will use the
@@ -68,13 +69,18 @@ on interactive fixed effect models.}
 \item{seed}{an integer that sets the seed in random number
   generation. Ignored if \code{se = FALSE} and \code{r} is specified.}
 \item{min.T0}{an integer specifying the minimum value of pre-treatment 
-  periods. Treated units with pre-treatment periods less than that will be removed automatically. This item is important for unbalanced panels. If users 
-  want to perform cross validation procedure to select the optimal number of factors from \code{(r.min, r.max)}, they should set \code{min.T0} larger than 
-  \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} otherwise. If there are too few pre-treatment periods among all treated units, a smaller value of \code{r.max} is recommended.}
+  periods. Treated units with pre-treatment periods less than that will 
+  be removed automatically. This item is important for unbalanced panels. 
+  If users want to perform cross validation procedure to select the optimal 
+  number of factors from \code{(r.min, r.max)}, they should set \code{min.T0} 
+  larger than \code{(r.max+1)} if no individual fixed effects or \code{(r.max+2)} 
+  otherwise. If there are too few pre-treatment periods among all treated units, 
+  a smaller value of \code{r.max} is recommended.}
 \item{conf.lvl}{a positive number in the range of 0 and 1 specifying confidence 
  levels for uncertainty estimates. The default value is 0.95.}
 \item{normalize}{a logic flag indicating whether to scale outcome and 
-  covariates. Useful for accelerating computing speed when magnitude of data is large. The default is \code{normalize=FALSE}.}
+  covariates. Useful for accelerating computing speed when magnitude of 
+  data is large. The default is \code{normalize=FALSE}.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It
@@ -98,7 +104,9 @@ on interactive fixed effect models.}
   \item{id}{a vector of unit IDs.}
   \item{time}{a vector of time periods.}
   \item{obs.missing}{a matrix storing status of each unit at each time point. 
-    \code{0} for missing, \code{1} for control group units, \code{2} for treat group units at pre-treatment period, \code{3} for treat group units at post-treatment period, and \code{4} for removed treated group units. Useful for unbalanced panel data.}
+    \code{0} for missing, \code{1} for control group units, \code{2} for treat group 
+    units at pre-treatment period, \code{3} for treat group units at post-treatment 
+    period, and \code{4} for removed treated group units. Useful for unbalanced panel data.}
   \item{id.tr}{a vector of IDs for the treatment units.}
   \item{id.co}{a vector of IDs for the control units.}
   \item{D.tr}{a matrix of treatment indicator for the treated unit outcome.}

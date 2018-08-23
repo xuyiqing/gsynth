@@ -11,12 +11,13 @@
   \item{x}{a \code{\link{gsynth}} object.}
   \item{type}{a string that specifies the type of the plot. Must be one
     of the following: "gap" (plotting the average treatment effect on
-    the treated; "raw" (plotting the raw data); "counterfactual"    
+    the treated; "raw" (plotting the raw data); "counterfactual", or "ct" for short,   
     (plotting predicted Y(0)'s); "factors" (plotting estimated factors);    
     "loadings" (plotting the distribution of estimated factor
     loadings); "missing" (plotting status of each unit at each time point).}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis. When 
-    class of time variable is string, must specify not original value but a counting number e.g. \code{xlim=c(1,30)}.}
+    class of time variable is string, must specify not original value but a 
+    counting number e.g. \code{xlim=c(1,30)}.}
   \item{ylim}{a two-element numeric vector specifying the range of y-axis.}
   \item{xlab}{a string indicating the label of the x-axis.}
   \item{ylab}{a string indicating the label of the y-axis.}
@@ -34,11 +35,13 @@
   is not "factors"}
   \item{id}{a unit identifier of which the predicted counterfactual or
     the difference between actual and predicted counterfactual is to be shown. 
-    It can also be a vector specifying units to be plotted if \code{type=="missing"} when data magitude is large. Ignored if \code{type} is none of 
+    It can also be a vector specifying units to be plotted if \code{type=="missing"}
+     when data magnitude is large. Ignored if \code{type} is none of 
     "missing", "counterfactual", "gap".}
   \item{axis.adjust}{a logical flag indicating whether to adjust labels on x-axis. 
     Useful when class of time variable is string and data magnitude is large.}
-  \item{theme.bw}{a logical indicating whether to use a black/white theme.}
+  \item{theme.bw}{a logical flag indicating whether to use a black/white theme.}
+  \item{shade.post}{a logical flag controlling whether to shade the post-treatment periods.}
   \item{\dots}{other argv.}
 }
 \details{
