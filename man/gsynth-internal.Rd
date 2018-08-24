@@ -1,6 +1,5 @@
 
 \name{gsynth-internal}
-\alias{panelView}
 \alias{XXinv}
 \alias{beta_iter}
 \alias{data_ub_adj}

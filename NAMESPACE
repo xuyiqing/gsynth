@@ -18,7 +18,7 @@ importFrom("abind", "abind")
 importFrom("GGally", "ggpairs")
 importFrom("mvtnorm", "rmvnorm")
 importFrom("MASS", "ginv")
-importFrom("panelView", "panelView")
+##importFrom("panelView", "panelView")
 
 
 
@@ -32,4 +32,4 @@ S3method("interFE", "default")
 S3method("interFE", "formula")
 S3method("print", "interFE")
 ##export(inter_fe)
-export(panelView)
+##export(panelView)
