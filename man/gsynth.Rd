@@ -7,7 +7,7 @@ on interactive fixed effect models.}
        index, weight = NULL, force = "unit", r = 0, lambda = NULL,
        nlambda = 10, CV = TRUE, k = 5, EM = FALSE, estimator = "ife",
        se = FALSE, nboots = 200, 
-       inference = "nonparametric", cov.ar = 1, parallel = FALSE, 
+       inference = "nonparametric", cov.ar = 1, parallel = TRUE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
        conf.lvl = 0.95, normalize = FALSE)  
 }
@@ -120,7 +120,7 @@ on interactive fixed effect models.}
     based on the timing of the treatment if it is different for each unit).}
   \item{att.avg}{average treatment effect on the treated.}
   \item{force}{user specified \code{force} option.}
-  \item{DID}{TRUE if the timing of the treatment is the same.}
+  \item{sameT0}{TRUE if the timing of the treatment is the same.}
   \item{T}{the number of time periods.}
   \item{N}{the total number of units.}
   \item{p}{the number of time-varying observables.}
@@ -194,7 +194,7 @@ on interactive fixed effect models.}
 \examples{
 library(gsynth)
 data(gsynth)
-out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
+out <- gsynth(Y ~ D + X1 + X2, data = simdata, parallel = FALSE, 
               index = c("id","time"), force = "two-way",
               CV = TRUE, r = c(0, 5), se = FALSE) 
 print(out) 

@@ -45,7 +45,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    nboots = 200, # number of bootstraps
                    inference = "nonparametric", # type of inference
                    cov.ar = 1,
-                   parallel = FALSE, # parallel computing
+                   parallel = TRUE, # parallel computing
                    cores = NULL, # number of cores
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
@@ -77,7 +77,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
                            cov.ar = 1,
-                           parallel = FALSE, # parallel computing
+                           parallel = TRUE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
@@ -139,7 +139,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
                            cov.ar = 1,
-                           parallel = FALSE, # parallel computing
+                           parallel = TRUE, # parallel computing
                            cores = NULL, # number of cores
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
@@ -746,6 +746,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     colnames(out$Y.co) <- iname[which(out$tr == 0)]
     colnames(out$Y.ct) <- colnames(out$Y.tr) <- colnames(out$I.tr) <- colnames(out$D.tr) <- colnames(out$post) <- colnames(out$pre) <- iname[which(out$tr == 1)]
     rownames(out$Y.ct) <- rownames(out$Y.tr) <- rownames(out$I.tr) <- rownames(out$D.tr) <- rownames(out$Y.co) <- rownames(out$post) <- rownames(out$pre) <- rownames(out$Y.bar) <- rownames(Y) <- rownames(obs.missing) <- tname
+
     
     if (AR1 == TRUE) {
         tname <- tname[-1]
@@ -766,6 +767,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## eff
     colnames(out$eff) <- iname[which(out$tr == 1)]
     rownames(out$eff) <- tname
+    if (!is.null(out$eff.cnt)) {
+        colnames(out$eff.cnt) <- iname[which(out$tr == 1)]
+    }
+    if (out$sameT0 == TRUE) {
+        names(out$att) <- tname
+    }
 
     ## individual eff
     if (!is.null(out$est.ind)) {
@@ -799,6 +806,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         rownames(out$alpha.co) <- iname[which(out$tr == 0)]
         colnames(out$alpha.co) <- ""
     }
+
+    ## group
+    names(out$tr) <- iname
 
     if (MC == FALSE) {
         if (out$r.cv>0) {
@@ -1537,6 +1547,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## Storage 
     ##-------------------------------##  
 
+    names(att) <- c(1:TT) - min(T0.ub)
+
     ##control group residuals
     out<-list(
         ## main results
@@ -1551,7 +1563,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         att.avg = att.avg,
         ## supporting
         force = force,
-        DID = DID,
+        sameT0 = DID,
         T = TT,
         N = N,
         p = p,
@@ -1573,6 +1585,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     
 
     if ( DID == FALSE ) {
+        names(Y.ct.cnt) <- names(Y.tr.cnt) <- rownames(eff.cnt) <- c(1:TT) - min(T0.ub)
         out<-c(out,list(eff.cnt = eff.cnt,
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
@@ -2004,6 +2017,8 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##
     ## Storage 
     ##-------------------------------##  
+
+    names(att) <- c(1:TT) - min(T0.ub)
     
     out<-list(
         ## main results
@@ -2018,7 +2033,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         att.avg=att.avg,
         ## supporting
         force=force,
-        DID=DID,
+        sameT0=DID,
         T=TT,
         N=N,
         p=p,
@@ -2041,6 +2056,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     
     
     if (DID==FALSE) {
+        names(Y.ct.cnt) <- names(Y.tr.cnt) <- rownames(eff.cnt) <- c(1:TT) - min(T0.ub)
         out<-c(out,list(eff.cnt=eff.cnt, ##
                         Y.tr.cnt=Y.tr.cnt, ##
                         Y.ct.cnt=Y.ct.cnt)) ##
@@ -2688,7 +2704,8 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     
     ##-------------------------------##
     ## Storage 
-    ##-------------------------------##  
+    ##-------------------------------##
+    names(att) <- c(1:TT) - min(T0.ub)  
 
     ##control group residuals
     out<-list(
@@ -2704,7 +2721,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         att.avg = att.avg,
         ## supporting
         force = force,
-        DID = DID,
+        sameT0 = DID,
         T = TT,
         N = N,
         p = p,
@@ -2727,6 +2744,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     
 
     if ( DID == FALSE ) {
+        names(Y.ct.cnt) <- names(Y.tr.cnt) <- rownames(eff.cnt) <- c(1:TT) - min(T0.ub)
         out<-c(out,list(eff.cnt = eff.cnt,
                         Y.tr.cnt = Y.tr.cnt,
                         Y.ct.cnt = Y.ct.cnt))
@@ -2860,7 +2878,7 @@ synth.boot<-function(Y,
     eff<-out$eff
     att<-out$att
     att.avg<-out$att.avg
-    DID <- out$DID
+    DID <- out$sameT0
 
     if (p > 0) {
         beta <- out$beta
@@ -3810,7 +3828,7 @@ plot.gsynth <- function(x,
                                             face="bold",
                                             margin = margin(10, 0, 10, 0)))        
         
-        if (x$DID==TRUE) {
+        if (x$sameT0==TRUE) {
             p <- p + geom_vline(xintercept=time.bf,colour=line.color,size = 2) 
             if (shade.post == TRUE) {
               p <- p + annotate("rect", xmin= time.bf, xmax= Inf,ymin=-Inf, ymax=Inf, alpha = .3) 
@@ -3877,7 +3895,7 @@ plot.gsynth <- function(x,
 
             ## axes labels
             if (is.null(xlab) == TRUE) {
-                if (x$DID == TRUE) {
+                if (x$sameT0 == TRUE) {
                     xlab <- x$index[2]
                 } else {
                     xlab <- paste("Time relative to Treatment")
@@ -3971,7 +3989,7 @@ plot.gsynth <- function(x,
         
     } else if (type=="counterfactual") { 
 
-        if (length(id) == 1|length(x$id.tr) == 1|x$DID==TRUE) { 
+        if (length(id) == 1|length(x$id.tr) == 1|x$sameT0==TRUE) { 
             if (length(id)==1 & !(id[1]%in%x$id.tr)) { ## error
             
                 cat(paste(id,"not in the treatment group"))
