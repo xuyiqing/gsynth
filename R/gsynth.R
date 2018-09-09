@@ -1357,7 +1357,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
 
         ## for storage
         if (force%in%c(1,3)) {
-            alpha.tr <- lambda.tr[, (r.cv+1), drop = FALSE]
+            alpha.tr <- as.matrix(lambda.tr[, (r.cv+1), drop = FALSE])
             lambda.tr <- lambda.tr[, 1:r.cv, drop = FALSE] 
         }
 
@@ -1437,7 +1437,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         } else {
@@ -1466,7 +1466,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         }
@@ -1878,7 +1878,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         } else {
@@ -1907,7 +1907,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         }
@@ -2600,7 +2600,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         } else {
@@ -2629,7 +2629,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
                 Y.tr.center[which(is.na(Y.tr.center))] <- 0
                 W.tr.center[which(is.na(W.tr.center))] <- 0
                 att <- rowSums(eff.cnt * W.tr.center)/rowSums(W.tr.center)
-                Y.tr.center <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
+                Y.tr.cnt <- rowSums(Y.tr.center * W.tr.center)/rowSums(W.tr.center)
                 Y.ct.cnt <- Y.tr.cnt - att
             }
         }
