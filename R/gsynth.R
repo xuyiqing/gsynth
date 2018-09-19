@@ -360,10 +360,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             if (sum(is.na(data[, Xname[i]])) > 0) {
                 stop(paste("Missing values in variable \"", Xname[i],"\".", sep = ""))
             }
-            if (sum(unlist(tapply(data[, Xname[i]], data[, id], var))) == 0) {
+            if (sum(unlist(tapply(data[, Xname[i]], data[, id], var)), na.rm = TRUE) == 0) {
               stop(paste("Variable \"",Xname[i], "\" is unit-invariant. Try to remove it.", sep = ""))
             }
-            if (sum(unlist(tapply(data[, Xname[i]], data[, time], var))) == 0) {
+            if (sum(unlist(tapply(data[, Xname[i]], data[, time], var)), na.rm = TRUE) == 0) {
               stop(paste("Variable \"",Xname[i], "\" is time-invariant. Try to remove it.", sep = ""))
             }
         }
