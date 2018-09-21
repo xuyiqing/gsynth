@@ -798,6 +798,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     if (!is.null(out$alpha.tr)) {
+        if (class(out$alpha.tr) == "numeric") {
+            out$alpha.tr <- as.matrix(out$alpha.tr)
+        }
         rownames(out$alpha.tr) <- iname[which(out$tr == 1)]
         colnames(out$alpha.tr) <- ""
     }
