@@ -296,9 +296,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         stop("na.rm is not a logical flag.")
     } 
 
+    data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
     if (na.rm == TRUE) {
-    	data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
-      data <- na.omit(data)
+      ## data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
+        data <- na.omit(data)
     } 
     ##-------------------------------##
     ## Parsing raw data
@@ -360,10 +361,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             if (sum(is.na(data[, Xname[i]])) > 0) {
                 stop(paste("Missing values in variable \"", Xname[i],"\".", sep = ""))
             }
-            if (sum(unlist(tapply(data[, Xname[i]], data[, id], var)), na.rm = TRUE) == 0) {
+
+            if (sum(tapply(data[, Xname[i]], data[, id], var), na.rm = TRUE) == 0) {
               stop(paste("Variable \"",Xname[i], "\" is unit-invariant. Try to remove it.", sep = ""))
             }
-            if (sum(unlist(tapply(data[, Xname[i]], data[, time], var)), na.rm = TRUE) == 0) {
+            if (sum(tapply(data[, Xname[i]], data[, time], var), na.rm = TRUE) == 0) {
               stop(paste("Variable \"",Xname[i], "\" is time-invariant. Try to remove it.", sep = ""))
             }
         }
@@ -406,7 +408,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     I[is.nan(Y.ind)] <- 0
 
     if (0%in%I) {
-    	data[is.nan(data)] <- 0
+        data[is.nan(data)] <- 0
     }
     
     ##treatment indicator
@@ -524,62 +526,62 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     
     ## time-varying covariates
     X <- array(0, dim = c(TT, N, p))
-    xp <- rep(0, p) ## label invariant x
-    x.pos <- 0
+    ## xp <- rep(0, p) ## label invariant x
+    ## x.pos <- 0
 
     if (p > 0) {
-        x.pos <- 1:p
+        ## x.pos <- 1:p
         for (i in 1:p) {
             X[,,i] <- matrix(data[, Xname[i]], TT, N)
-            if (force %in% c(1,3)) {
-                if (!0%in%I) {
-                    tot.var.unit <- sum(apply(X[, , i], 2, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I == 0)] <- NA
-                    tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
-                }
-                if(!is.na(tot.var.unit)) {
-                    if (tot.var.unit == 0) {
+            ## if (force %in% c(1,3)) {
+            ##     if (!0%in%I) {
+            ##         tot.var.unit <- sum(apply(X[, , i], 2, var))
+            ##     } else {
+            ##         Xi <- X[,,i]
+            ##         Xi[which(I == 0)] <- NA
+            ##         tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
+            ##     }
+            ##     if(!is.na(tot.var.unit)) {
+            ##         if (tot.var.unit == 0) {
                         ## time invariant covar can be removed
-                        xp[i] <- 1
-                        cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
-                    }
-                }
-            }
-            if (force %in% c(2, 3)) {
-                if (!0%in%I) {
-                    tot.var.time <- sum(apply(X[, , i], 1, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I == 0)] <- NA
-                    tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
-                } 
-                if (!is.na(tot.var.time)) {
-                    if (tot.var.time == 0) {
+            ##             xp[i] <- 1
+            ##             cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+            ##         }
+            ##     }
+            ## }
+            ## if (force %in% c(2, 3)) {
+            ##     if (!0%in%I) {
+            ##         tot.var.time <- sum(apply(X[, , i], 1, var))
+            ##     } else {
+            ##         Xi <- X[,,i]
+            ##         Xi[which(I == 0)] <- NA
+            ##         tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
+            ##     } 
+            ##     if (!is.na(tot.var.time)) {
+            ##         if (tot.var.time == 0) {
                         ## can be removed in inter_fe
-                        xp[i] <- 1
-                        cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
-                    }
-                }
-            } 
+            ##             xp[i] <- 1
+            ##             cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+            ##         }
+            ##     }
+            ## } 
         } 
     }
 
-    if (sum(xp) > 0) {
-        if (sum(xp) == p) {
-            X <- array(0, dim = c(TT, N, 0))
-            p <- 0
-        } else {
-            x.pos <- which(xp == 0)
-            Xsub <- array(0, dim = c(TT, N, length(x.pos)))
-            for (i in 1:length(x.pos)) {
-                Xsub[,,i] <- X[,,x.pos[i]] 
-            }
-            X <- Xsub
-            p <- length(x.pos)
-        }
-    }
+    ## if (sum(xp) > 0) {
+    ##     if (sum(xp) == p) {
+    ##         X <- array(0, dim = c(TT, N, 0))
+    ##         p <- 0
+    ##     } else {
+    ##         x.pos <- which(xp == 0)
+    ##         Xsub <- array(0, dim = c(TT, N, length(x.pos)))
+    ##         for (i in 1:length(x.pos)) {
+    ##             Xsub[,,i] <- X[,,x.pos[i]] 
+    ##         }
+    ##         X <- Xsub
+    ##         p <- length(x.pos)
+    ##     }
+    ## }
 
     if (1 %in% rm.tr.id) {
 
@@ -798,9 +800,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     if (!is.null(out$alpha.tr)) {
-        if (class(out$alpha.tr) == "numeric") {
-            out$alpha.tr <- as.matrix(out$alpha.tr)
-        }
+        ## if (class(out$alpha.tr) != "matrix") {
+        ##     out$alpha.tr <- as.matrix(out$alpha.tr)
+        ## }
         rownames(out$alpha.tr) <- iname[which(out$tr == 1)]
         colnames(out$alpha.tr) <- ""
     }
@@ -872,12 +874,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## Parsing data
     ##-------------------------------##  
     na.pos <- NULL
+
     ## unit id and time
     TT <- dim(Y)[1]
     N <- dim(Y)[2]
     if (is.null(X) == FALSE) {p <- dim(X)[3]} else {p <- 0}
 
-     
     ## treatement indicator
     tr <- D[TT,] == 1  ## cross-sectional: treated unit
     co <- D[TT,] == 0
@@ -1008,58 +1010,42 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             r <- 0
         }
         
-        ## initial values
-        cat("Cross-validating ...","\r")
-        
         ## store all MSPE
         if (force%in%c(0, 2)) {
             r.max <- max(min((T0.min-1), r.end), 0)
         } else {
             r.max <- max(min((T0.min-2), r.end), 0)
         }
+
         if (r.max == 0) {
             r.cv <- 0
             cat("Cross validation cannot be performed since available pre-treatment records of treated units are too few. So set r.cv = 0.\n ")
             if (!0%in%I.co) {
-                ## if (force!=0) {
-                    est.co.best <- inter_fe(Y.co, X.co, 0, force = force, beta0 = beta0, tol) 
-                ## } else {
-                ##     est.co.best<-inter_fe(Y.co, abind(I.co, X.co, along=3), 0, force=0, beta0 = beta0) 
-                ## }  
+                est.co.best <- inter_fe(Y.co, X.co, 0, force = force, beta0 = beta0, tol) 
             } else {
-                ## if (force!=0) {
-                    est.co.best <- inter_fe_ub(Y.co, Y0.co, X.co, I.co, beta0, 0, force = force, tol)
-                ## } else {
-                ##     est.co.best<-inter_fe_ub(Y.co, abind(I.co, X.co, along=3), I.co, 0, force=0, beta0 = beta0)
-                ## }
+                est.co.best <- inter_fe_ub(Y.co, Y0.co, X.co, I.co, beta0, 0, force = force, tol)
             }
 
         } else {
-            CV.out <- matrix(NA, (r.max - r + 1), 4)
-            colnames(CV.out) <- c("r", "sigma2", "IC", "MSPE")
-            CV.out[,"r"] <- c(r:r.max)
-            CV.out[,"MSPE"] <- 1e20
+            r.old <- r ## save the minimal number of factors 
+            
+            cat("Cross-validating ...","\r")
+            CV.out <- matrix(NA, (r.max - r.old + 1), 5)
+            colnames(CV.out) <- c("r", "sigma2", "IC", "PC", "MSPE")
+            CV.out[,"r"] <- c(r.old:r.max)
+            CV.out[,"MSPE"] <- CV.out[,"PC"] <- 1e20
+            r.pc <- est.co.pc.best <- NULL
         
             for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts 
   
                 ## inter FE based on control, before & after 
                 r <- CV.out[i, "r"]
                 if (!0%in%I.co) {
-                    ## if (force!=0) {
-                        est.co <- inter_fe(Y = Y.co, X = X.co, r,
-                                           force = force, beta0 = beta0, tol)
-                    ## } else {
-                    ##     est.co<-inter_fe(Y = Y.co, X = abind(I.co, X.co, along=3), 
-                    ##                      r, force = 0, beta0 = beta0)                        
-                    ## }
+                    est.co <- inter_fe(Y = Y.co, X = X.co, r,
+                                       force = force, beta0 = beta0, tol)
                 } else {
-                    ## if (force!=0) {
-                        est.co <- inter_fe_ub(Y = Y.co, Y0 = Y0.co, X = X.co, I = I.co, 
-                                              beta0, r, force = force, tol)
-                    ## } else {
-                    ##     est.co<-inter_fe_ub(Y = Y.co, X = abind(I.co, X.co, along=3), 
-                    ##                         I = I.co, r, force = 0, beta0 = beta0)                        
-                    ## }
+                    est.co <- inter_fe_ub(Y = Y.co, Y0 = Y0.co, X = X.co, I = I.co, 
+                                          beta0, r, force = force, tol)
                 }       
    
                 if (p > 0) {
@@ -1074,9 +1060,11 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                 if (is.null(norm.para)) {
                     sigma2 <- est.co$sigma2
                     IC <- est.co$IC
+                    PC <- est.co$PC
                 } else {
                     sigma2 <- est.co$sigma2 * (norm.para[1]^2)
                     IC <- est.co$IC - log(est.co$sigma2) + log(sigma2)
+                    PC <- est.co$PC * (norm.para[1]^2)
                 }
                
                 if (r!=0) {
@@ -1218,21 +1206,34 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                     r.cv <- r
                 } else {
                     if (r == r.cv + 1) cat("*")
+                }
+
+                if (PC < min(CV.out[,"PC"])) {
+                    r.pc <- r
+                    est.co.pc.best <- est.co
                 } 
-                CV.out[i, 2:4] <- c(sigma2, IC, MSPE)
+                CV.out[i, 2:5] <- c(sigma2, IC, PC, MSPE)
                 cat("\n r = ",r, "; sigma2 = ",
                     sprintf("%.5f",sigma2), "; IC = ",
-                    sprintf("%.5f",IC), "; MSPE = ",
+                    sprintf("%.5f",IC), "; PC = ",
+                    sprintf("%.5f",PC), "; MSPE = ",
                     sprintf("%.5f",MSPE), sep="")
             
             } ## end of while: search for r_star over
-           
+
+            MSPE.best <- min(CV.out[,"MSPE"])
+
+            ## compare 
+            if (r.cv > r.pc) {
+                cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
+                r.cv <- r.pc 
+                est.co.best <- est.co.pc.best
+            }
         
             if (r > (T0.min-1)) {cat(" (r hits maximum)")}
             cat("\n\n r* = ",r.cv, sep="")
             cat("\n\n") 
         
-            MSPE.best <- min(CV.out[,"MSPE"])
         }
         
     } ## End of Cross-Validation
@@ -1247,15 +1248,16 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     if (is.null(norm.para)) {
         sigma2 <- est.co.best$sigma2   
         IC <- est.co.best$IC
+        PC <- est.co.best$PC
     } else {
         sigma2 <- est.co.best$sigma2 * (norm.para[1]^2)
-        IC <- est.co.best$IC - log(est.co.best$sigma2) + log(sigma2)       
+        IC <- est.co.best$IC - log(est.co.best$sigma2) + log(sigma2) 
+        PC <- est.co.best$PC * (norm.para[1]^2)      
     }
  
     ## ## take out the effect of X
     U.tr <- Y.tr
     res.co <- est.co.best$residuals
-
 
     if (p>0) {
         beta <- est.co.best$beta
@@ -1282,6 +1284,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         U.tr <- U.tr - matrix(c(xi), TT, Ntr, byrow = FALSE) ## will be adjusted at last
         Y.fe.bar <- Y.fe.bar + xi
     }
+
     if ( max(T0) == T0.min & (!0%in%I.tr) ) {
         U.tr.pre <- as.matrix(U.tr[1:T0.min,])
     } else {
@@ -1289,13 +1292,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         U.tr.pre.v <- as.vector(U.tr)[which(pre.v == 1)] # pre-treatment residual in a vector
         U.tr.pre <- split(U.tr.pre.v, id.tr.pre.v) ##  a list of pretreatment residuals
     }
-     
     
     ## the error structure
     if (r.cv == 0) {
         if (force%in%c(1,3)) { ## take out unit fixed effect
             if ((max(T0) == T0.min) & (!0%in%I.tr)) {
-                alpha.tr <- colMeans(U.tr.pre)
+                alpha.tr <- as.matrix(colMeans(U.tr.pre))
                 U.tr <- U.tr - matrix(alpha.tr, TT, Ntr, byrow = TRUE)
             } else {
                 alpha.tr <- as.matrix(sapply(U.tr.pre, mean))
@@ -1303,8 +1305,8 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             }
         }     
         eff <- U.tr  ## and that's it!
-
-    } else { ## r.cv>0
+    ## r.cv>0
+    } else {  
         ## Factors
         F.hat <- as.matrix(est.co.best$factor)
         if (force %in% c(1, 3)) {F.hat <- cbind(F.hat, rep(1,TT))}
@@ -1503,6 +1505,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         Y.tr[which(I.tr == 0)] <- NA
         res.co[which(I.co == 0)] <- NA
         Y.co[which(I.co == 0)] <- NA
+        est.co.best$residuals[which(I.co == 0)] <- NA
     }
     ## adjust beta: invariant covar
     if (p > 0) {
@@ -1514,9 +1517,13 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
     ## final adjustment
     if (!is.null(norm.para)) {
         mu <- mu * norm.para[1]
-        ## if (p>0) {
-        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
-        ## }
+        est.co.best$mu <- est.co.best$mu * norm.para[1]
+
+        ## sigma2 IC PC have been adjusted before
+        est.co.best$sigma2 <- est.co.best$sigma2 * (norm.para[1]^2)
+        est.co.best$IC <- est.co.best$IC - log(est.co.best$sigma2) + log(sigma2) 
+        est.co.best$PC <- est.co.best$PC * (norm.para[1]^2)  
+        
         if (r.cv > 0) {
             est.co.best$lambda <- est.co.best$lambda * norm.para[1]
             lambda.tr <- lambda.tr * norm.para[1]
@@ -1526,9 +1533,13 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             alpha.tr <- alpha.tr * norm.para[1]
         }
         if (force%in%c(2,3)) {
+            est.co.best$xi <- est.co.best$xi * norm.para[1]
             xi <- xi * norm.para[1]
         }
         res.co <- res.co * norm.para[1] 
+        est.co.best$residuals <- est.co.best$residuals * norm.para[1]
+        est.co.best$fit <- est.co.best$fit * norm.para[1]
+        
         Y.tr <- Y.tr * norm.para[1] 
         Y.ct <- Y.ct * norm.para[1]
         Y.co <- Y.co * norm.para[1]
@@ -1578,6 +1589,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
         post = post,
         r.cv = r.cv, 
         IC = IC,
+        PC = PC,
         beta = beta,
         est.co = est.co.best,
         mu = mu,
@@ -1646,9 +1658,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
                    beta0 = NULL,
                    norm.para,
                    boot = 0
-                   ){
-
-    
+                   ) {
     ##-------------------------------##
     ## Parsing data
     ##-------------------------------##  
@@ -1810,15 +1820,19 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     #    trace.diff <- c(trace.diff,diff)
     #    niter <- niter + 1  
     #}
+
+    ## PC criterion
     
 
     ## variance of the error term
     if (is.null(norm.para)) {
         sigma2<-est$sigma2   
         IC<-est$IC
+        PC <- est$PC
     } else {
         sigma2<-est$sigma2*(norm.para[1]^2)
-        IC <- est$IC-log(est$sigma2) + log(sigma2)       
+        IC <- est$IC-log(est$sigma2) + log(sigma2)  
+        PC <- est$PC*(norm.para[1]^2)     
     }
 
 
@@ -1980,26 +1994,42 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         res[which(II == 0)] <- NA
         Y.co[which(I.co==0)] <- NA
         res.co[which(I.co==0)] <- NA
+        est$residuals[which(II == 0)] <- NA
+
     }
 
         ## final adjustment
     if (!is.null(norm.para)) {
         mu <- mu*norm.para[1]
-        ## if (p>0) {
-        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
-        ## }
+        est$mu <- est$mu * norm.para[1]
+
+        ## sigma2 IC PC have been adjusted before
+        est$sigma2 <- est$sigma2 * (norm.para[1]^2)
+        est$IC <- est$IC - log(est$sigma2) + log(sigma2) 
+        est$PC <- est$PC * (norm.para[1]^2)
+
+
         if (r>0) {
+            est$lambda <- est$lambda * norm.para[1]
             lambda.tr <- lambda.tr*norm.para[1]
             lambda.co <- lambda.co*norm.para[1]
         }
         if (force%in%c(1,3)) {
+            est$alpha <- est$alpha * norm.para[1]
             alpha.tr <- alpha.tr*norm.para[1]
             alpha.co <- alpha.co*norm.para[1]
         }
         if (force%in%c(2,3)) {
+            est$xi <- est$xi * norm.para[1]
             xi <- xi*norm.para[1]
         }
-        res.co <- res.co*norm.para[1] 
+
+        res <- res * norm.para[1] 
+        res.co <- res.co * norm.para[1] 
+        est$residuals <- est$residuals * norm.para[1]
+        est$fit <- est$fit * norm.para[1]
+
+
         Y.tr <- Y.tr*norm.para[1] 
         Y.ct <- Y.ct*norm.para[1]
         Y.co <- Y.co*norm.para[1]
@@ -2051,6 +2081,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         beta = beta,
         ## niter = niter,
         IC = IC,
+        PC = PC,
         mu = mu,
         validX = est$validX
     )
@@ -2179,14 +2210,19 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
     } else {
         r.max<-max(min((T0.min-2),r.end),0)
     }
+
     if (r.max==0) {
         stop("Cross validation cannot be performed since available pre-treatment records of treated units are too few. r.cv = 0.\n ")
     } else {
-        CV.out<-matrix(NA,(r.max-r+1),4)
-        colnames(CV.out)<-c("r","sigma2","IC","MSPE")
-        CV.out[,"r"]<-c(r:r.max)
-        CV.out[,"MSPE"]<-1e20
+
+        r.old <- r ## save the minimal number of factors 
+            
         cat("Cross-validating ...","\r")
+        CV.out<-matrix(NA,(r.max-r.old+1),5)
+        colnames(CV.out)<-c("r","sigma2","IC","PC","MSPE")
+        CV.out[,"r"]<-c(r.old:r.max)
+        CV.out[,"MSPE"]<-CV.out[,"PC"]<-1e20
+
         for (i in 1:dim(CV.out)[1]) { ## cross-validation loop starts
       
             r <- CV.out[i,"r"]
@@ -2194,6 +2230,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                           tol = tol, AR1 = AR1, beta0 = beta0, norm.para = norm.para, boot = 0)
             sigma2<-est$sigma2
             IC<-est$IC
+            PC <- est$PC
         
             ## leave-one-out cross-validation
             sum.e2<-num.y<-0
@@ -2226,19 +2263,34 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
             } else {
                 if (r==r.cv+1) cat("*")
             }
-            CV.out[i,2:4]<-c(sigma2,IC,MSPE)
+
+            if (PC < min(CV.out[,"PC"])) {
+                r.pc <- r
+                est.pc.best <- est
+            }
+            CV.out[i,2:5]<-c(sigma2,IC,PC,MSPE)
             cat("\n r = ",r,"; sigma2 = ",
                 sprintf("%.5f",sigma2),"; IC = ",
-                sprintf("%.5f",IC),"; MSPE = ",
+                sprintf("%.5f",IC),"; PC = ",
+                sprintf("%.5f",PC),"; MSPE = ",
                 sprintf("%.5f",MSPE),sep="") 
         } ## end of while: search for r_star over
-     
+
+        MSPE.best <- min(CV.out[,"MSPE"])
+        PC.best <- min(CV.out[,"PC"])
+
+        ## compare 
+        if (r.cv > r.pc) {
+            cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
+            r.cv <- r.pc 
+            est.best <- est.pc.best
+        }
+
         if (r>(T0.min-1)) {
             cat(" (r hits maximum)")
         }
         cat("\n\n r* = ", r.cv, sep="") 
         cat("\n\n") 
-        MSPE.best <- min(CV.out[,"MSPE"])
     }
     
 
@@ -2406,8 +2458,8 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         }
         
         ## store all MSPE
-        CV.out <- matrix(NA, length(lambda), 3)
-        colnames(CV.out) <- c("lambda", "sigma2", "MSPE")
+        CV.out <- matrix(NA, length(lambda), 2)
+        colnames(CV.out) <- c("lambda", "MSPE")
         CV.out[,"lambda"] <- c(lambda)
         CV.out[,"MSPE"] <- 1e20
 
@@ -2464,11 +2516,9 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
             MSPE <- SSE/(k*(sum(II) - cv.count))
 
             est.cv <- inter_fe_mc(YY, Y0, X, II, beta0, 1, lambda[i], force, tol) ## overall
-            sigma2 <- est.cv$sigma2
 
             if(!is.null(norm.para)){
                 MSPE <- MSPE*(norm.para[1]^2)
-                sigma2 <- sigma2*(norm.para[1]^2)
             }
 
             if ((min(CV.out[,"MSPE"]) - MSPE) > tol*min(CV.out[,"MSPE"])) {
@@ -2481,11 +2531,9 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
                 }
             }
             CV.out[i, "MSPE"] <- MSPE
-            CV.out[i, "sigma2"] <- sigma2 
 
             cat("\n lambda = ",
-            sprintf("%.5f",lambda[i]),"; sigma2 = ",
-            sprintf("%.5f",sigma2),"; MSPE = ",
+            sprintf("%.5f",lambda[i]),"; MSPE = ",
             sprintf("%.5f",MSPE), sep="")
 
         } 
@@ -2500,13 +2548,6 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     ##-------------------------------##
     ## ATT and Counterfactuals 
     ##-------------------------------##
-    
-    ## variance of the error term
-    if (is.null(norm.para)) {
-        sigma2 <- est.best$sigma2   
-    } else {
-        sigma2 <- est.best$sigma2 * (norm.para[1]^2)       
-    }
  
     ## effect
     Y.fit <- est.best$fit
@@ -2667,7 +2708,9 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         res[which(II == 0)] <- NA
         Y.co[which(I.co == 0)] <- NA
         res.co[which(I.co==0)] <- NA
+        est.best$residuals[which(II == 0)] <- NA
     }
+
     ## adjust beta: invariant covar
     if (p > 0) {
         if( sum(na.pos) > 0 ) {
@@ -2678,16 +2721,20 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     ## final adjustment
     if (!is.null(norm.para)) {
         mu <- mu * norm.para[1]
-        ## if (p>0) {
-        ##     beta <- beta*norm.para[1]/norm.para[2:length(norm.para)]
-        ## }
+        est.best$mu <- est.best$mu * norm.para[1]
+
         if (force%in%c(1, 3)) {
             est.best$alpha <- est.best$alpha * norm.para[1]
         }
         if (force%in%c(2,3)) {
+            est$xi <- est$xi * norm.para[1]
             xi <- xi * norm.para[1]
         }
-        res <- res * norm.para[1] 
+
+        res <- res * norm.para[1]
+        res.co <- res.co * norm.para[1]
+        est.best$residuals <- est.best$residuals * norm.para[1]
+
         Y.tr <- Y.tr * norm.para[1] 
         Y.ct <- Y.ct * norm.para[1]
         Y.co <- Y.co * norm.para[1]
@@ -2743,7 +2790,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         niter = est.best$niter
     )
 
-    out <- c(out,list(sigma2 = sigma2, res = res, res.co = res.co))
+    out <- c(out,list(res = res, res.co = res.co))
     
 
     if ( DID == FALSE ) {

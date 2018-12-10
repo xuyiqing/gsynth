@@ -140,6 +140,7 @@ on interactive fixed effect models.}
     interactive fixed effect model.}
   \item{sigma2}{the mean squared error of interactive fixed effect model.}
   \item{IC}{the information criterion.}
+  \item{PC}{the proposed criterion for determining factor numbers.}
   \item{est.co}{result of the interactive fixed effect model based on
     the control group data. An \code{\link{interFE}} object.}
   \item{eff.cnt}{difference between actual outcome and predicted Y(0);

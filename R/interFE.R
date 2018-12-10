@@ -129,6 +129,21 @@ interFE.default <- function(formula=NULL, data, # a data frame
         ## }   
     }
 
+    if (p > 0) {
+        for (i in 1:p) {
+            if (sum(is.na(data[, Xname[i]])) > 0) {
+                stop(paste("Missing values in variable \"", Xname[i],"\".", sep = ""))
+            }
+
+            if (sum(tapply(data[, Xname[i]], data[, id], var), na.rm = TRUE) == 0) {
+              stop(paste("Variable \"",Xname[i], "\" is unit-invariant. Try to remove it.", sep = ""))
+            }
+            if (sum(tapply(data[, Xname[i]], data[, time], var), na.rm = TRUE) == 0) {
+              stop(paste("Variable \"",Xname[i], "\" is time-invariant. Try to remove it.", sep = ""))
+            }
+        }
+    }
+
     ## check balanced panel
     if (var(table(data[,id])) + var(table(data[, time])) > 0|T==N) {
         data[,time]<-as.numeric(as.factor(data[,time]))
@@ -161,62 +176,62 @@ interFE.default <- function(formula=NULL, data, # a data frame
     
     ## time-varying covariates
     X <- array(0, dim = c(T, N, p))
-    xp <- rep(0, p) ## label invariant x
-    x.pos <- 0
+    #xp <- rep(0, p) ## label invariant x
+    #x.pos <- 0
 
     if (p > 0) {
-        x.pos <- 1:p
+        #x.pos <- 1:p
         for (i in 1:p) {
             X[,,i] <- matrix(data[, Xname[i]], T, N)
-            if (force %in% c(1,3)) {
-                if (!0%in%I) {
-                    tot.var.unit <- sum(apply(X[, , i], 2, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I == 0)] <- NA
-                    tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
-                }
-                if(!is.na(tot.var.unit)) {
-                    if (tot.var.unit == 0) {
+            #if (force %in% c(1,3)) {
+            #    if (!0%in%I) {
+            #        tot.var.unit <- sum(apply(X[, , i], 2, var))
+            #    } else {
+            #        Xi <- X[,,i]
+            #        Xi[which(I == 0)] <- NA
+            #        tot.var.unit <- sum(apply(Xi, 2, var, na.rm = TRUE))
+            #    }
+            #    if(!is.na(tot.var.unit)) {
+            #        if (tot.var.unit == 0) {
                         ## time invariant covar can be removed
-                        xp[i] <- 1
-                        cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
-                    }
-                }
-            }
-            if (force %in% c(2, 3)) {
-                if (!0%in%I) {
-                    tot.var.time <- sum(apply(X[, , i], 1, var))
-                } else {
-                    Xi <- X[,,i]
-                    Xi[which(I == 0)] <- NA
-                    tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
-                } 
-                if (!is.na(tot.var.time)) {
-                    if (tot.var.time == 0) {
+            #            xp[i] <- 1
+            #            cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+            #        }
+            #    }
+            #}
+            #if (force %in% c(2, 3)) {
+            #    if (!0%in%I) {
+            #        tot.var.time <- sum(apply(X[, , i], 1, var))
+            #    } else {
+            #        Xi <- X[,,i]
+            #        Xi[which(I == 0)] <- NA
+            #        tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
+            #    } 
+            #    if (!is.na(tot.var.time)) {
+            #        if (tot.var.time == 0) {
                         ## can be removed in inter_fe
-                        xp[i] <- 1
-                        cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
-                    }
-                }
-            } 
+            #            xp[i] <- 1
+            #            cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
+            #        }
+            #    }
+            #} 
         } 
     }
 
-    if (sum(xp) > 0) {
-        if (sum(xp) == p) {
-            X <- array(0, dim = c(T, N, 0))
-            p <- 0
-        } else {
-            x.pos <- which(xp == 0)
-            Xsub <- array(0, dim = c(T, N, length(x.pos)))
-            for (i in 1:length(x.pos)) {
-                Xsub[,,i] <- X[,,x.pos[i]] 
-            }
-            X <- Xsub
-            p <- length(x.pos)
-        }
-    } 
+    #if (sum(xp) > 0) {
+    #    if (sum(xp) == p) {
+    #        X <- array(0, dim = c(T, N, 0))
+    #        p <- 0
+    #    } else {
+    #        x.pos <- which(xp == 0)
+    #        Xsub <- array(0, dim = c(T, N, length(x.pos)))
+    #        for (i in 1:length(x.pos)) {
+    #            Xsub[,,i] <- X[,,x.pos[i]] 
+    #        }
+    #        X <- Xsub
+    #        p <- length(x.pos)
+    #    }
+    #} 
   
     ##-------------------------------#
     ## Estimation
@@ -363,8 +378,10 @@ interFE.default <- function(formula=NULL, data, # a data frame
             out$xi <- out$xi*norm.para[1]
         }
         out$IC <- out$IC - log(out$sigma2) + log(out$sigma2*(norm.para[1]^2))
+        out$PC <- out$fit*(norm.para[1]^2)
         out$sigma2 <- out$sigma2*(norm.para[1]^2)
-        out$residuals <- out$residuals*norm.para[1]   
+        out$residuals <- out$residuals*norm.para[1]  
+        out$fit <- out$fit*norm.para[1]   
     }
    
     out<-c(out, list(dat.Y = Y,

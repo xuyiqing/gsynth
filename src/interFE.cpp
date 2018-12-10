@@ -998,9 +998,39 @@ List inter_fe (arma::mat Y,
   }
 
   /* sigma2 and IC */
-  sigma2 = trace(U * U.t())/ (N * T - r * (N + T) + pow(double(r),2) - p1 ) ;
+
+  // number of estimated parameters  
+  // force = 0
+  double np = r * (N + T) - pow(double(r),2) + p1 + 1;
+  if (force == 1) {
+    np = np + (N - 1) - r ;
+  }
+  else if (force == 2) {
+    np = np + (T - 1) - r ;
+  } 
+  else if (force == 3) {
+    np = np + (N - 1) + (T - 1) - 2 * r ;
+  }
+
+  sigma2 = trace(U * U.t())/ (N * T - np) ;
   
-  IC = log(sigma2) + (r * ( N + T ) - pow(double(r),2) + p1) * log ( double(N * T) ) / ( N * T ) ;
+  IC = log(sigma2) + np * log ( double(N * T) ) / ( N * T ) ;
+  
+  // PC criterion in Li 2018
+  // mean squared error
+  double mse = trace(U * U.t()) / (N * T) ;
+
+  double m1 = 0 ;
+  if (N < 60) {
+    m1 = 60 - N ;
+  }
+  double m2 = 0 ;
+  if (T < 60) {
+    m2 = 60 - T ;
+  }
+
+  double C = (N + m1) * (T + m2) / (N * T) ;
+  double PC = mse + r * sigma2 * C * (N + T) / (N * T) * log (double(N * T)/double(N + T)) ;
     
   //-------------------------------#
   // Storage
@@ -1057,6 +1087,7 @@ List inter_fe (arma::mat Y,
   output["residuals"] = U ;
   output["sigma2"] = sigma2 ;
   output["IC"] = IC ;
+  output["PC"] = PC ;
   output["validX"] = validX ;
   return(output);
 }
@@ -1208,10 +1239,37 @@ List inter_fe_ub (arma::mat Y,
   } 
     
   /* sigma2 and IC */
-  sigma2 = trace(U * U.t())/ (obs - r * (N + T) + pow(double(r),2) - p1 ) ;
+  // number of estimated parameters
+  double np = r * (N + T) - pow(double(r),2) + p1 + 1 ;
+  if (force == 1) {
+    np = np + (N - 1) - r ;
+  }
+  else if (force == 2) {
+    np = np + (T - 1) - r ;
+  } 
+  else if (force == 3) {
+    np = np + (N - 1) + (T - 1) - 2 * r ;
+  }
 
-  IC = log(sigma2) + (r * ( N + T ) - pow(double(r),2) + p1)
-   * log ( obs ) / ( obs ) ;
+  sigma2 = trace(U * U.t())/ (obs - np) ;
+
+  IC = log(sigma2) + np * log ( obs ) / ( obs ) ;
+
+  // PC criterion in Li 2018
+  // mean squared error
+  double mse = trace(U * U.t()) / obs ;
+
+  double m1 = 0 ;
+  if (N < 60) {
+    m1 = 60 - N ;
+  }
+  double m2 = 0 ;
+  if (T < 60) {
+    m2 = 60 - T ;
+  }
+
+  double C = (N + m1) * (T + m2) / obs ;
+  double PC = mse + r * sigma2 * C * (N + T) / obs * log (double(obs)/double(N + T)) ;
     
   //-------------------------------#
   // Storage
@@ -1259,8 +1317,9 @@ List inter_fe_ub (arma::mat Y,
   }
   output["residuals"] = U ;
   output["sigma2"] = sigma2 ;
-  output["IC"] = IC;
-  output["validX"] = validX;
+  output["IC"] = IC ;
+  output["PC"] = PC ;
+  output["validX"] = validX ;
   return(output);
  
 }
@@ -1294,7 +1353,7 @@ List inter_fe_mc (arma::mat Y,
   arma::mat alpha(N, 1, arma::fill::zeros) ;
   arma::mat xi(T, 1, arma::fill::zeros) ;
   arma::mat fit(T, N, arma::fill::zeros) ;
-  double sigma2 = 0;
+  // double sigma2 = 0;
 
 
   arma::mat invXX ;
@@ -1409,9 +1468,6 @@ List inter_fe_mc (arma::mat Y,
     }
   } 
     
-  /* sigma2 and IC */
-  sigma2 = trace(U * U.t())/ (obs - r * (N + T) + pow(double(r),2) - p1 ) ;
-    
   //-------------------------------#
   // Storage
   //-------------------------------# 
@@ -1453,7 +1509,6 @@ List inter_fe_mc (arma::mat Y,
     output["xi"] = xi ;
   }
   output["residuals"] = U ;
-  output["sigma2"] = sigma2 ;
   output["validX"] = validX;
   return(output);
  
