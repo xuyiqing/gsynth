@@ -109,6 +109,7 @@ on interactive fixed effect models.}
     period, and \code{4} for removed treated group units. Useful for unbalanced panel data.}
   \item{id.tr}{a vector of IDs for the treatment units.}
   \item{id.co}{a vector of IDs for the control units.}
+  \item{removed.id}{a vector of IDs for units that are removed.}
   \item{D.tr}{a matrix of treatment indicator for the treated unit outcome.}
   \item{I.tr}{a matrix of observation indicator for the treated unit outcome.}
   \item{Y.tr}{data of the treated unit outcome.}

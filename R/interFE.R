@@ -145,21 +145,34 @@ interFE.default <- function(formula=NULL, data, # a data frame
     }
 
     ## check balanced panel
-    if (var(table(data[,id])) + var(table(data[, time])) > 0|T==N) {
-        data[,time]<-as.numeric(as.factor(data[,time]))
-        ob <- "time_ob_ls"
-        if(ob%in%colnames(data)){
-            ob <- paste(ob,ob,sep="")
+    if (dim(data)[1] < T*N) {
+        data[,time] <- as.numeric(as.factor(data[,time]))
+        ## ob <- "time_ob_ls"
+        
+        ## while (ob %in% colnames(data)) {
+        ##     ob <- paste(ob, ob, sep = "_")
+        ## }
+
+        ## data[, ob] <- data[, time]
+        ## for (i in 1:N) {
+        ##     data[data[,id] == id.series[i], ob] <- data[data[,id] == id.series[i],time] + (i - 1) * TT  
+        ## }
+
+        ob.indicator <- data[,time]
+        id.indicator <- table(data[, id])
+        sub.start <- 1
+        for (i in 1:(N - 1)) { 
+            sub.start <- sub.start + id.indicator[i] 
+            sub.end <- sub.start + id.indicator[i+1] - 1 
+            ob.indicator[sub.start:sub.end] <- ob.indicator[sub.start:sub.end] + i * T
         }
-        data[,ob]<-data[,time]
-        for (i in 1:N) {
-            data[data[,id]==id.series[i],ob] <- data[data[,id]==id.series[i],time]+(i-1)*T  
-        }
-        variable <- c(Yname,Xname)
-        data_I <- matrix(0,N*T,1)
-        data_I[c(data[,ob]),1] <- 1
-        data_ub <- as.matrix(data[,variable])
-        data <- data_ub_adj(data_I,data_ub)
+
+        variable <- c(Yname, Xname)
+
+        data_I <- matrix(0, N * T, 1)
+        data_I[ob.indicator, 1] <- 1
+        data_ub <- as.matrix(data[, variable])
+        data <- data_ub_adj(data_I, data_ub)
         colnames(data) <- variable
     }
 
