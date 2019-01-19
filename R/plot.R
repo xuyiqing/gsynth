@@ -1367,7 +1367,7 @@ plot.gsynth <- function(x,
             col <- c(col,"#A9A9A9")
             col2 <- c(col2, "4"="red")
             breaks <- c(breaks,4)
-            label <- c(label,"Treated (Removed)")
+            label <- c(label,"Removed Units")
         }
 
 
