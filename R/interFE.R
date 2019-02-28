@@ -13,6 +13,7 @@ interFE <- function(formula=NULL,
                     se = TRUE, # standard error
                     nboots = 500, # number of bootstrap runs
                     seed = NULL,
+                    tol = 1e-3,
                     normalize = FALSE) {
     UseMethod("interFE")
 }
@@ -27,6 +28,7 @@ interFE.formula <- function(formula=NULL, data, # a data frame
                             se = TRUE, # standard error
                             nboots = 500, # number of bootstrap runs
                             seed = NULL,
+                            tol = 1e-3,
                             normalize = FALSE) {
     ## parsing
     varnames <- all.vars(formula)
@@ -41,6 +43,7 @@ interFE.formula <- function(formula=NULL, data, # a data frame
                            se, # standard error
                            nboots, # number of bootstrap runs
                            seed,
+                           tol,
                            normalize)
     out$call <- match.call()
     out$formula <- formula
@@ -71,6 +74,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
                             se = TRUE, # standard error
                             nboots = 500, # number of bootstrap runs
                             seed = NULL,
+                            tol = 1e-3,
                             normalize
                             ){ 
     
@@ -181,7 +185,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
     I[is.nan(Y.ind)] <- 0
 
     if (0%in%I) {
-        data[is.nan(data)]<-0
+        data[is.nan(data)] <- 0
     }
     
     ## parse data
@@ -257,9 +261,9 @@ interFE.default <- function(formula=NULL, data, # a data frame
 
     if (0 %in% I) {
         data.ini <- matrix(NA, (T*N), (2 + 1 + p))
-        data.ini[, 1] <- rep(1:N, each = T)         ## unit fe
-        data.ini[, 2] <- rep(1:T, N)                ## time fe
-        data.ini[, 3] <- c(Y)                       ## outcome
+        data.ini[, 2] <- rep(1:N, each = T)         ## unit fe
+        data.ini[, 3] <- rep(1:T, N)                ## time fe
+        data.ini[, 1] <- c(Y)                       ## outcome
         if (p > 0) {                                ## covar
             for (i in 1:p) {
                 data.ini[, (3 + i)] <- c(X[, , i])
@@ -276,8 +280,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
 
     ## estimates
     if (!0%in%I) {
-        out<-inter_fe(Y = Y, X = X, r = r, beta0 = beta0,
-                      force = force)
+        out<-inter_fe(Y = Y, X = X, r = r, beta0 = beta0, force = force)
     } else {
         out<-inter_fe_ub(Y = Y, Y0 = Y0, X = X, I = I, beta0 = beta0, r = r, force = force)
     }
@@ -328,7 +331,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
         }
         ## to store results
         est.boot <- matrix(NA,nboots,(p+1))
-        cat("Bootstraping")
+        cat("Bootstraping...\n")
         for (i in 1:nboots) {
             smp<-sample(1:N, N , replace=TRUE)
             Y.boot<-Y[,smp]
@@ -337,24 +340,31 @@ interFE.default <- function(formula=NULL, data, # a data frame
             }
             X.boot<-X[,smp,,drop=FALSE]
             if (!0%in%I) {
-                inter.out <- inter_fe(Y=Y.boot, X=X.boot, r=r,
-                                      force=force, beta0 = beta0)
+                inter.out <- try(inter_fe(Y=Y.boot, X=X.boot, r=r,
+                                      force=force, beta0 = beta0), silent = TRUE)
             } else {
-                inter.out <- inter_fe_ub(Y=Y.boot, Y0=Y0.boot, X=X.boot, I=I, 
-                                         beta0 = beta0, r=r, force=force)
+                inter.out <- try(inter_fe_ub(Y=Y.boot, Y0=Y0.boot, X=X.boot, I=I, 
+                                         beta0 = beta0, r=r, force=force), silent = TRUE)
             }
-            
-            if (is.null(norm.para)) {
-                est.boot[i,]<- c(c(inter.out$beta), inter.out$mu)
+
+            if ('try-error' %in% class(inter.out)) {
+                inter.out <- list(beta = NA, mu = NA)
+
             } else {
-                if(p>0){
-                    est.boot[i,]<- 
-                        c(c(inter.out$beta), 
-                            inter.out$mu*norm.para[1])
+                if (is.null(norm.para)) {
+                    est.boot[i,]<- c(c(inter.out$beta), inter.out$mu)
                 } else {
-                    est.boot[i,]<- c(c(inter.out$beta), inter.out$mu*norm.para[1])    
+                    if(p>0){
+                        est.boot[i,]<- 
+                            c(c(inter.out$beta), 
+                                inter.out$mu*norm.para[1])
+                    } else {
+                        est.boot[i,]<- c(c(inter.out$beta), inter.out$mu*norm.para[1])    
+                    }
                 }
             }
+            
+            
             if (i%%100==0) {cat(".")}
         }
         cat("\r")
@@ -391,7 +401,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
             out$xi <- out$xi*norm.para[1]
         }
         out$IC <- out$IC - log(out$sigma2) + log(out$sigma2*(norm.para[1]^2))
-        out$PC <- out$fit*(norm.para[1]^2)
+        out$PC <- out$PC*(norm.para[1]^2)
         out$sigma2 <- out$sigma2*(norm.para[1]^2)
         out$residuals <- out$residuals*norm.para[1]  
         out$fit <- out$fit*norm.para[1]   

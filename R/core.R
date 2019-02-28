@@ -837,7 +837,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
     T0.min <- min(T0)
     sameT0 <- length(unique(T0)) == 1 ## treatment kicks in at the same time 
 
-    D.tr <- D[,which(tr == 1)]
+    D.tr <- as.matrix(D[,which(tr == 1)])
     T0.ub <- apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) 
     T0.ub.min <- min(T0.ub) ## unbalanced data
 
@@ -956,7 +956,7 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
             ## }
         #}
         ## Y.ct <- as.matrix(Y.e[,id.tr] - est$residuals[,id.tr]) # T * Ntr
-    Y.ct <- est$fit[,id.tr]
+    Y.ct <- as.matrix(est$fit[,id.tr])
 
     eff <- as.matrix(Y.tr - Y.ct)  # T * Ntr
     eff[which(I.tr==0)] <- 0

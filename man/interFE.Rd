@@ -3,7 +3,7 @@
 \title{Interactive Fixed Effects Models}
 \description{Estimating interactive fixed effect models.}
 \usage{interFE(formula = NULL, data, Y, X, index, r = 0, force = "none",
-         se = TRUE, nboots = 500, seed = NULL, normalize = FALSE)
+         se = TRUE, nboots = 500, seed = NULL, tol = 1e-3, normalize = FALSE)
 }
 \arguments{
   \item{formula}{an object of class "formula": a symbolic description of the model to be fitted. }
@@ -23,6 +23,7 @@
     runs. Ignored if \code{se = FALSE}.}
   \item{seed}{an integer that sets the seed in random number
     generation. Ignored if  \code{se = FALSE} and \code{r} is specified.}
+  \item{tol}{a numeric value that specifies tolerate level.}
   \item{normalize}{a logic flag indicating whether to scale outcome and 
     covariates. Useful for accelerating computing speed when magnitude of data is large.The default is \code{normalize=FALSE}.}
 }

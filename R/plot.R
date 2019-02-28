@@ -414,7 +414,7 @@ plot.gsynth <- function(x,
     } else if (type == "gap") { 
         
         if (length(id) == 1 & !(id[1] %in% x$id.tr)) { ## error
-            cat(paste(id,"not in the treatment group"))
+            stop(paste(id,"not in the treatment group"))
         } else { ## no error
 
             ## axes labels
@@ -434,7 +434,7 @@ plot.gsynth <- function(x,
             }
             
             ## title
-            if (length(id) == 1) { ## id specified
+            if (length(id) == 1 && !is.null(x$est.ind)) { ## id specified
                 maintext <- paste(x$index[1],"=",id) 
             }  else {
                 maintext <- "Estimated ATT"
@@ -450,7 +450,7 @@ plot.gsynth <- function(x,
                     data <- cbind.data.frame(time, ATT = x$att)[show,] 
                 } 
             } else {
-                if (length(id) == 1) { ## id specified
+                if (length(id) == 1 && !is.null(x$est.ind)) { ## id specified
                     id <- which(x$id.tr == id)
                     tb <- x$est.ind[,,id]
                     time.bf <- time[T0[id]] 
@@ -462,7 +462,7 @@ plot.gsynth <- function(x,
                         tb <- as.matrix(x$eff[,id])
                         colnames(tb) <- "ATT" 
                     } 
-                }
+                } 
                 data <- cbind.data.frame(time, tb)[show,]
             }
              
@@ -489,10 +489,8 @@ plot.gsynth <- function(x,
             p <- p + geom_line(aes(time, ATT), size = 1.2)
              
             ## confidence intervals
-            if (is.null(x$est.att)==FALSE) {
-                if(!(is.null(x$est.ind)&length(id) == 1)) {
-                    p <- p + geom_ribbon(aes(x = time, ymin=CI.lower, ymax=CI.upper),alpha=0.2)
-                }
+            if (is.null(x$est.att)==FALSE || !(is.null(x$est.ind)&length(id) == 1)) {
+                p <- p + geom_ribbon(aes(x = time, ymin=CI.lower, ymax=CI.upper),alpha=0.2)
             }
             
             ## title
@@ -1367,7 +1365,7 @@ plot.gsynth <- function(x,
             col <- c(col,"#A9A9A9")
             col2 <- c(col2, "4"="red")
             breaks <- c(breaks,4)
-            label <- c(label,"Removed Units")
+            label <- c(label,"Treated (Removed)")
         }
 
 

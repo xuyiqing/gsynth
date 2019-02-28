@@ -325,7 +325,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     ## check index and treatment indicator
-    if (class(data[, Dname]) != "numeric") {
+    if (!(class(data[, Dname]) %in% c("numeric", "integer"))) {
         ## data[, Dname] <- as.numeric(as.character(data[, Dname]))
         stop("Treatment indicator should be a numberic value.")
     } 

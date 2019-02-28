@@ -1268,8 +1268,8 @@ List inter_fe_ub (arma::mat Y,
     m2 = 60 - T ;
   }
 
-  double C = (N + m1) * (T + m2) / obs ;
-  double PC = mse + r * sigma2 * C * (N + T) / obs * log (double(obs)/double(N + T)) ;
+  double C = (N + m1) * (T + m2) / (N * T) ;
+  double PC = mse + r * sigma2 * C * (N + T) / (N * T) * log (double(N * T)/double(N + T)) ;
     
   //-------------------------------#
   // Storage
