@@ -325,6 +325,7 @@ interFE.default <- function(formula=NULL, data, # a data frame
         return(min(as.numeric(min(a, b)),1))
     }
 
+    Y0.boot <- I.boot <- NULL
     if (se == TRUE) {
         if (is.null(seed) == FALSE) {
             set.seed(seed)
@@ -336,14 +337,15 @@ interFE.default <- function(formula=NULL, data, # a data frame
             smp<-sample(1:N, N , replace=TRUE)
             Y.boot<-Y[,smp]
             if (0%in%I) {
-                Y0.boot<-Y0[,smp]
+                Y0.boot <- Y0[,smp]
+                I.boot <- I[,smp]
             }
             X.boot<-X[,smp,,drop=FALSE]
             if (!0%in%I) {
                 inter.out <- try(inter_fe(Y=Y.boot, X=X.boot, r=r,
                                       force=force, beta0 = beta0), silent = TRUE)
             } else {
-                inter.out <- try(inter_fe_ub(Y=Y.boot, Y0=Y0.boot, X=X.boot, I=I, 
+                inter.out <- try(inter_fe_ub(Y=Y.boot, Y0=Y0.boot, X=X.boot, I=I.boot, 
                                          beta0 = beta0, r=r, force=force), silent = TRUE)
             }
 
