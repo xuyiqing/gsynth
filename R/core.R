@@ -10,6 +10,7 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
                      r.end,
                      force,
                      CV = 1, # cross-validation
+                     criterion = "mspe", # mspe or pc
                      tol, # tolerance level
                      AR1 = 0,
                      beta0 = NULL, # starting value 
@@ -371,10 +372,12 @@ synth.core<-function(Y, # Outcome variable, (T*N) matrix
             MSPE.best <- min(CV.out[,"MSPE"])
 
             ## compare 
-            if (r.cv > r.pc) {
-                cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
-                r.cv <- r.pc 
-                est.co.best <- est.co.pc.best
+            if (criterion == "pc") {
+                if (r.cv > r.pc) {
+                    cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
+                    r.cv <- r.pc 
+                    est.co.best <- est.co.pc.best
+                }
             }
         
             if (r > (T0.min-1)) {cat(" (r hits maximum)")}
@@ -1287,6 +1290,7 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
                       W = NULL,
                       r = 0, # number of factors: starting point
                       r.end = 5, # end point
+                      criterion = "mspe", # mspe or pc
                       force, # specifying fixed effects
                       tol=1e-5, 
                       AR1 = 0,
@@ -1427,10 +1431,12 @@ synth.em.cv<-function(Y,  # Outcome variable, (T*N) matrix
         PC.best <- min(CV.out[,"PC"])
 
         ## compare 
-        if (r.cv > r.pc) {
-            cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
-            r.cv <- r.pc 
-            est.best <- est.pc.best
+        if (criterion == "pc") {
+            if (r.cv > r.pc) {
+                cat("\n\n Factor number selected via cross validation may be larger than the true number. Using the PC criterion.\n\n ")
+                r.cv <- r.pc 
+                est.best <- est.pc.best
+            }
         }
 
         if (r>(T0.min-1)) {
@@ -1983,6 +1989,7 @@ synth.boot<-function(Y,
                      MC = FALSE,
                      force,
                      CV, ## cross validation
+                     criterion = "mspe", 
                      k,
                      nboots,
                      tol,
@@ -2040,7 +2047,7 @@ synth.boot<-function(Y,
     if (MC == FALSE) {
         if (EM == FALSE) {
             out<-synth.core(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end, 
-                            force = force, CV = CV, tol=tol,
+                            force = force, CV = CV, criterion = criterion, tol=tol,
                             AR1 = AR1, beta0 = beta0, norm.para= norm.para, boot = 0)
         } else { # the case with EM
             if (CV == FALSE) {
@@ -2048,7 +2055,7 @@ synth.boot<-function(Y,
                               tol = tol, AR1 = AR1, beta0 = beta0, norm.para = norm.para, boot = 0)
             } else {
                 out<-synth.em.cv(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end,
-                                 force = force, tol=tol,
+                                 criterion = criterion, force = force, tol=tol,
                                  AR1 = AR1, beta0 = beta0, norm.para = norm.para)
             }
         }
@@ -2623,6 +2630,7 @@ synth.boot<-function(Y,
     result<-list(inference = inference,
                  est.att = est.att,
                  est.avg = est.avg,
+                 att.avg.boot = att.avg.boot,
                  att.boot = att.boot,
                  eff.boot = eff.boot
                  )

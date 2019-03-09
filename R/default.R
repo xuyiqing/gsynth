@@ -38,6 +38,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    lambda = NULL, # mc method: regularization parameter
                    nlambda = 10, ## mc method: regularization parameter
                    CV = TRUE, # cross-validation
+                   criterion = "mspe", # mspe or pc 
                    k = 5, # cross-validation times
                    EM = FALSE, # EM algorithm
                    estimator = "ife", # ife/mc method
@@ -70,6 +71,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            lambda = NULL, # mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
                            CV = TRUE, # cross-validation
+                           criterion = "mspe", # mspe or pc 
                            k = 5, # cross-validation times
                            EM = FALSE, # EM algorithm
                            estimator = "ife", # ife/mc method 
@@ -106,7 +108,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
     out <- gsynth.default(formula = NULL, data = data, Y = Yname,
                           D = Dname, X = Xname,
                           na.rm, index, weight, force, r, lambda, nlambda, 
-                          CV, k, EM, estimator, se, nboots, 
+                          CV, criterion, k, EM, estimator, se, nboots, 
                           inference, cov.ar, 
                           parallel, cores, tol, seed, min.T0, conf.lvl,
                           normalize)
@@ -132,6 +134,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            lambda = NULL, ## mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
                            CV = TRUE, # cross-validation
+                           criterion = "mspe", # mspe or pc 
                            k = 5, # cross-validation times
                            EM = FALSE, # EM algorithm 
                            estimator = "ife", # ife/mc method
@@ -219,6 +222,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         if (MC == TRUE && is.null(lambda)) {
             stop("The value of \"lambda\" should be specified.")
         }
+    }
+
+    ## criterion
+    if (!criterion %in% c("mspe", "pc")) {
+        stop("\"criterion\" option misspecified; choose from c(\"mspe\", \"pc\").\n")
     }
 
     if (length(r) == 1) {
@@ -643,7 +651,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             if (EM == FALSE) { # the algorithm suggested in the paper 
                 out <- synth.core(Y = Y, X = X, D = D, I = I, W = W,
                                   r = r, r.end = r.end, force = force,
-                                  CV = CV, tol = tol, 
+                                  CV = CV, criterion = criterion, tol = tol, 
                                   AR1 = AR1, norm.para = norm.para)
 
             } else { # EM algorithm
@@ -655,7 +663,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 
                 } else { # cross-validation
                     out <- synth.em.cv(Y = Y,X = X, D = D, I = I, W = W,
-                                       r = r, r.end = r.end, force = force, 
+                                       r = r, r.end = r.end, 
+                                       criterion = criterion, force = force, 
                                        tol = tol, AR1 = AR1, norm.para = norm.para)
 
                 } 
@@ -672,7 +681,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         out <- synth.boot(Y = Y, X = X, D = D, I=I, W = W, EM = EM,
                           r = r, r.end = r.end, lambda = lambda,
                           nlambda = nlambda, force = force,
-                          CV = CV, k = k, tol = tol, MC = MC,
+                          CV = CV, criterion = criterion, k = k, 
+                          tol = tol, MC = MC,
                           nboots = nboots, inference = inference,
                           cov.ar = cov.ar,
                           parallel = parallel, cores = cores,           

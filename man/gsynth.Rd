@@ -5,7 +5,8 @@
 on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE, 
        index, weight = NULL, force = "unit", r = 0, lambda = NULL,
-       nlambda = 10, CV = TRUE, k = 5, EM = FALSE, estimator = "ife",
+       nlambda = 10, CV = TRUE, criterion = "mspe",
+       k = 5, EM = FALSE, estimator = "ife",
        se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = TRUE, 
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5, 
@@ -41,6 +42,11 @@ on interactive fixed effect models.}
   performed to select the optimal number of factors or hyper-parameter 
   in matrix completion algorithm. If \code{r} is not specified, the procedure
    will search through \code{r = 0} to \code{5}.}
+\item{criterion}{a string specifying the criteria used for determining the number
+  of factors. Choose from \code{c("mspe", "pc")}. "mspe" stands for the mean squared 
+  prediction error obtained through the loocv procedure, and "pc" stands for a kind 
+  of information criterion. If \code{criterion = "pc"}, the number of factors that 
+  minimize "pc" will be selected. Default is \code{criterion = "mspe"}.}
 \item{k}{a positive integer specifying cross-validation times for matrix 
  completion algorithm. Default is \code{k = 5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
@@ -166,6 +172,7 @@ on interactive fixed effect models.}
   \item{est.att.avg}{inference for \code{att.avg}.}
   \item{est.beta}{inference for \code{beta}.}
   \item{est.ind}{inference for \code{att} of each treated unit.}
+  \item{att.avg.boot}{bootstrap results for \code{att.avg}.}
   \item{att.boot}{bootstrap results for \code{att}.}
   \item{beta.boot}{bootstrap results for \code{beta}.}
 }
