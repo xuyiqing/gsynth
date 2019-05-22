@@ -1600,8 +1600,12 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
             ## lambda.max <- log10(max(svd(Y)$d)*2/(N*TT-sum(II)))
             ## Y.l <- YY - Y0
             ## Y.l[which(II == 0)] <- 0
-
+            ## Y.lambda <- YY - Y0
+            ## Y.lambda[which(II == 0)] <- Y0[which(II == 0)]
+            ## Y.lambda[which(II == 0)] <- 0
             lambda.max <- log10(max(svd(YY)$d))
+
+            ## lambda.max <- log10(max(svd(YY)$d))
             lambda <- rep(NA, nlambda)
             lambda.by <- 3/(nlambda - 2)
             for (i in 1:(nlambda - 1)) {
@@ -1980,6 +1984,7 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
 synth.boot<-function(Y,
                      X,
                      D, ## input
+                     cl = NULL,
                      I,
                      W = NULL, 
                      EM, ## EM algorithm
@@ -2109,6 +2114,12 @@ synth.boot<-function(Y,
     } else {
         error <- out$res
     }
+
+    if (is.null(cl)) {
+        cl.unique <- NULL
+    } else {
+        cl.unique <- unique(cl)
+    }
     
 
     Y.tr.bar=out$Y.bar[,1]
@@ -2130,54 +2141,145 @@ synth.boot<-function(Y,
             if (EM == FALSE) {
                 one.nonpara <- function(){
 
-                    repeat {
-                        fake.co <- sample(id.co,Nco, replace=TRUE)
-                        if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
-                            break
+                    if (is.null(cl)) {
+                        repeat {
+                            fake.co <- sample(id.co,Nco, replace=TRUE)
+                            if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                break
+                            }
+                        }
+
+                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                    } else {
+                        cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                        cl.boot.uni <- unique(cl.boot)
+                        cl.boot.count <- as.numeric(table(cl.boot))
+                        boot.id <- c()
+                        for (kk in 1:length(cl.boot.uni)) {
+                            boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
                         }
                     }
-
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
                 
-                    X.boot<-X[,boot.id,,drop=FALSE]
+                    Y.boot <- Y[,boot.id]
+                    X.boot <- X[,boot.id,,drop=FALSE]
+                    D.boot <- D[,boot.id]
+                    I.boot <- I[,boot.id]
                     W.boot <- NULL
                     if (!is.null(W)) {
                         W.boot <- W[,boot.id]
                     }
-                    boot <- try(synth.core(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
-                                       W = W.boot, force = force, r = out$r.cv, CV=0,
-                                       tol = tol, AR1 = AR1,
-                                       beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
-                    if ('try-error' %in% class(boot)) {
+
+                    if (sum(D.boot) == 0) { ## no treated observations
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
                                       att = NA)
                         return(boot0)
                     } else {
-                        return(boot)
+                        boot <- try(synth.core(Y.boot, X.boot, D.boot, I=I.boot,
+                                           W = W.boot, force = force, r = out$r.cv, CV=0,
+                                           tol = tol, AR1 = AR1,
+                                           beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                        if ('try-error' %in% class(boot)) {
+                            boot0 <- list(att.avg = NA, 
+                                          beta = NA,
+                                          att = NA)
+                            return(boot0)
+                        } else {
+                            return(boot)
+                        }
                     }
-                
                 } 
             } else { # the case of EM
                 one.nonpara <- function(){
                 
-                    repeat {
-                        fake.co <- sample(id.co,Nco, replace=TRUE)
-                        if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
-                            break
+                    if (is.null(cl)) {
+                        repeat {
+                            fake.co <- sample(id.co,Nco, replace=TRUE)
+                            if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                break
+                            }
+                        }
+
+                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                    } else {
+                        cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                        cl.boot.uni <- unique(cl.boot)
+                        cl.boot.count <- as.numeric(table(cl.boot))
+                        boot.id <- c()
+                        for (kk in 1:length(cl.boot.uni)) {
+                            boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
                         }
                     }
-
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                    
                 
-                    X.boot<-X[,boot.id,,drop=FALSE]
+                    Y.boot <- Y[,boot.id]
+                    X.boot <- X[,boot.id,,drop=FALSE]
+                    D.boot <- D[,boot.id]
+                    I.boot <- I[,boot.id]
                     W.boot <- NULL
                     if (!is.null(W)) {
                         W.boot <- W[,boot.id]
                     }
-                    boot <- try(synth.em(Y = Y[,boot.id], X = X.boot, D = D[,boot.id], I=I[,boot.id],
-                                   W = W.boot, force = force, r = out$r.cv,
-                                   tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+
+                    if (sum(D.boot) == 0) { ## no treated observations
+                        boot0 <- list(att.avg = NA, 
+                                      beta = NA,
+                                      att = NA)
+                        return(boot0)
+                    } else {
+                        boot <- try(synth.em(Y = Y.boot, X = X.boot, D = D.boot, I=I.boot,
+                                       W = W.boot, force = force, r = out$r.cv,
+                                       tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                        if ('try-error' %in% class(boot)) {
+                            boot0 <- list(att.avg = NA, 
+                                          beta = NA,
+                                          att = NA)
+                            return(boot0)
+                        } else {
+                            return(boot)
+                        }
+                    }
+                } 
+            }
+        } else { ## mc
+            one.nonpara <- function(){
+                
+                if (is.null(cl)) {
+                    fake.co <- sample(id.co,Nco, replace=TRUE)
+                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                } else {
+                    cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                    cl.boot.uni <- unique(cl.boot)
+                    cl.boot.count <- as.numeric(table(cl.boot))
+                    boot.id <- c()
+                    for (kk in 1:length(cl.boot.uni)) {
+                        boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
+                    }
+                }
+
+                Y.boot <- Y[,boot.id]
+                X.boot <- X[,boot.id,,drop=FALSE]
+                D.boot <- D[,boot.id]
+                I.boot <- I[,boot.id]
+                W.boot <- NULL
+                if (!is.null(W)) {
+                    W.boot <- W[,boot.id]
+                }
+
+                con1 <- sum(apply(I.boot,1,sum)>=1) == TT
+                con2 <- sum(apply(I.boot,2,sum)>=1) == N
+                con3 <- sum(D.boot) > 0
+
+                if (!con1 || !con2 || !con3) {
+                    boot0 <- list(att.avg = NA, 
+                                      beta = NA,
+                                      att = NA)
+                    return(boot0)
+                } else {
+                    boot <- try(synth.mc(Y.boot, X.boot, D.boot, I=I.boot,
+                                   W = W.boot, force = force, 
+                                   lambda = out$lambda.cv, hasF = out$validF, 
+                                   CV = 0, tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para), silent = TRUE)
                     if ('try-error' %in% class(boot)) {
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
@@ -2186,38 +2288,7 @@ synth.boot<-function(Y,
                     } else {
                         return(boot)
                     }
-                
-                } 
-            }
-        } else { ## mc
-            one.nonpara <- function(){
-                repeat {
-                    fake.co <- sample(id.co,Nco, replace=TRUE)
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
-                    con1 <- sum(apply(as.matrix(I[,boot.id]),1,sum)>=1)==TT
-                    con2 <- sum(apply(as.matrix(I[,boot.id]),2,sum)>=1)==N
-                    if (con1 & con2) {
-                        break
-                    }
-                }
-                
-                X.boot<-X[,boot.id,,drop=FALSE]
-                W.boot <- NULL
-                if (!is.null(W)) {
-                    W.boot <- W[,boot.id]
-                }
-                boot <- try(synth.mc(Y[,boot.id], X.boot, D[,boot.id], I=I[,boot.id],
-                               W = W.boot, force = force, 
-                               lambda = out$lambda.cv, hasF = out$validF, 
-                               CV = 0, tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para), silent = TRUE)
-                if ('try-error' %in% class(boot)) {
-                    boot0 <- list(att.avg = NA, 
-                                  beta = NA,
-                                  att = NA)
-                    return(boot0)
-                } else {
-                    return(boot)
-                }
+                }                        
             } 
         }
         ## computing

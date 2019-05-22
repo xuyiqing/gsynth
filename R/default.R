@@ -34,6 +34,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    index, # c(unit, time) indicators
                    weight = NULL, # weighting
                    force = "unit", # fixed effects demeaning
+                   cl = NULL, 
                    r = 0, # nubmer of factors
                    lambda = NULL, # mc method: regularization parameter
                    nlambda = 10, ## mc method: regularization parameter
@@ -67,6 +68,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
+                           cl = NULL, 
                            r = 0, # nubmer of factors
                            lambda = NULL, # mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
@@ -107,7 +109,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
     ## run the model
     out <- gsynth.default(formula = NULL, data = data, Y = Yname,
                           D = Dname, X = Xname,
-                          na.rm, index, weight, force, r, lambda, nlambda, 
+                          na.rm, index, weight, force, cl, r, lambda, nlambda, 
                           CV, criterion, k, EM, estimator, se, nboots, 
                           inference, cov.ar, 
                           parallel, cores, tol, seed, min.T0, conf.lvl,
@@ -130,6 +132,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
+                           cl = NULL, 
                            r = 0, # nubmer of factors
                            lambda = NULL, ## mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
@@ -308,11 +311,28 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         stop("na.rm is not a logical flag.")
     } 
 
-    data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
+    ## data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
+    ## if (na.rm == TRUE) {
+      ## data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
+    ##     data <- na.omit(data)
+    ## }
+
+    ## select variable that are to be used 
+    if (!is.null(cl)) {
+        if (cl %in% index) {
+            data <- data[,c(index, Y, D, X, weight)]
+        } else {
+            data <- data[,c(index, Y, D, X, cl, weight)]
+        }
+    } else {
+        data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
+    }
+
     if (na.rm == TRUE) {
       ## data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
         data <- na.omit(data)
-    } 
+    }
+
     ##-------------------------------##
     ## Parsing raw data
     ##-------------------------------##  
@@ -323,6 +343,13 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     Dname <- D
     Xname <- X
     Wname <- weight
+    clname <- cl
+
+    if (!is.null(clname)) {
+        if (!clname %in% index) {
+            data[, clname] <- as.numeric(as.factor(data[, clname]))
+        }
+    }
 
     ## normalize
     norm.para <- NULL
@@ -493,6 +520,25 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             ## } 
         } 
     }
+
+    if (!is.null(clname)) {
+        if (clname %in% index) {
+            cl <- 1:N
+        } else {
+            cl <- matrix(data[, clname], TT, N)
+            v.cl <- c()
+            for (i in 1:N) {
+                if (sum(is.na(cl[,i])) > 0) {
+                    v.cl <- c(v.cl, na.omit(cl[,i])[1])
+                } else {
+                    v.cl <- c(v.cl, cl[1, i])
+                }
+            }
+            cl <- v.cl
+        }
+    } else {
+        cl <- NULL
+    }
     
     tr <- D[TT,] == 1     # cross-sectional: treated unit
     ## ----------------------------------------------------------- ##
@@ -541,6 +587,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         II <- as.matrix(II[,-rm.id])
         T0 <- T0[-rm.id]
         ## tr <- tr[-rm.id]
+        if (!is.null(cl)) {
+            cl <- cl[-rm.id]
+        }
     }
 
     ## 2. check if some periods when all units are missing
@@ -678,7 +727,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         if (is.null(seed) == FALSE) {
             set.seed(seed)
         }
-        out <- synth.boot(Y = Y, X = X, D = D, I=I, W = W, EM = EM,
+        out <- synth.boot(Y = Y, X = X, D = D, cl = cl, I=I, W = W, EM = EM,
                           r = r, r.end = r.end, lambda = lambda,
                           nlambda = nlambda, force = force,
                           CV = CV, criterion = criterion, k = k, 

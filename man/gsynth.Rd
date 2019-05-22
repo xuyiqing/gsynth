@@ -4,8 +4,8 @@
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE, 
-       index, weight = NULL, force = "unit", r = 0, lambda = NULL,
-       nlambda = 10, CV = TRUE, criterion = "mspe",
+       index, weight = NULL, force = "unit", cl = NULL, r = 0, 
+       lambda = NULL, nlambda = 10, CV = TRUE, criterion = "mspe",
        k = 5, EM = FALSE, estimator = "ife",
        se = FALSE, nboots = 200, 
        inference = "nonparametric", cov.ar = 1, parallel = TRUE, 
@@ -30,6 +30,9 @@ on interactive fixed effect models.}
 \item{force}{a string indicating whether unit or time fixed effects will be
     imposed. Must be one of the following,
     "none", "unit", "time", or "two-way". The default is "unit".}
+\item{cl}{a string indicator the cluster variable. The default value is 
+  \code{NULL}. If \code{cl = NULL}, bootstrap will be blocked at unit level
+  (only for non-parametric bootstrap).}
 \item{r}{an integer specifying the number of factors. If \code{CV = TRUE}, 
   the cross validation procedure will select the optimal number of
   factors from \code{r} to 5.}
