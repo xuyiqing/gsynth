@@ -26,7 +26,7 @@
 
 ## generic function
 
-gsynth <- function(formula = NULL,data, # a data frame (long-form)
+gsynth <- function(formula = NULL, data, # a data frame (long-form)
                    Y, # outcome
                    D, # treatment 
                    X = NULL, # time-varying covariates
@@ -52,7 +52,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                    tol = 0.001, # tolerance level
                    seed = NULL, # set seed
                    min.T0 = 5,
-                   conf.lvl = 0.95,
+                   alpha = 0.05,
                    normalize = FALSE
                    ) {
     UseMethod("gsynth")
@@ -86,7 +86,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
-                           conf.lvl = 0.95,
+                           alpha = 0.05,
                            normalize = FALSE
                            ) {
     ## parsing
@@ -112,7 +112,7 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                           na.rm, index, weight, force, cl, r, lambda, nlambda, 
                           CV, criterion, k, EM, estimator, se, nboots, 
                           inference, cov.ar, 
-                          parallel, cores, tol, seed, min.T0, conf.lvl,
+                          parallel, cores, tol, seed, min.T0, alpha,
                           normalize)
     
     out$call <- match.call()
@@ -150,7 +150,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            tol = 0.001, # tolerance level
                            seed = NULL, # set seed
                            min.T0 = 5,
-                           conf.lvl = 0.95,
+                           alpha = 0.05,
                            normalize = FALSE
                            ) {  
     
@@ -288,8 +288,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     ## cl
-    if (conf.lvl <= 0 || conf.lvl >= 1) {
-        stop("\"conf.lvl\" should be in the range of 0 and 1. Try, for example, conf.lvl = 0.95.")    
+    if (alpha <= 0 || alpha >= 1) {
+        stop("\"alpha\" should be in the range of 0 and 1. Try, for example, alpha = 0.05.")    
     }
 
     ## mc inference
@@ -440,7 +440,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             ob.indicator[sub.start:sub.end] <- ob.indicator[sub.start:sub.end] + i * TT
         }
 
-        variable <- c(Yname, Dname, Xname)
+        variable <- c(Yname, Dname, Xname, Wname, clname)
 
         data_I <- matrix(0, N * TT, 1)
         data_I[ob.indicator, 1] <- 1
@@ -736,7 +736,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                           cov.ar = cov.ar,
                           parallel = parallel, cores = cores,           
                           AR1 = AR1, norm.para = norm.para,
-                          conf.lvl = conf.lvl)
+                          alpha = alpha)
 
     } 
 
@@ -796,6 +796,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## obs.missing[which(obs.missing==4)] <- "removed"
     ## obs.missing[which(obs.missing==0)] <- "missing"
 
+    if (!is.null(norm.para)) {
+        Y <-  Y * norm.para[1]
+    }
+
     colnames(obs.missing) <- unique(sort(data.old[, id]))
     colnames(Y) <- iname
     if (!is.null(out$res.co)) {
@@ -824,7 +828,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (se == TRUE) {
         rownames(out$est.beta) <- Xname.tmp
         rownames(out$beta.boot) <- Xname.tmp
-        dimnames(out$eff.boot)[[2]] <- iname[which(out$tr == 1)]
+        if (class(out$eff.boot) == "array") {
+            dimnames(out$eff.boot)[[2]] <- iname[which(out$tr == 1)]
+        }
+        
     }
     ## eff
     colnames(out$eff) <- iname[which(out$tr == 1)]

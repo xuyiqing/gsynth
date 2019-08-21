@@ -1233,7 +1233,9 @@ synth.em<-function(Y, # Outcome variable, (T*N) matrix
         IC = IC,
         PC = PC,
         mu = mu,
-        validX = est$validX
+        validX = est$validX,
+        est = est,
+        niter = est$niter
     )
 
     out <- c(out,list(sigma2 = sigma2, res = res, res.co = res.co))
@@ -1595,29 +1597,26 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
         ## tot.id <- which(c(II)==1) ## observed control data
         cv.count <- ceiling((sum(II)*sum(II))/sum(I))
 
-        if (is.null(lambda) || length(lambda) == 1) {
-            ## create the hyper-parameter sequence
-            ## lambda.max <- log10(max(svd(Y)$d)*2/(N*TT-sum(II)))
-            ## Y.l <- YY - Y0
-            ## Y.l[which(II == 0)] <- 0
-            ## Y.lambda <- YY - Y0
-            ## Y.lambda[which(II == 0)] <- Y0[which(II == 0)]
-            ## Y.lambda[which(II == 0)] <- 0
-            lambda.max <- log10(max(svd(YY)$d))
+        Y.lambda <- YY - Y0
+        Y.lambda[which(II == 0)] <- 0
+        eigen.all <- svd( Y.lambda / (TT * N) )$d
+        lambda.max <- max(eigen.all)
 
-            ## lambda.max <- log10(max(svd(YY)$d))
+
+        if (is.null(lambda) || length(lambda) == 1) {
             lambda <- rep(NA, nlambda)
             lambda.by <- 3/(nlambda - 2)
             for (i in 1:(nlambda - 1)) {
-                lambda[i] <- 10^(lambda.max - (i - 1) * lambda.by)
+                lambda[i] <- 10^(log10(lambda.max) - (i - 1) * lambda.by)
             }
             lambda[nlambda] <- 0
         }
         
+
         ## store all MSPE
         CV.out <- matrix(NA, length(lambda), 2)
-        colnames(CV.out) <- c("lambda", "MSPE")
-        CV.out[,"lambda"] <- c(lambda)
+        colnames(CV.out) <- c("lambda.norm", "MSPE")
+        CV.out[,"lambda.norm"] <- c(lambda/lambda.max)
         CV.out[,"MSPE"] <- 1e20
 
         ociCV <- matrix(NA, cv.count, k) ## store indicator
@@ -1689,12 +1688,12 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
             }
             CV.out[i, "MSPE"] <- MSPE
 
-            cat("\n lambda = ",
-            sprintf("%.5f",lambda[i]),"; MSPE = ",
+            cat("\n lambda.norm = ",
+            sprintf("%.5f",lambda[i] / lambda.max),"; MSPE = ",
             sprintf("%.5f",MSPE), sep="")
 
         } 
-        cat("\n\n lambda* = ",lambda.cv, sep="")
+        cat("\n\n lambda.norm* = ",lambda.cv / lambda.max, sep="")
         cat("\n\n")
         MSPE.best <- min(CV.out[,"MSPE"])
     } ## End of Cross-Validation
@@ -1958,7 +1957,8 @@ synth.mc<-function(Y, # Outcome variable, (T*N) matrix
     }
     if (CV) {
         out<-c(out, list(MSPE = MSPE.best,
-                         CV.out = CV.out))
+                         CV.out = CV.out,
+                         lambda.cv.norm = lambda.cv / lambda.max))
     } 
     if (force==1) {
         out<-c(out, list(alpha.tr = as.matrix(est.best$alpha[id.tr,]), alpha.co = as.matrix(est.best$alpha[id.co,])))
@@ -2004,7 +2004,7 @@ synth.boot<-function(Y,
                      beta0 = NULL,
                      norm.para,
                      parallel = TRUE,
-                     conf.lvl = 0.95,
+                     alpha = 0.05,
                      cores = NULL){
     
     
@@ -2125,9 +2125,19 @@ synth.boot<-function(Y,
     Y.tr.bar=out$Y.bar[,1]
     Y.ct.bar=out$Y.bar[,2]
     Y.co.bar=out$Y.bar[,3]
+
     
     ## bootstrapped estimates
-    eff.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+    if (is.null(cl)) {
+        eff.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+        Dtr.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+        Itr.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+    } else {
+        eff.boot<-NULL
+        Dtr.boot<-NULL
+        Itr.boot<-NULL
+    }
+
     att.boot<-matrix(0,TT,nboots)
     att.avg.boot<-matrix(0,nboots,1)
     if (p>0) {
@@ -2172,7 +2182,10 @@ synth.boot<-function(Y,
                     if (sum(D.boot) == 0) { ## no treated observations
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
-                                      att = NA)
+                                      att = NA,
+                                      eff = NA,
+                                      D.tr = NA,
+                                      I.tr = NA)
                         return(boot0)
                     } else {
                         boot <- try(synth.core(Y.boot, X.boot, D.boot, I=I.boot,
@@ -2182,7 +2195,10 @@ synth.boot<-function(Y,
                         if ('try-error' %in% class(boot)) {
                             boot0 <- list(att.avg = NA, 
                                           beta = NA,
-                                          att = NA)
+                                          att = NA,
+                                          eff = NA,
+                                          D.tr = NA,
+                                          I.tr = NA)
                             return(boot0)
                         } else {
                             return(boot)
@@ -2224,7 +2240,10 @@ synth.boot<-function(Y,
                     if (sum(D.boot) == 0) { ## no treated observations
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
-                                      att = NA)
+                                      att = NA,
+                                      eff = NA,
+                                      D.tr = NA,
+                                      I.tr = NA)
                         return(boot0)
                     } else {
                         boot <- try(synth.em(Y = Y.boot, X = X.boot, D = D.boot, I=I.boot,
@@ -2233,7 +2252,10 @@ synth.boot<-function(Y,
                         if ('try-error' %in% class(boot)) {
                             boot0 <- list(att.avg = NA, 
                                           beta = NA,
-                                          att = NA)
+                                          att = NA,
+                                          eff = NA,
+                                          D.tr = NA,
+                                          I.tr = NA)
                             return(boot0)
                         } else {
                             return(boot)
@@ -2272,8 +2294,11 @@ synth.boot<-function(Y,
 
                 if (!con1 || !con2 || !con3) {
                     boot0 <- list(att.avg = NA, 
-                                      beta = NA,
-                                      att = NA)
+                                  beta = NA,
+                                  att = NA,
+                                  eff = NA,
+                                  D.tr = NA,
+                                  I.tr = NA)
                     return(boot0)
                 } else {
                     boot <- try(synth.mc(Y.boot, X.boot, D.boot, I=I.boot,
@@ -2283,7 +2308,10 @@ synth.boot<-function(Y,
                     if ('try-error' %in% class(boot)) {
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
-                                      att = NA)
+                                      att = NA,
+                                      eff = NA,
+                                      D.tr = NA,
+                                      I.tr = NA)
                         return(boot0)
                     } else {
                         return(boot)
@@ -2306,7 +2334,17 @@ synth.boot<-function(Y,
                 att.avg.boot[j,]<-boot.out[[j]]$att.avg  
                 if (p>0) {
                     beta.boot[,j]<-boot.out[[j]]$beta
-                } 
+                }
+                if (is.null(cl)) {
+                    eff.boot[,,j] <- boot.out[[j]]$eff
+                    Dtr.boot[,,j] <-  boot.out[[j]]$D.tr
+                    Itr.boot[,,j] <-  boot.out[[j]]$I.tr
+                } else {
+                    eff.boot <- c(eff.boot, list(boot.out[[j]]$eff))
+                    Dtr.boot <- c(Dtr.boot, list(boot.out[[j]]$D.tr))
+                    Itr.boot <- c(Itr.boot, list(boot.out[[j]]$I.tr))
+                }
+                
             } 
         } else {
             for (j in 1:nboots) { 
@@ -2316,6 +2354,16 @@ synth.boot<-function(Y,
                 if (p>0) {
                     beta.boot[,j]<-boot$beta
                 }
+                if (is.null(cl)) {
+                    eff.boot[,,j] <- boot$eff
+                    Dtr.boot[,,j] <-  boot$D.tr
+                    Itr.boot[,,j] <-  boot$I.tr
+                } else {
+                    eff.boot <- c(eff.boot, list(boot$eff))
+                    Dtr.boot <- c(Dtr.boot, list(boot$D.tr))
+                    Itr.boot <- c(Itr.boot, list(boot$I.tr))
+                }
+                
                 ## report progress
                 if (j%%100==0)  {
                     cat(".")   
@@ -2484,12 +2532,16 @@ synth.boot<-function(Y,
                     boot0 <- list(eff = NA,
                                   att.avg = NA, 
                                   beta = NA,
-                                  att = NA)
+                                  att = NA,
+                                  D.tr = NA,
+                                  I.tr = NA)
                     return(boot0)
                 } else {
                     b.out <- list(eff = boot$eff + out$eff,
                                   att = boot$att + out$att,
-                                  att.avg = boot$att.avg + out$att.avg)
+                                  att.avg = boot$att.avg + out$att.avg,
+                                  D.tr = boot$D.tr,
+                                  I.tr = boot$I.tr)
                     if (p>0) {
                         b.out <- c(b.out, list(beta = boot$beta))
                     }
@@ -2541,12 +2593,16 @@ synth.boot<-function(Y,
                     boot0 <- list(eff = NA,
                                   att.avg = NA, 
                                   beta = NA,
-                                  att = NA)
+                                  att = NA,
+                                  D.tr = NA,
+                                  I.tr = NA)
                     return(boot0)
                 } else {
                     b.out <- list(eff = boot$eff + out$eff,
                               att = boot$att + out$att,
-                              att.avg = boot$att.avg + out$att.avg)
+                              att.avg = boot$att.avg + out$att.avg,
+                              D.tr = boot$D.tr,
+                              I.tr = boot$I.tr)
                     if (p>0) {
                         b.out <- c(b.out, list(beta = boot$beta))
                     }
@@ -2573,6 +2629,8 @@ synth.boot<-function(Y,
                 if (p>0) {
                     beta.boot[,j]<-boot.out[[j]]$beta
                 }
+                Dtr.boot[,,j] <-  boot.out[[j]]$D.tr
+                Itr.boot[,,j] <-  boot.out[[j]]$I.tr
             }
         } else {
             for (j in 1:nboots) {
@@ -2583,6 +2641,8 @@ synth.boot<-function(Y,
                 if (p>0) {
                     beta.boot[,j]<-boot.out$beta
                 }
+                Dtr.boot[,,j] <-  boot.out$D.tr
+                Itr.boot[,,j] <-  boot.out$I.tr
                 if (j%%100==0) {
                     cat(".")
                 }
@@ -2613,8 +2673,8 @@ synth.boot<-function(Y,
     }
     
     ## ATT estimates
-    conf.lvl.lb <- (1 - conf.lvl)/2
-    conf.lvl.ub <- conf.lvl.lb + conf.lvl
+    conf.lvl.lb <- alpha/2 
+    conf.lvl.ub <- 1 - alpha/2
 
     CI.att <- t(apply(att.boot, 1, function(vec) 
         quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
@@ -2692,8 +2752,11 @@ synth.boot<-function(Y,
     rownames(att.boot) <- rownames(est.att)
     colnames(att.boot) <- colboot
 
-    dimnames(eff.boot)[[1]] <- rownames(est.att)
-    dimnames(eff.boot)[[3]] <- colboot
+    if (class(eff.boot) == "array") {
+        dimnames(eff.boot)[[1]] <- rownames(est.att)
+        dimnames(eff.boot)[[3]] <- colboot
+    }
+    
 
 
   
@@ -2703,7 +2766,9 @@ synth.boot<-function(Y,
                  est.avg = est.avg,
                  att.avg.boot = att.avg.boot,
                  att.boot = att.boot,
-                 eff.boot = eff.boot
+                 eff.boot = eff.boot,
+                 Dtr.boot = Dtr.boot,
+                 Itr.boot = Itr.boot
                  )
     if (p>0) {
         result <- c(result,list(beta.boot = beta.boot))
@@ -2775,48 +2840,65 @@ initialFit <- function(data,
         }
         colnames.data2 <- c(colnames.data2, x.name)
     }
-
     colnames(data2) <- colnames.data2
 
-    if (p > 0) {
-        if (force == 1) {
-            Fit.formula <- paste0("y ~", paste0(x.name, collapse = "+"), "+ id")
-        } 
-        else if (force == 2) {
-            Fit.formula <- paste0("y ~", paste0(x.name, collapse = "+"), "+ time")
-        }
-        else if (force == 3) {
-            Fit.formula <- paste0("y ~", paste0(x.name, collapse = "+"), "+ id + time")
-        }
-        else {
-            Fit.formula <- paste0("y ~", paste0(x.name, collapse = "+"))
-        }
+    f <- "y ~"
+    if (p == 0) {
+        f <- paste(f, "1", sep = "")
     } else {
-        if (force == 1) {
-            Fit.formula <- paste0("y ~ id")
-        } 
-        else if (force == 2) {
-            Fit.formula <- paste0("y ~ time")
-        }
-        else if (force == 3) {
-            Fit.formula <- paste0("y ~ id + time")
-        }
-        else {
-            Fit.formula <- paste0("y ~ 1")
-        }
+        f <- paste(f, paste(x.name, collapse = "+"), sep = "")
     }
+
+    if (force == 1) {
+        f <- paste(f, "| id", sep = "")
+    } else if (force == 2) {
+        f <- paste(f, "| time", sep = "")
+    } else if (force == 3) {
+        f <- paste(f, "| id + time", sep = "")
+    }
+
+    lfit <- felm(data = data2[oci, ], as.formula(f))
+
     N <- length(unique(data[,2]))
     T <- length(unique(data[,3]))
-    lfit <- lm(as.formula(Fit.formula), data = data2[oci,])
-    Y0 <- matrix(predict(lfit, data2), T, N)
-    if (p > 0) {
-        beta0 <- as.matrix(lfit$coefficients[2:(p+1)])
-        if (sum(is.na(beta0)) > 0) {
-            beta0[which(is.na(beta0))] <- 0
+
+    fe <- alleff <- NULL
+    id.eff <- rep(0, N)
+    time.eff <- rep(0, T)
+    if (force != 0) {
+        fe <- getfe(lfit)
+        alleff <- fe$effect
+        if (force == 1 || force == 3) {
+            id.eff <- alleff[1:N]
+            if (force == 3) {
+                time.eff <- alleff[(N+1):(N+T)]
+            }
+        } else {
+            time.eff <- alleff[1:T]
+        }
+    }
+
+    mu <- 0
+    beta0 <- matrix(0, 1, 1)
+    if (force == 0) {
+        mu <- lfit$coefficients[1]
+        if (p > 0) {
+            beta0 <- as.matrix(lfit$coefficients[2:(p+1)])
         }
     } else {
-        beta0 <- matrix(0, 1, 1)
+        if (p > 0) {
+            beta0 <- as.matrix(lfit$coefficients[1:p])
+        }
     }
+
+    Y0 <- matrix(mu, T, N) + matrix(rep(id.eff, each = T), T, N) + matrix(rep(time.eff, N), T, N)
+    
+    X <- NULL
+    if (p > 0) {
+        X <- as.matrix(data2[, x.name])
+        Y0 <- Y0 + matrix(c(X %*% beta0), T, N)
+    }
+    
     result <- list(Y0 = Y0, beta0 = beta0)
     return(result)
 }

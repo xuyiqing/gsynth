@@ -275,25 +275,30 @@ arma::mat panel_FE (arma::mat E, double lambda) {
   arma::mat U ;
   arma::vec s ;
   arma::mat V ;
-  arma::svd( U, s, V, E) ;
+  arma::svd( U, s, V, E / (T * N) ) ;
   
   for (int i = 0; i < r; i++) {
     if (s(i) > lambda) {
-      D(i, i) = s(i) - lambda ;
+      // if (hard == 1) {
+      //   D(i, i) = s(i) ; // hard impute
+      // } else {
+        D(i, i) = s(i) - lambda ; // soft impute
+     //  }
     } else {
       D(i, i) = 0 ;
     }
   }
   if (T >= N) {
     arma::mat UU = U.cols(0, r-1) ; 
-    FE = UU * D * V.t() ;
+    FE = UU * D * V.t() * (T * N) ;
   }
   else {
     arma::mat VV = V.cols(0, r-1) ;
-    FE = U * D * VV.t() ;
+    FE = U * D * VV.t() * (T * N) ;
   }
   return(FE) ;
 }
+
 
 /* factor analysis: mu add ife*/
 // [[Rcpp::export]]
