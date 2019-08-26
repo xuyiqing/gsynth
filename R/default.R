@@ -264,8 +264,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (inference == "nonpara") {
         inference <- "nonparametric"
     }
-    if (!inference %in% c("parametric", "nonparametric")) {
-        stop("\"inference\" option misspecified; choose from c(\"parametric\", \"nonparametric\").")
+    if (!inference %in% c("parametric", "nonparametric", "jackknife")) {
+        stop("\"inference\" option misspecified; choose from c(\"parametric\", \"nonparametric\", \"jackknife\").")
     }
 
     ## nboots

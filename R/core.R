@@ -2126,6 +2126,10 @@ synth.boot<-function(Y,
     Y.ct.bar=out$Y.bar[,2]
     Y.co.bar=out$Y.bar[,3]
 
+    if (inference == "jackknife") {
+        nboots <- N
+    }
+
     
     ## bootstrapped estimates
     if (is.null(cl)) {
@@ -2144,30 +2148,40 @@ synth.boot<-function(Y,
         beta.boot<-matrix(0,p,nboots)
     }
     
-    if (inference=="nonparametric") { ## nonparametric bootstrap
+    if (inference %in% c("nonparametric", "jackknife")) { ## nonparametric bootstrap
 
-        cat("\rBootstrapping ...\n")
+        if (inference == "nonparametric") {
+            cat("\rBootstrapping ...\n")
+        } else {
+            cat("\r Jackknifing ...\n")
+        }
+        
         if (MC == FALSE) {
             if (EM == FALSE) {
-                one.nonpara <- function(){
+                one.nonpara <- function(num = NULL){
 
-                    if (is.null(cl)) {
-                        repeat {
-                            fake.co <- sample(id.co,Nco, replace=TRUE)
-                            if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
-                                break
+                    if (!is.null(num)) {
+                        boot.id <- (1:N)[-num]
+                    } else {
+                        if (is.null(cl)) {
+                            repeat {
+                                fake.co <- sample(id.co,Nco, replace=TRUE)
+                                if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                    break
+                                }
+                            }
+
+                            boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                        } else {
+                            cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                            cl.boot.uni <- unique(cl.boot)
+                            cl.boot.count <- as.numeric(table(cl.boot))
+                            boot.id <- c()
+                            for (kk in 1:length(cl.boot.uni)) {
+                                boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
                             }
                         }
 
-                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
-                    } else {
-                        cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
-                        cl.boot.uni <- unique(cl.boot)
-                        cl.boot.count <- as.numeric(table(cl.boot))
-                        boot.id <- c()
-                        for (kk in 1:length(cl.boot.uni)) {
-                            boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
-                        }
                     }
                 
                     Y.boot <- Y[,boot.id]
@@ -2206,28 +2220,31 @@ synth.boot<-function(Y,
                     }
                 } 
             } else { # the case of EM
-                one.nonpara <- function(){
+                one.nonpara <- function(num = NULL){
                 
-                    if (is.null(cl)) {
-                        repeat {
-                            fake.co <- sample(id.co,Nco, replace=TRUE)
-                            if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
-                                break
+                    if (!is.null(num)) {
+                        boot.id <- (1:N)[-num]
+                    } else {
+                        if (is.null(cl)) {
+                            repeat {
+                                fake.co <- sample(id.co,Nco, replace=TRUE)
+                                if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                    break
+                                }
+                            }
+
+                            boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                        } else {
+                            cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                            cl.boot.uni <- unique(cl.boot)
+                            cl.boot.count <- as.numeric(table(cl.boot))
+                            boot.id <- c()
+                            for (kk in 1:length(cl.boot.uni)) {
+                                boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
                             }
                         }
-
-                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
-                    } else {
-                        cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
-                        cl.boot.uni <- unique(cl.boot)
-                        cl.boot.count <- as.numeric(table(cl.boot))
-                        boot.id <- c()
-                        for (kk in 1:length(cl.boot.uni)) {
-                            boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
-                        }
                     }
-                    
-                
+                                    
                     Y.boot <- Y[,boot.id]
                     X.boot <- X[,boot.id,,drop=FALSE]
                     D.boot <- D[,boot.id]
@@ -2264,21 +2281,25 @@ synth.boot<-function(Y,
                 } 
             }
         } else { ## mc
-            one.nonpara <- function(){
-                
-                if (is.null(cl)) {
-                    fake.co <- sample(id.co,Nco, replace=TRUE)
-                    boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+            one.nonpara <- function(num = NULL){
+
+                if (!is.null(num)) {
+                    boot.id <- (1:N)[-num]
                 } else {
-                    cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
-                    cl.boot.uni <- unique(cl.boot)
-                    cl.boot.count <- as.numeric(table(cl.boot))
-                    boot.id <- c()
-                    for (kk in 1:length(cl.boot.uni)) {
-                        boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
+                    if (is.null(cl)) {
+                        fake.co <- sample(id.co,Nco, replace=TRUE)
+                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                    } else {
+                        cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
+                        cl.boot.uni <- unique(cl.boot)
+                        cl.boot.count <- as.numeric(table(cl.boot))
+                        boot.id <- c()
+                        for (kk in 1:length(cl.boot.uni)) {
+                            boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
+                        }
                     }
                 }
-
+                
                 Y.boot <- Y[,boot.id]
                 X.boot <- X[,boot.id,,drop=FALSE]
                 D.boot <- D[,boot.id]
@@ -2292,7 +2313,7 @@ synth.boot<-function(Y,
                 con2 <- sum(apply(I.boot,2,sum)>=1) == N
                 con3 <- sum(D.boot) > 0
 
-                if (!con1 || !con2 || !con3) {
+                if (!is.null(num) && (!con1 || !con2 || !con3)) {
                     boot0 <- list(att.avg = NA, 
                                   beta = NA,
                                   att = NA,
@@ -2320,13 +2341,19 @@ synth.boot<-function(Y,
             } 
         }
         ## computing
+        boot.seq <- NULL
+        if (inference == "jackknife") {
+            ## nboots <- min(N, nboots)
+            ## boot.seq <- jack.seq[1:nboots]
+            boot.seq <- 1:N 
+        }
         if (parallel == TRUE) { 
             boot.out <- foreach(j=1:nboots, 
                                 .inorder = FALSE,
                                 .export = c("synth.core","synth.em","synth.mc"),
                                 .packages = c("gsynth")
                                 ) %dopar% {
-                                    return(one.nonpara())
+                                    return(one.nonpara(boot.seq[j]))
                                 }
 
             for (j in 1:nboots) { 
@@ -2335,33 +2362,36 @@ synth.boot<-function(Y,
                 if (p>0) {
                     beta.boot[,j]<-boot.out[[j]]$beta
                 }
-                if (is.null(cl)) {
-                    eff.boot[,,j] <- boot.out[[j]]$eff
-                    Dtr.boot[,,j] <-  boot.out[[j]]$D.tr
-                    Itr.boot[,,j] <-  boot.out[[j]]$I.tr
-                } else {
-                    eff.boot <- c(eff.boot, list(boot.out[[j]]$eff))
-                    Dtr.boot <- c(Dtr.boot, list(boot.out[[j]]$D.tr))
-                    Itr.boot <- c(Itr.boot, list(boot.out[[j]]$I.tr))
-                }
-                
+                if (inference != "jackknife") {
+                    if (is.null(cl)) {
+                        eff.boot[,,j] <- boot.out[[j]]$eff
+                        Dtr.boot[,,j] <-  boot.out[[j]]$D.tr
+                        Itr.boot[,,j] <-  boot.out[[j]]$I.tr
+                    } else {
+                        eff.boot <- c(eff.boot, list(boot.out[[j]]$eff))
+                        Dtr.boot <- c(Dtr.boot, list(boot.out[[j]]$D.tr))
+                        Itr.boot <- c(Itr.boot, list(boot.out[[j]]$I.tr))
+                    }
+                }      
             } 
         } else {
             for (j in 1:nboots) { 
-                boot <- one.nonpara() 
+                boot <- one.nonpara(boot.seq[j]) 
                 att.boot[,j]<-boot$att
                 att.avg.boot[j,]<-boot$att.avg
                 if (p>0) {
                     beta.boot[,j]<-boot$beta
                 }
-                if (is.null(cl)) {
-                    eff.boot[,,j] <- boot$eff
-                    Dtr.boot[,,j] <-  boot$D.tr
-                    Itr.boot[,,j] <-  boot$I.tr
-                } else {
-                    eff.boot <- c(eff.boot, list(boot$eff))
-                    Dtr.boot <- c(Dtr.boot, list(boot$D.tr))
-                    Itr.boot <- c(Itr.boot, list(boot$I.tr))
+                if (inference != "jackknife") {
+                    if (is.null(cl)) {
+                        eff.boot[,,j] <- boot$eff
+                        Dtr.boot[,,j] <-  boot$D.tr
+                        Itr.boot[,,j] <-  boot$I.tr
+                    } else {
+                        eff.boot <- c(eff.boot, list(boot$eff))
+                        Dtr.boot <- c(Dtr.boot, list(boot$D.tr))
+                        Itr.boot <- c(Itr.boot, list(boot$I.tr))
+                    }
                 }
                 
                 ## report progress
@@ -2673,14 +2703,6 @@ synth.boot<-function(Y,
     }
     
     ## ATT estimates
-    conf.lvl.lb <- alpha/2 
-    conf.lvl.ub <- 1 - alpha/2
-
-    CI.att <- t(apply(att.boot, 1, function(vec) 
-        quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
-    se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
-    pvalue.att <- apply(att.boot, 1, get.pvalue)
-
     if (DID == TRUE) {
         ntreated <- apply(post, 1, sum)
     } else {
@@ -2698,24 +2720,42 @@ synth.boot<-function(Y,
             ntreated <- c(rep(0, T0.ub.min), rawcount)
         }
     }
-    est.att <- cbind(att, se.att, CI.att, pvalue.att, ntreated)
-    colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper",
-                           "p.value", "n.Treated")
-    if (DID == TRUE) {
-        rownames(est.att) <- time
+
+    if (inference == "jackknife") {
+
+        att.j <- jackknifed(att, att.boot, alpha)
+        est.att <- cbind(att, att.j$se, att.j$CI.l, att.j$CI.u, att.j$P, ntreated)
+
     } else {
-        if (!0%in%I.tr) {
-            rownames(est.att) <- c(1:TT) - min(T0)
-        } else {
-            rownames(est.att) <- c(1:TT) - min(T0.ub)
-        }
+        conf.lvl.lb <- alpha/2 
+        conf.lvl.ub <- 1 - alpha/2
+
+        CI.att <- t(apply(att.boot, 1, function(vec) 
+            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
+        se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
+        pvalue.att <- apply(att.boot, 1, get.pvalue)
+
+        est.att <- cbind(att, se.att, CI.att, pvalue.att, ntreated)
+
     }
+    colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper",
+                               "p.value", "n.Treated")
+
     
     ## average (over time) ATT
-    CI.avg <- quantile(att.avg.boot, c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)
-    se.avg <- sd(att.avg.boot, na.rm=TRUE)
-    pvalue.avg <- get.pvalue(att.avg.boot)
-    est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
+    if (inference == "jackknife") {
+        ## average (over time) ATT
+        att.avg.j <- jackknifed(att.avg, att.avg.boot, alpha)
+        est.avg <- t(as.matrix(c(att.avg, att.avg.j$se, att.avg.j$CI.l, att.avg.j$CI.u, att.avg.j$P)))
+
+    } else {
+        CI.avg <- quantile(att.avg.boot, c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)
+        se.avg <- sd(att.avg.boot, na.rm=TRUE)
+        pvalue.avg <- get.pvalue(att.avg.boot)
+        est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
+
+    }
+    
     colnames(est.avg) <- c("ATT.avg", "S.E.", "CI.lower", "CI.upper", "p.value")
     rownames(est.avg) <- ""
     
@@ -2739,12 +2779,18 @@ synth.boot<-function(Y,
     
     ## regression coefficents
     if (p>0) {
-        CI.beta<-t(apply(beta.boot, 1, function(vec)
-            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
-        se.beta<-apply(beta.boot, 1, function(vec)sd(vec,na.rm=TRUE))
-        pvalue.beta <- apply(beta.boot, 1, get.pvalue)
-        ## beta[na.pos] <- NA
-        est.beta<-cbind(beta, se.beta, CI.beta, pvalue.beta)
+        if (inference == "jackknife") {
+            beta.j <- jackknifed(beta, beta.boot, alpha)
+            est.beta <- cbind(beta, beta.j$se, beta.j$CI.l, beta.j$CI.u, beta.j$P)
+        } else {
+            CI.beta<-t(apply(beta.boot, 1, function(vec)
+                quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
+            se.beta<-apply(beta.boot, 1, function(vec)sd(vec,na.rm=TRUE))
+            pvalue.beta <- apply(beta.boot, 1, get.pvalue)
+            ## beta[na.pos] <- NA
+            est.beta<-cbind(beta, se.beta, CI.beta, pvalue.beta)
+        }
+        
         colnames(est.beta)<-c("beta", "S.E.", "CI.lower", "CI.upper", "p.value")
         colnames(beta.boot) <- colboot
     }
@@ -2901,4 +2947,43 @@ initialFit <- function(data,
     
     result <- list(Y0 = Y0, beta0 = beta0)
     return(result)
+}
+
+
+
+## jackknife se
+jackknifed <- function(x,  ## ols estimates
+                       y,
+                       alpha) { ## sub-sample ols estimates) 
+
+    p <- length(x)
+    N <- dim(y)[2]  ## sample size
+    if (N == 1) {
+        y <- t(y)
+        N <- dim(y)[2]
+    }
+
+    X <- matrix(rep(c(x), N), p, N) * N
+    Y <- X - y * (N - 1)
+
+    Yvar <- apply(Y, 1, var, na.rm = TRUE)
+    vn <- N - apply(is.na(y), 1, sum) 
+
+    Ysd <- sqrt(Yvar/vn)  ## jackknife se
+
+    CI.l <- Ysd * qnorm(alpha/2) + c(x)
+    CI.u <- Ysd * qnorm(1 - alpha/2) + c(x)
+
+    ## wald test
+    P <- NULL
+    for (i in 1:p) {
+        subz <- pnorm(c(x)[i]/Ysd[i])
+        P <- c(P, 2 * min(1 - subz, subz))
+    }
+    ## P <- 2 * min(1 - pnorm(c(x)/Ysd), pnorm(c(x)/Ysd))
+
+    out <- list(se = Ysd, CI.l = CI.l, CI.u = CI.u, P = P)
+
+    return(out)
+    
 }

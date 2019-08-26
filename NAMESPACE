@@ -2,7 +2,7 @@ useDynLib(gsynth, .registration=TRUE)
 ##exportPattern("^[[:alpha:]]+")
 importFrom(Rcpp, evalCpp)
 importFrom("stats", "na.omit", "quantile", "sd", "var", "cov", "lm", "predict", 
-"as.formula")
+"as.formula", "pnorm", "qnorm")
 importFrom("foreach","foreach","%dopar%")
 importFrom("doParallel","registerDoParallel")
 importFrom("parallel", "detectCores", "stopCluster", "makeCluster")

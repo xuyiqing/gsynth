@@ -58,24 +58,29 @@ cumuEff <- function(x,                ## a gsynth object
     	if (is.null(x$est.avg)) {
     		cat("No uncertainty estimates.")
     	} else {
-    		nboots <- length(x$att.avg.boot)
-    		D.boot <- x$Dtr.boot
-    		I.boot <- x$Itr.boot
-    		eff.boot <- x$eff.boot
-
-    		catt.boot <- matrix(NA, period[2] - period[1] + 1, nboots)
-
-    		if (class(D.boot) == "array") {
-    			for (i in 1:nboots) {
-	    			catt.boot[, i] <- getEffect(D.boot[,,i], I.boot[,,i], 
-	    				                        eff.boot[,,i], cumu, period)
-	    		}
+    		if (sum(c(D.boot[,,1])) == 0) {
+    			cat("Cannot get uncertainty estimates.")
     		} else {
-    			for (i in 1:nboots) {
-	    			catt.boot[, i] <- getEffect(D.boot[[i]], I.boot[[i]], 
-	    				                        eff.boot[[i]], cumu, period)
+    			nboots <- length(x$att.avg.boot)
+	    		D.boot <- x$Dtr.boot
+	    		I.boot <- x$Itr.boot
+	    		eff.boot <- x$eff.boot
+
+	    		catt.boot <- matrix(NA, period[2] - period[1] + 1, nboots)
+
+	    		if (class(D.boot) == "array") {
+	    			for (i in 1:nboots) {
+		    			catt.boot[, i] <- getEffect(D.boot[,,i], I.boot[,,i], 
+		    				                        eff.boot[,,i], cumu, period)
+		    		}
+	    		} else {
+	    			for (i in 1:nboots) {
+		    			catt.boot[, i] <- getEffect(D.boot[[i]], I.boot[[i]], 
+		    				                        eff.boot[[i]], cumu, period)
+		    		}
 	    		}
-    		}
+
+    		}    		
     		
     	}
     } else {
