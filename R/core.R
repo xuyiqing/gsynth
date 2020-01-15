@@ -2009,94 +2009,96 @@ synth.boot<-function(Y,
     
     
     na.pos <- NULL
-    TT<-dim(Y)[1]
-    N<-dim(Y)[2]
-    if (is.null(X)==FALSE) {
-        p<-dim(X)[3]
+    TT <- dim(Y)[1]
+    N <- dim(Y)[2]
+    if (is.null(X) == FALSE) {
+        p <- dim(X)[3]
     } else {
-        p<-0
+        p <- 0
     }
 
     ## treatement indicator
-    tr<-D[TT,]==1  ## cross-sectional: treated unit
+    tr <- D[TT,] == 1  ## cross-sectional: treated unit
     co <- D[TT,] == 0 
     I.tr <- as.matrix(I[,tr])
-    I.co <- I[,co]
-    D.tr <- D[,tr]
-    pre <- as.matrix(D[,which(tr==1)]==0&I[,which(tr==1)]!=0)
-    post <- as.matrix(D[,which(tr==1)]!=0&I[,which(tr==1)]!=0)
+    I.co <- I[, co]
+    D.tr <- D[, tr]
+    pre <- as.matrix(D[, which(tr == 1)] == 0 & I[, which(tr == 1)] != 0)
+    post <- as.matrix(D[, which(tr == 1)] != 0 & I[, which(tr == 1)] != 0)
                                          
-    Ntr<-sum(tr)
-    Nco<-N-Ntr
-    T0<-apply(pre,2,sum) 
-    T0.min<-min(T0)
-    sameT0<-length(unique(T0))==1 ## treatment kicks in at the same time
+    Ntr <- sum(tr)
+    Nco <- N - Ntr
+    T0 <- apply(pre, 2, sum) 
+    T0.min <- min(T0)
+    sameT0 <- length(unique(T0)) == 1 ## treatment kicks in at the same time
 
     ## to calculate treated numbers
-    T0.ub<-apply(as.matrix(D[,which(tr==1)]==0),2,sum) 
-    T0.ub.min<-min(T0.ub)
+    T0.ub <- apply(as.matrix(D[,which(tr == 1)] == 0), 2, sum) 
+    T0.ub.min <- min(T0.ub)
 
-    id<-1:N
-    time<-1:TT
-    id.tr<-which(tr==1) ## treated id
-    id.co<-which(tr==0)
+    id <- 1:N
+    time <- 1:TT
+    id.tr <- which(tr == 1) ## treated id
+    id.co <- which(tr == 0)
 
     ## vectorized "pre-treatment" indicator
-    pre.v<-as.vector(pre)
+    pre.v <- as.vector(pre)
     ## vectorized pre-treatment grouping variable for the treated
-    id.tr.pre.v<-rep(id,each=TT)[which(pre.v==1)]
+    id.tr.pre.v <- rep(id, each = TT)[which(pre.v == 1)]
     ## create a list of pre-treatment periods
-    time.pre<-split(rep(time,Ntr)[which(pre.v==1)],id.tr.pre.v) 
+    time.pre <- split(rep(time, Ntr)[which(pre.v == 1)], id.tr.pre.v) 
     
     ## estimation
     if (MC == FALSE) {
         if (EM == FALSE) {
-            out<-synth.core(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end, 
-                            force = force, CV = CV, criterion = criterion, tol=tol,
-                            AR1 = AR1, beta0 = beta0, norm.para= norm.para, boot = 0)
+            out <- synth.core(Y = Y, X = X, D = D, I = I, W = W, r = r, r.end = r.end, 
+                              force = force, CV = CV, criterion = criterion, tol = tol,
+                              AR1 = AR1, beta0 = beta0, norm.para = norm.para, boot = 0)
         } else { # the case with EM
             if (CV == FALSE) {
-                out<-synth.em(Y = Y,X = X, D = D, I=I, W=W, r = r, force = force,
-                              tol = tol, AR1 = AR1, beta0 = beta0, norm.para = norm.para, boot = 0)
+                out <- synth.em(Y = Y, X = X, D = D, I = I, W = W, r = r, force = force,
+                                tol = tol, AR1 = AR1, beta0 = beta0, norm.para = norm.para, boot = 0)
             } else {
-                out<-synth.em.cv(Y = Y, X = X, D = D, I=I, W=W, r = r, r.end = r.end,
-                                 criterion = criterion, force = force, tol=tol,
-                                 AR1 = AR1, beta0 = beta0, norm.para = norm.para)
+                out <- synth.em.cv(Y = Y, X = X, D = D, I = I, W = W, r = r, r.end = r.end,
+                                   criterion = criterion, force = force, tol = tol,
+                                   AR1 = AR1, beta0 = beta0, norm.para = norm.para)
             }
         }
+        
         ## for parametric bootstarp: some control group units may not be suitble
         if (inference == "parametric") {
-            co.pre <- apply(as.matrix(I.co[1:T0.ub.min,]),2,sum)
-            co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT,]),2,sum)
-            if (force%in%c(1,3)) {
-                valid.co <- id.co[(co.pre >= out$r.cv+1)&(co.post >= 1)]
+            co.pre <- apply(as.matrix(I.co[1:T0.ub.min, ]), 2, sum)
+            co.post <- apply(as.matrix(I.co[(max(T0.ub)+1):TT, ]), 2, sum)
+            if (force %in% c(1, 3)) {
+                valid.co <- id.co[(co.pre >= (out$r.cv + 1)) & (co.post >= 1)]
             } else {
-                valid.co <- id.co[(co.pre >= out$r.cv)&(co.post >= 1)]
+                valid.co <- id.co[(co.pre >= out$r.cv) & (co.post >= 1)]
             }
         }
+    
     } else {
-        out<-synth.mc(Y = Y, X = X, D = D, I=I, W=W, 
-                      lambda = lambda, nlambda = nlambda, 
-                      force = force, tol=tol, CV = CV, k = k, 
-                      AR1 = AR1, beta0 = beta0, norm.para= norm.para)
+        out <- synth.mc(Y = Y, X = X, D = D, I = I, W = W, 
+                        lambda = lambda, nlambda = nlambda, 
+                        force = force, tol = tol, CV = CV, k = k, 
+                        AR1 = AR1, beta0 = beta0, norm.para = norm.para)
     }
 
 
     ## output
     validX <- out$validX
-    eff<-out$eff
-    att<-out$att
-    att.avg<-out$att.avg
+    eff <- out$eff
+    att <- out$att
+    att.avg <- out$att.avg
     DID <- out$sameT0
 
     if (p > 0) {
         beta <- out$beta
         if (!0 %in% I.co) {
-            if (NA%in%beta) {
-                if (sum(is.na(beta))<p) {
+            if (NA %in% beta) {
+                if (sum(is.na(beta)) < p) {
                     beta.it <- as.matrix(beta[which(!is.na(beta))])
                 } else {
-                    beta.it <- matrix(0,0,1)
+                    beta.it <- matrix(0, 0, 1)
                 }
             } else {
                 beta.it <- beta
@@ -2105,12 +2107,12 @@ synth.boot<-function(Y,
           beta.it <- beta0
         }
     } else {
-        beta.it <- beta <-matrix(0,0,1)
+        beta.it <- beta <- matrix(0, 0, 1)
     }
 
     
     if (MC == FALSE) {
-        error.co<-out$res.co ## error terms (T*Nco) contains NA unbalanced data
+        error.co <- out$res.co ## error terms (T*Nco) contains NA unbalanced data
     } else {
         error <- out$res
     }
@@ -2122,9 +2124,9 @@ synth.boot<-function(Y,
     }
     
 
-    Y.tr.bar=out$Y.bar[,1]
-    Y.ct.bar=out$Y.bar[,2]
-    Y.co.bar=out$Y.bar[,3]
+    Y.tr.bar = out$Y.bar[,1]
+    Y.ct.bar = out$Y.bar[,2]
+    Y.co.bar = out$Y.bar[,3]
 
     if (inference == "jackknife") {
         nboots <- N
@@ -2133,19 +2135,19 @@ synth.boot<-function(Y,
     
     ## bootstrapped estimates
     if (is.null(cl)) {
-        eff.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
-        Dtr.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
-        Itr.boot<-array(0,dim=c(TT,Ntr,nboots))  ## to store results
+        eff.boot <- array(0, dim = c(TT,Ntr,nboots))  ## to store results
+        Dtr.boot <- array(0, dim = c(TT,Ntr,nboots))  ## to store results
+        Itr.boot <- array(0, dim = c(TT,Ntr,nboots))  ## to store results
     } else {
-        eff.boot<-NULL
-        Dtr.boot<-NULL
-        Itr.boot<-NULL
+        eff.boot <- NULL
+        Dtr.boot <- NULL
+        Itr.boot <- NULL
     }
 
-    att.boot<-matrix(0,TT,nboots)
-    att.avg.boot<-matrix(0,nboots,1)
-    if (p>0) {
-        beta.boot<-matrix(0,p,nboots)
+    att.boot <- matrix(0, TT, nboots)
+    att.avg.boot <- matrix(0, nboots, 1)
+    if (p > 0) {
+        beta.boot <- matrix(0, p, nboots)
     }
     
     if (inference %in% c("nonparametric", "jackknife")) { ## nonparametric bootstrap
@@ -2158,6 +2160,7 @@ synth.boot<-function(Y,
         
         if (MC == FALSE) {
             if (EM == FALSE) {
+                
                 one.nonpara <- function(num = NULL){
 
                     if (!is.null(num)) {
@@ -2165,13 +2168,13 @@ synth.boot<-function(Y,
                     } else {
                         if (is.null(cl)) {
                             repeat {
-                                fake.co <- sample(id.co,Nco, replace=TRUE)
-                                if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                fake.co <- sample(id.co, Nco, replace = TRUE)
+                                if (sum(apply(as.matrix(I[,fake.co]),1,sum) >= 1) == TT) {
                                     break
                                 }
                             }
 
-                            boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                            boot.id <- c(sample(id.tr, Ntr, replace = TRUE), fake.co)
                         } else {
                             cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
                             cl.boot.uni <- unique(cl.boot)
@@ -2181,11 +2184,13 @@ synth.boot<-function(Y,
                                 boot.id <- c(boot.id, rep(which(cl == cl.boot.uni[kk]), cl.boot.count[kk]))
                             }
                         }
-
                     }
                 
                     Y.boot <- Y[,boot.id]
-                    X.boot <- X[,boot.id,,drop=FALSE]
+                    X.boot <- NULL
+                    if (p > 0) {
+                        X.boot <- X[,boot.id,,drop = FALSE]
+                    }
                     D.boot <- D[,boot.id]
                     I.boot <- I[,boot.id]
                     W.boot <- NULL
@@ -2194,6 +2199,7 @@ synth.boot<-function(Y,
                     }
 
                     if (sum(D.boot) == 0) { ## no treated observations
+                        
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
                                       att = NA,
@@ -2201,12 +2207,16 @@ synth.boot<-function(Y,
                                       D.tr = NA,
                                       I.tr = NA)
                         return(boot0)
+                    
                     } else {
-                        boot <- try(synth.core(Y.boot, X.boot, D.boot, I=I.boot,
-                                           W = W.boot, force = force, r = out$r.cv, CV=0,
-                                           tol = tol, AR1 = AR1,
-                                           beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                        boot <- try(synth.core(Y.boot, X.boot, D.boot, I = I.boot,
+                                               W = W.boot, force = force, r = out$r.cv, CV = 0,
+                                               tol = tol, AR1 = AR1,
+                                               beta0 = beta.it, norm.para = norm.para, boot = 1), 
+                                    silent = TRUE)
+                        
                         if ('try-error' %in% class(boot)) {
+                            
                             boot0 <- list(att.avg = NA, 
                                           beta = NA,
                                           att = NA,
@@ -2214,12 +2224,25 @@ synth.boot<-function(Y,
                                           D.tr = NA,
                                           I.tr = NA)
                             return(boot0)
+                        
                         } else {
-                            return(boot)
+                            if ("eff" %in% names(boot)) {
+                                return(boot)
+                            } else {
+                                boot0 <- list(att.avg = NA, 
+                                          beta = NA,
+                                          att = NA,
+                                          eff = NA,
+                                          D.tr = NA,
+                                          I.tr = NA)
+                                return(boot0)
+
+                            }
                         }
                     }
                 } 
             } else { # the case of EM
+                
                 one.nonpara <- function(num = NULL){
                 
                     if (!is.null(num)) {
@@ -2227,13 +2250,13 @@ synth.boot<-function(Y,
                     } else {
                         if (is.null(cl)) {
                             repeat {
-                                fake.co <- sample(id.co,Nco, replace=TRUE)
-                                if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                                fake.co <- sample(id.co, Nco, replace = TRUE)
+                                if (sum(apply(as.matrix(I[,fake.co]), 1, sum) >= 1) == TT) {
                                     break
                                 }
                             }
 
-                            boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                            boot.id <- c(sample(id.tr, Ntr, replace = TRUE), fake.co)
                         } else {
                             cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
                             cl.boot.uni <- unique(cl.boot)
@@ -2246,7 +2269,10 @@ synth.boot<-function(Y,
                     }
                                     
                     Y.boot <- Y[,boot.id]
-                    X.boot <- X[,boot.id,,drop=FALSE]
+                    X.boot <- NULL
+                    if (p > 0) {
+                        X.boot <- X[,boot.id,,drop = FALSE]
+                    }
                     D.boot <- D[,boot.id]
                     I.boot <- I[,boot.id]
                     W.boot <- NULL
@@ -2255,6 +2281,7 @@ synth.boot<-function(Y,
                     }
 
                     if (sum(D.boot) == 0) { ## no treated observations
+                        
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
                                       att = NA,
@@ -2262,11 +2289,14 @@ synth.boot<-function(Y,
                                       D.tr = NA,
                                       I.tr = NA)
                         return(boot0)
+                    
                     } else {
-                        boot <- try(synth.em(Y = Y.boot, X = X.boot, D = D.boot, I=I.boot,
-                                       W = W.boot, force = force, r = out$r.cv,
-                                       tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                        boot <- try(synth.em(Y = Y.boot, X = X.boot, D = D.boot, I = I.boot,
+                                             W = W.boot, force = force, r = out$r.cv,
+                                             tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                        
                         if ('try-error' %in% class(boot)) {
+                            
                             boot0 <- list(att.avg = NA, 
                                           beta = NA,
                                           att = NA,
@@ -2274,8 +2304,21 @@ synth.boot<-function(Y,
                                           D.tr = NA,
                                           I.tr = NA)
                             return(boot0)
+                        
                         } else {
-                            return(boot)
+                            if ("eff" %in% names(boot)) {
+                                return(boot)
+                            } else {
+                                boot0 <- list(att.avg = NA, 
+                                          beta = NA,
+                                          att = NA,
+                                          eff = NA,
+                                          D.tr = NA,
+                                          I.tr = NA)
+                                return(boot0)
+
+                            }
+                            
                         }
                     }
                 } 
@@ -2287,8 +2330,8 @@ synth.boot<-function(Y,
                     boot.id <- (1:N)[-num]
                 } else {
                     if (is.null(cl)) {
-                        fake.co <- sample(id.co,Nco, replace=TRUE)
-                        boot.id<-c(sample(id.tr,Ntr,replace=TRUE), fake.co)
+                        fake.co <- sample(id.co, Nco, replace = TRUE)
+                        boot.id <- c(sample(id.tr, Ntr, replace = TRUE), fake.co)
                     } else {
                         cl.boot <- sample(cl.unique, length(cl.unique), replace = TRUE)
                         cl.boot.uni <- unique(cl.boot)
@@ -2301,7 +2344,10 @@ synth.boot<-function(Y,
                 }
                 
                 Y.boot <- Y[,boot.id]
-                X.boot <- X[,boot.id,,drop=FALSE]
+                X.boot <- NULL
+                if (p > 0) {
+                    X.boot <- X[,boot.id,,drop = FALSE]
+                }
                 D.boot <- D[,boot.id]
                 I.boot <- I[,boot.id]
                 W.boot <- NULL
@@ -2309,11 +2355,12 @@ synth.boot<-function(Y,
                     W.boot <- W[,boot.id]
                 }
 
-                con1 <- sum(apply(I.boot,1,sum)>=1) == TT
-                con2 <- sum(apply(I.boot,2,sum)>=1) == N
+                con1 <- sum(apply(I.boot,1,sum) >= 1) == TT
+                con2 <- sum(apply(I.boot,2,sum) >= 1) == N
                 con3 <- sum(D.boot) > 0
 
                 if (!is.null(num) && (!con1 || !con2 || !con3)) {
+                    
                     boot0 <- list(att.avg = NA, 
                                   beta = NA,
                                   att = NA,
@@ -2321,12 +2368,14 @@ synth.boot<-function(Y,
                                   D.tr = NA,
                                   I.tr = NA)
                     return(boot0)
+                
                 } else {
-                    boot <- try(synth.mc(Y.boot, X.boot, D.boot, I=I.boot,
-                                   W = W.boot, force = force, 
-                                   lambda = out$lambda.cv, hasF = out$validF, 
-                                   CV = 0, tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para), silent = TRUE)
+                    boot <- try(synth.mc(Y.boot, X.boot, D.boot, I = I.boot,
+                                         W = W.boot, force = force, 
+                                         lambda = out$lambda.cv, hasF = out$validF, 
+                                         CV = 0, tol = tol, AR1 = AR1, beta0 = beta.it, norm.para = norm.para), silent = TRUE)
                     if ('try-error' %in% class(boot)) {
+                        
                         boot0 <- list(att.avg = NA, 
                                       beta = NA,
                                       att = NA,
@@ -2334,8 +2383,20 @@ synth.boot<-function(Y,
                                       D.tr = NA,
                                       I.tr = NA)
                         return(boot0)
+                    
                     } else {
-                        return(boot)
+                        if ("eff" %in% names(boot)) {
+                            return(boot)
+                        } else {
+                            boot0 <- list(att.avg = NA, 
+                                      beta = NA,
+                                      att = NA,
+                                      eff = NA,
+                                      D.tr = NA,
+                                      I.tr = NA)
+                            return(boot0)
+
+                        }
                     }
                 }                        
             } 
@@ -2357,11 +2418,12 @@ synth.boot<-function(Y,
                                 }
 
             for (j in 1:nboots) { 
-                att.boot[,j]<-boot.out[[j]]$att
-                att.avg.boot[j,]<-boot.out[[j]]$att.avg  
-                if (p>0) {
-                    beta.boot[,j]<-boot.out[[j]]$beta
+                att.boot[,j] <- boot.out[[j]]$att
+                att.avg.boot[j,] <- boot.out[[j]]$att.avg  
+                if (p > 0) {
+                    beta.boot[,j] <- boot.out[[j]]$beta
                 }
+                
                 if (inference != "jackknife") {
                     if (is.null(cl)) {
                         eff.boot[,,j] <- boot.out[[j]]$eff
@@ -2374,13 +2436,14 @@ synth.boot<-function(Y,
                     }
                 }      
             } 
+        
         } else {
             for (j in 1:nboots) { 
                 boot <- one.nonpara(boot.seq[j]) 
-                att.boot[,j]<-boot$att
-                att.avg.boot[j,]<-boot$att.avg
-                if (p>0) {
-                    beta.boot[,j]<-boot$beta
+                att.boot[,j] <- boot$att
+                att.avg.boot[j,] <- boot$att.avg
+                if (p > 0) {
+                    beta.boot[,j] <- boot$beta
                 }
                 if (inference != "jackknife") {
                     if (is.null(cl)) {
@@ -2395,7 +2458,7 @@ synth.boot<-function(Y,
                 }
                 
                 ## report progress
-                if (j%%100==0)  {
+                if (j %% 100 == 0)  {
                     cat(".")   
                 }  
             }  
@@ -2409,79 +2472,96 @@ synth.boot<-function(Y,
         if (EM == FALSE) { # the case without EM
             ## y fixed
             if (is.null(norm.para)) {
-                error.co<-out$res.co ## contains NA unbalanced data 
-                Y.fixed<-Y
-                Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
-                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+                
+                error.co <- out$res.co ## contains NA unbalanced data 
+                Y.fixed <- Y
+                Y.fixed[, id.tr] <- as.matrix(out$Y.ct)
+                Y.fixed[, id.co] <- Y.fixed[, id.co] - error.co
+            
             } else {
-                error.co<-out$res.co/norm.para[1]
-                Y.fixed<-Y
-                Y.fixed[,id.tr]<-as.matrix(out$Y.ct/norm.para[1])
-                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+                
+                error.co <- out$res.co/norm.para[1]
+                Y.fixed <- Y
+                Y.fixed[, id.tr] <- as.matrix(out$Y.ct/norm.para[1])
+                Y.fixed[, id.co] <- Y.fixed[, id.co] - error.co
             }
             
-            Y.fixed[which(I==0)] <- 0
+            Y.fixed[which(I == 0)] <- 0
 
             draw.error <- function() {
                 ## draw 1 prediction error at a time      
                 repeat {
-                    fake.tr<-sample(id.co,1,replace=FALSE)
-                    if (fake.tr%in%valid.co) {
+                    fake.tr <- sample(id.co, 1, replace = FALSE)
+                    if (fake.tr %in% valid.co) {
                         break
                     }
                 }
             
-                id.co.rest<-id.co[which(!id.co%in%fake.tr)]
+                id.co.rest <- id.co[which(!id.co %in% fake.tr)]
                 ## resample control, to smooth CV prediction error
                 repeat {
-                    id.co.pseudo <- sample(id.co.rest, Nco, replace=TRUE)
-                    if (sum(apply(as.matrix(I[,id.co.pseudo]),1,sum)>=1)==TT) {
+                    id.co.pseudo <- sample(id.co.rest, Nco, replace = TRUE)
+                    if (sum(apply(as.matrix(I[, id.co.pseudo]), 1, sum) >= 1) == TT) {
                         break
                     }
                 }
                       
-                id.pseudo<-c(rep(fake.tr,Ntr),id.co.pseudo)  ## Ntr + ...
-                I.id.pseudo<-I[,id.pseudo] 
+                id.pseudo <- c(rep(fake.tr, Ntr), id.co.pseudo)  ## Ntr + ...
+                I.id.pseudo <- I[, id.pseudo] 
                 
                 ## obtain the prediction eror
-                D.pseudo<-D[,c(id.tr,id.co.pseudo)]  ## fake.tr + control left
-                Y.pseudo<-Y[,id.pseudo]
-                X.pseudo<-X[,id.pseudo,,drop=FALSE]
+                D.pseudo<-D[, c(id.tr, id.co.pseudo)]  ## fake.tr + control left
+                Y.pseudo<-Y[, id.pseudo]
+                ## X.pseudo<-X[,id.pseudo,,drop = FALSE]
+                X.pseudo <- NULL
+                if (p > 0) {
+                    X.pseudo<-X[,id.pseudo,,drop = FALSE]
+                }
                 W.pseudo <- NULL
                 if (!is.null(W)) {
-                    W.boot <- W[,id.pseudo]
+                    W.pseudo <- W[,id.pseudo]
                 }
                 ## output
-                synth.out <- synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
+                synth.out <- try(synth.core(Y = Y.pseudo, X = X.pseudo, D = D.pseudo,
                                         I = I.id.pseudo, W = W.pseudo, 
                                         force = force, r = out$r.cv, CV = 0,
                                         tol = tol, AR1 = AR1, beta0 = beta.it,
-                                        norm.para = norm.para, boot = 1)
-                if (is.null(norm.para)) {
-                    output <- synth.out$eff
-                } else {
-                    output <- synth.out$eff/norm.para[1]
-                }
-                           
-                return(as.matrix(output)) ## TT * Ntr
+                                        norm.para = norm.para, boot = 1), silent = TRUE)
                 
+                if ('try-error' %in% class(synth.out)) {
+                    return(matrix(NA, TT, Ntr))
+                } else {
+
+                    if ("eff" %in% names(synth.out)) {
+                        if (is.null(norm.para)) {
+                            output <- synth.out$eff
+                        } else {
+                            output <- synth.out$eff/norm.para[1]
+                        }
+                                   
+                        return(as.matrix(output)) ## TT * Ntr
+                    } else {
+                        return(matrix(NA, TT, Ntr))
+                    }
+                }
+                      
             }
 
             cat("\rSimulating errors ...")
             if (parallel == TRUE) {
                 error.tr <- foreach(j = 1:nboots,
                                     .combine = function(...) abind(...,along=3),
-                                    .multicombine=TRUE,
+                                    .multicombine = TRUE,
                                     .export = c("synth.core"),
                                     .packages = c("gsynth"),
                                     .inorder = FALSE)  %dopar% {
                                         return(draw.error())
                                     } 
             } else {
-                error.tr<-array(NA,dim=c(TT,Ntr,nboots))
+                error.tr <- array(NA, dim = c(TT, Ntr, nboots))
                 for (j in 1:nboots) {
                     error.tr[,,j] <- draw.error()
-                    if (j%%100==0) {
+                    if (j %% 100 == 0) {
                         cat(".")
                     }
                 }
@@ -2489,74 +2569,89 @@ synth.boot<-function(Y,
             
             if (0%in%I) {
                 ## calculate vcov of ep_tr
-                error.tr.adj <- array(NA,dim=c(TT,nboots,Ntr))
+                na.sum <- sapply(1:nboots, function(vec){sum(is.na(c(error.tr[,,vec])))})
+                na.rm <- na.sum == TT * Ntr
+                na.rm.count <- sum(na.rm)
+                rm.pos <- which(na.rm == TRUE)
+
+                if (na.rm.count > 0) {
+                    if (na.rm.count == nboots) {
+                        stop("fail to simulate errors.\n")
+                    }
+                    error.tr <- error.tr[,,-rm.pos, drop = FALSE]
+                }
+
+                error.tr.adj <- array(NA, dim = c(TT, nboots - na.rm.count, Ntr))
                 for(i in 1:Ntr){
                     error.tr.adj[,,i] <- error.tr[,i,]
                 }
-                vcov_tr<-array(NA,dim=c(TT,TT,Ntr))
+                vcov_tr <- array(NA, dim = c(TT, TT, Ntr))
                 for(i in 1:Ntr){
-                    vcov_tr[,,i]<-res.vcov(res=error.tr.adj[,,i],
-                                           cov.ar=cov.ar)
-                    vcov_tr[,,i][is.na(vcov_tr[,,i])|is.nan(vcov_tr[,,i])] <- 0
+                    vcov_tr[,,i] <- res.vcov(res = error.tr.adj[,,i],
+                                             cov.ar = cov.ar)
+                    vcov_tr[,,i][is.na(vcov_tr[,,i]) | is.nan(vcov_tr[,,i])] <- 0
                 }
                 
                 ## calculate vcov of e_co
-                vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
-                vcov_co[is.na(vcov_co)|is.nan(vcov_co)] <- 0
+                vcov_co <- res.vcov(res = error.co, cov.ar = cov.ar)
+                vcov_co[is.na(vcov_co) | is.nan(vcov_co)] <- 0
             }
 
-            one.boot <- function(){
+            one.boot <- function() {
                 ## boostrap ID
                 repeat {
                     fake.co <- sample(id.co,Nco, replace=TRUE)
-                    if (sum(apply(as.matrix(I[,fake.co]),1,sum)>=1)==TT) {
+                    if (sum(apply(as.matrix(I[,fake.co]), 1, sum) >= 1) == TT) {
                         break
                     }
                 }
-                id.boot<-c(id.tr, fake.co)
+                id.boot <- c(id.tr, fake.co)
                 
                 ## get the error for the treated and control
-                error.tr.boot<-matrix(NA,TT,Ntr)
-                if (0%in%I) {
+                error.tr.boot <- matrix(NA, TT, Ntr)
+                if (0 %in% I) {
                     
                     for (w in 1:Ntr) {
-                        error.tr.boot[,w]<-t(rmvnorm(n=1,rep(0,TT),vcov_tr[,,w],method="svd"))
+                        error.tr.boot[,w] <- t(rmvnorm(n = 1, rep(0, TT), vcov_tr[,,w], method = "svd"))
                     }
                     
-                    error.tr.boot[which(I.tr==0)] <- 0
+                    error.tr.boot[which(I.tr == 0)] <- 0
                     
                     error.co.boot <- 
-                        t(rmvnorm(n=Nco,rep(0,TT),vcov_co,method="svd"))
+                        t(rmvnorm(n = Nco, rep(0, TT), vcov_co, method = "svd"))
 
-                    error.co.boot[which(as.matrix(I[,fake.co])==0)] <- 0
+                    error.co.boot[which(as.matrix(I[,fake.co]) == 0)] <- 0
                     
                 } else {
                     for (w in 1:Ntr) {
-                        error.tr.boot[,w]<-error.tr[,w,sample(1:nboots,1,replace=TRUE)]
+                        error.tr.boot[,w] <- error.tr[,w,sample(1:nboots,1,replace = TRUE)]
                     }
-                    error.co.boot<-error.co[,sample(1:Nco,Nco,replace=TRUE)] 
+                    error.co.boot <- error.co[, sample(1:Nco, Nco, replace = TRUE)] 
                     
                 }
 
-                Y.boot<-Y.fixed[,id.boot]
-                Y.boot[,1:Ntr]<- as.matrix(Y.boot[,1:Ntr] + error.tr.boot)
+                Y.boot <- Y.fixed[,id.boot]
+                Y.boot[,1:Ntr] <- as.matrix(Y.boot[,1:Ntr] + error.tr.boot)
                 ## new treated: conterfactual+effect+ (same) new error
                 Y.boot[,(Ntr+1):length(id.boot)]<-
                 Y.boot[,(Ntr+1):length(id.boot)] + error.co.boot
                 
-                X.boot<-X[,id.boot,,drop=FALSE] 
-                D.boot<-D[,id.boot] 
-                I.boot<-I[,id.boot]
+                X.boot <- NULL
+                if (p > 0) {
+                    X.boot <- X[,id.boot,,drop = FALSE] 
+                }
+                D.boot <- D[,id.boot] 
+                I.boot <- I[,id.boot]
                 W.boot <- NULL
                 if (!is.null(W)) {
                     W.boot <- W[,id.boot]
                 }
                 
                 ## re-estimate the model 
-                boot <- try(synth.core(Y.boot, X.boot, D.boot, I=I.boot, 
-                                   W = W.boot, force = force, r = out$r.cv,
-                                   CV = 0, tol = tol, AR1 = AR1,
-                                   beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
+                boot <- try(synth.core(Y.boot, X.boot, D.boot, I = I.boot, 
+                                       W = W.boot, force = force, r = out$r.cv,
+                                       CV = 0, tol = tol, AR1 = AR1,
+                                       beta0 = beta.it, norm.para = norm.para, boot = 1), silent = TRUE)
 
                 if ('try-error' %in% class(boot)) {
                     boot0 <- list(eff = NA,
@@ -2567,35 +2662,46 @@ synth.boot<-function(Y,
                                   I.tr = NA)
                     return(boot0)
                 } else {
-                    b.out <- list(eff = boot$eff + out$eff,
-                                  att = boot$att + out$att,
-                                  att.avg = boot$att.avg + out$att.avg,
-                                  D.tr = boot$D.tr,
-                                  I.tr = boot$I.tr)
-                    if (p>0) {
-                        b.out <- c(b.out, list(beta = boot$beta))
+                    if ("eff" %in% names(boot)) {
+                        
+                        b.out <- list(eff = boot$eff + out$eff,
+                        att = boot$att + out$att,
+                        att.avg = boot$att.avg + out$att.avg,
+                        D.tr = boot$D.tr,
+                        I.tr = boot$I.tr)
+                        if (p>0) {
+                            b.out <- c(b.out, list(beta = boot$beta))
+                        }
+                        return(b.out)
+                    } else {
+                        boot0 <- list(eff = NA,
+                                  att.avg = NA, 
+                                  beta = NA,
+                                  att = NA,
+                                  D.tr = NA,
+                                  I.tr = NA)
+                        return(boot0)
                     }
-                    return(b.out)
                 }
             }         
         } else { # the case of EM
             ## y fixed
             if (is.null(norm.para)) {
-                error.co<-out$res.co ## contains NA unbalanced data 
-                Y.fixed<-Y
-                Y.fixed[,id.tr]<-as.matrix(out$Y.ct)
-                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+                error.co <- out$res.co ## contains NA unbalanced data 
+                Y.fixed <- Y
+                Y.fixed[,id.tr] <- as.matrix(out$Y.ct)
+                Y.fixed[,id.co] <- Y.fixed[,id.co]-error.co
             } else {
-                error.co<-out$res.co/norm.para[1]
-                Y.fixed<-Y
-                Y.fixed[,id.tr]<-as.matrix(out$Y.ct/norm.para[1])
-                Y.fixed[,id.co]<-Y.fixed[,id.co]-error.co
+                error.co <- out$res.co/norm.para[1]
+                Y.fixed <- Y
+                Y.fixed[,id.tr] <- as.matrix(out$Y.ct/norm.para[1])
+                Y.fixed[,id.co] <- Y.fixed[,id.co]-error.co
             }
         
             Y.fixed[which(I==0)] <- 0
 
             if (0%in%I) {
-                vcov_co <- res.vcov(res=error.co,cov.ar=cov.ar)
+                vcov_co <- res.vcov(res = error.co, cov.ar = cov.ar)
                 vcov_co[is.na(vcov_co)|is.nan(vcov_co)] <- 0
             }
             
@@ -2628,15 +2734,26 @@ synth.boot<-function(Y,
                                   I.tr = NA)
                     return(boot0)
                 } else {
-                    b.out <- list(eff = boot$eff + out$eff,
-                              att = boot$att + out$att,
-                              att.avg = boot$att.avg + out$att.avg,
-                              D.tr = boot$D.tr,
-                              I.tr = boot$I.tr)
-                    if (p>0) {
-                        b.out <- c(b.out, list(beta = boot$beta))
+                    if ("eff" %in% names(boot)) {
+                        
+                        b.out <- list(eff = boot$eff + out$eff,
+                        att = boot$att + out$att,
+                        att.avg = boot$att.avg + out$att.avg,
+                        D.tr = boot$D.tr,
+                        I.tr = boot$I.tr)
+                        if (p>0) {
+                            b.out <- c(b.out, list(beta = boot$beta))
+                        }
+                        return(b.out)
+                    } else {
+                        boot0 <- list(eff = NA,
+                                      att.avg = NA, 
+                                      beta = NA,
+                                      att = NA,
+                                      D.tr = NA,
+                                      I.tr = NA)
+                        return(boot0)
                     }
-                    return(b.out)
                 }
             }
              
@@ -2680,6 +2797,14 @@ synth.boot<-function(Y,
         } 
         cat("\r")
     }
+
+    eff.na.sum <- sapply(1:nboots, function(vec){sum(is.na(c(eff.boot[,,vec])))})
+    eff.na.count <- sum(eff.na.sum == TT * Ntr)
+    if (eff.na.count == nboots) {
+        stop("Bootstrap inference fails. Please check the data.\n")
+    }
+
+
      
    
     ####################################
