@@ -58,9 +58,9 @@ cumuEff <- function(x,                ## a gsynth object
     	if (is.null(x$est.avg)) {
     		cat("No uncertainty estimates.")
     	} else {
-    		if (sum(c(D.boot)) == 0) {
-    			cat("Cannot get uncertainty estimates.")
-    		} else {
+    		#if (sum(c(D.boot)) == 0) {
+    		#	cat("Cannot get uncertainty estimates.")
+    		#} else {
     			nboots <- length(x$att.avg.boot)
 	    		D.boot <- x$Dtr.boot
 	    		I.boot <- x$Itr.boot
@@ -80,7 +80,7 @@ cumuEff <- function(x,                ## a gsynth object
 		    		}
 	    		}
 
-    		}    		
+    		#}    		
     		
     	}
     } else {
