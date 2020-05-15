@@ -2798,9 +2798,12 @@ synth.boot<-function(Y,
         cat("\r")
     }
 
-    eff.na.sum <- sapply(1:nboots, function(vec){sum(is.na(c(eff.boot[,,vec])))})
-    eff.na.count <- sum(eff.na.sum == TT * Ntr)
-    if (eff.na.count == nboots) {
+    ##cat(nboots)
+
+    ##eff.na.sum <- sapply(1:nboots, function(vec){sum(is.na(c(eff.boot[,,vec])))})
+    ##eff.na.count <- sum(eff.na.sum == TT * Ntr)
+    eff.na.sum <- sum(is.na(c(att.avg.boot)))
+    if (eff.na.sum == nboots) {
         stop("Bootstrap inference fails. Please check the data.\n")
     }
 

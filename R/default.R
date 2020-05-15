@@ -268,6 +268,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         stop("\"inference\" option misspecified; choose from c(\"parametric\", \"nonparametric\", \"jackknife\").")
     }
 
+    if (inference == "parametric" && !is.null(cl)) {
+        cl <- NULL
+        cat("\nFor clustered bootsrap, please use the nonparametric procedure.\n")
+    }
+
     ## nboots
     if (se == TRUE & nboots <= 0) {
         stop("\"nboots\" option misspecified. Try, for example, nboots = 200.")

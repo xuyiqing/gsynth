@@ -25,7 +25,6 @@ plot.gsynth <- function(x,
                         axis.adjust = FALSE,
                         theme.bw = FALSE,
                         shade.post = NULL,
-                        legend.labs = NULL,
                         ...){
 
 
@@ -366,15 +365,9 @@ plot.gsynth <- function(x,
 
         ## legend
         set.limits = c("tr","tr.pst","co")
-        set.labels = c("Treated (Pre)", "Treated (Post)","Controls")
-        if (is.null(legend.labs)!=TRUE) {
-            if (length(set.labels)!=length(legend.labs)) {
-                stop("Wrong vector length in \"legend.labs\".")
-            } else {
-                set.labels <- as.character(legend.labs)
-            }
-        }
-        
+        set.labels = c("Treated (Pre)",
+                       "Treated (Post)",
+                       "Controls")
         if (theme.bw == FALSE) {
           set.colors = c("#FC8D6280","red","#99999950")
         } else {
@@ -576,13 +569,6 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","ct")
                         set.labels = c("Treated", "Estimated Y(0)")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
                         set.colors = c("black","steelblue")
                         set.linetypes = c("solid","longdash")
                         set.linewidth = rep(line.width[1],2)
@@ -649,14 +635,8 @@ plot.gsynth <- function(x,
                                         alpha = 0.15, fill = "steelblue")
 
                         set.limits = c("tr","co.band","ct")
-                        set.labels = c("Treated", "Controls (5-95% Quantiles)","Estimated Y(0)")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
+                        set.labels = c("Treated", "Controls (5-95% Quantiles)",
+                                       "Estimated Y(0)")
                         set.colors = c("black","#4682B480","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],4,line.width[1])
@@ -720,13 +700,6 @@ plot.gsynth <- function(x,
                         ## legend
                         set.limits = c("tr","raw.co","ct")
                         set.labels = c("Treated","Controls","Estimated Y(0)")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
                         set.colors = c("black","#4682B420","steelblue")
                         set.linetypes = c("solid","solid","longdash")
                         set.linewidth = c(line.width[1],line.width[2],line.width[1])
@@ -785,14 +758,8 @@ plot.gsynth <- function(x,
 
                         ## legend
                         set.limits = c("tr","co")
-                        set.labels = c("Treated Average", "Estimated Y(0) Average")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
+                        set.labels = c("Treated Average",
+                                       "Estimated Y(0) Average")
                         set.colors = c("black","steelblue")
                         set.linetypes = c("solid","longdash")
                         set.linewidth = rep(line.width[1],2)
@@ -864,13 +831,6 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated 5-95% Quantiles",
                                        "Controls 5-95% Quantiles")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
                         set.colors = c("black","steelblue","#77777750","#4682B480")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = c(rep(line.width[1],2),4,4)
@@ -938,13 +898,6 @@ plot.gsynth <- function(x,
                                        "Estimated Y(0) Average",
                                        "Treated Raw Data",
                                        "Controls Raw Data")
-                        if (is.null(legend.labs)!=TRUE) {
-                            if (length(set.labels)!=length(legend.labs)) {
-                                stop("Wrong vector length in \"legend.labs\".")
-                            } else {
-                                set.labels <- as.character(legend.labs)
-                            }
-                        }
                         set.colors = c("black","steelblue","#77777750","#4682B420")
                         set.linetypes = c("solid","longdash","solid","solid")
                         set.linewidth = rep(line.width,each=2)
@@ -1045,14 +998,8 @@ plot.gsynth <- function(x,
 
                 ## legend
                 set.limits = c("tr","co")
-                set.labels = c("Treated Average", "Estimated Y(0) Average")
-                if (is.null(legend.labs)!=TRUE) {
-                    if (length(set.labels)!=length(legend.labs)) {
-                        stop("Wrong vector length in \"legend.labs\".")
-                    } else {
-                        set.labels <- as.character(legend.labs)
-                    }
-                }
+                set.labels = c("Treated Average",
+                               "Estimated Y(0) Average")
                 set.colors = c("black","steelblue")
                 set.linetypes = c("solid","longdash")
                 set.linewidth = rep(line.width[1],2)
@@ -1117,14 +1064,9 @@ plot.gsynth <- function(x,
                                          alpha = 0.15, fill = "red")
 
                 set.limits = c("tr","co","tr.band")
-                set.labels = c("Treated Average", "Estimated Y(0) Average","Treated 5-95% Quantiles")
-                if (is.null(legend.labs)!=TRUE) {
-                    if (length(set.labels)!=length(legend.labs)) {
-                        stop("Wrong vector length in \"legend.labs\".")
-                    } else {
-                        set.labels <- as.character(legend.labs)
-                    }
-                }
+                set.labels = c("Treated Average",
+                               "Estimated Y(0) Average",
+                                "Treated 5-95% Quantiles")
                 set.colors = c("black","steelblue","#77777750")
                 set.linetypes = c("solid","longdash","solid")
                 set.linewidth = c(rep(line.width[1],2),4)
@@ -1189,13 +1131,6 @@ plot.gsynth <- function(x,
                 set.labels = c("Treated Average",
                                "Estimated Y(0) Average",
                                "Treated Raw Data")
-                if (is.null(legend.labs)!=TRUE) {
-                    if (length(set.labels)!=length(legend.labs)) {
-                        stop("Wrong vector length in \"legend.labs\".")
-                    } else {
-                        set.labels <- as.character(legend.labs)
-                    }
-                }
                 set.colors = c("black","steelblue","#77777750")
                 set.linetypes = c("solid","longdash","solid")
                 set.linewidth = c(rep(line.width[1],2),line.width[2])

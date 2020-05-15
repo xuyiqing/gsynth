@@ -42,8 +42,7 @@
     Useful when class of time variable is string and data magnitude is large.}
   \item{theme.bw}{a logical flag indicating whether to use a black/white theme.}
   \item{shade.post}{a logical flag controlling whether to shade the post-treatment periods.}
-  \item{legend.lab}{a string vector specifying labels shown in the legends.}
-  \item{\dots}{other argv.}  
+  \item{\dots}{other argv.}
 }
 \details{
   \code{plot.gsynth} visualizes the raw data used by, or estimation
