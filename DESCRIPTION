@@ -1,8 +1,8 @@
 Package: gsynth
 Type: Package
 Title: Generalized Synthetic Control Method
-Version: 1.1.6
-Date: 2020-05-15
+Version: 1.1.7
+Date: 2020-10-29
 Author: Yiqing Xu, Licheng Liu
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
 Description: Provides causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model that incorporates unit-specific intercepts interacted with time-varying coefficients. This method generalizes the synthetic control method to the case of multiple treated units and variable treatment periods, and improves efficiency and interpretability. This version supports unbalanced panels and implements the matrix completion method. Main reference: Yiqing Xu (2017) <doi:10.1017/pan.2016.2>.

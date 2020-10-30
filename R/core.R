@@ -2849,80 +2849,60 @@ synth.boot<-function(Y,
         }
     }
 
+    # att by time
     if (inference == "jackknife") {
-
         att.j <- jackknifed(att, att.boot, alpha)
         est.att <- cbind(att, att.j$se, att.j$CI.l, att.j$CI.u, att.j$P, ntreated)
-
     } else {
-        conf.lvl.lb <- alpha/2 
-        conf.lvl.ub <- 1 - alpha/2
-
-        CI.att <- t(apply(att.boot, 1, function(vec) 
-            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
         se.att <- apply(att.boot, 1, function(vec) sd(vec, na.rm=TRUE))
-        pvalue.att <- apply(att.boot, 1, get.pvalue)
-
+        CI.att <- cbind(att - se.att * qnorm(1-alpha/2), att + se.att * qnorm(1-alpha/2)) # normal approximation
+        pvalue.att <- (1-pnorm(abs(att/se.att)))*2
         est.att <- cbind(att, se.att, CI.att, pvalue.att, ntreated)
-
     }
-    colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper",
-                               "p.value", "n.Treated")
+    colnames(est.att) <- c("ATT", "S.E.", "CI.lower", "CI.upper","p.value", "n.Treated")
 
     
     ## average (over time) ATT
     if (inference == "jackknife") {
-        ## average (over time) ATT
         att.avg.j <- jackknifed(att.avg, att.avg.boot, alpha)
         est.avg <- t(as.matrix(c(att.avg, att.avg.j$se, att.avg.j$CI.l, att.avg.j$CI.u, att.avg.j$P)))
-
     } else {
-        CI.avg <- quantile(att.avg.boot, c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)
         se.avg <- sd(att.avg.boot, na.rm=TRUE)
-        pvalue.avg <- get.pvalue(att.avg.boot)
+        CI.avg <- c(att.avg - se.avg * qnorm(1-alpha/2), att.avg + se.avg * qnorm(1-alpha/2))
+        pvalue.avg <- (1-pnorm(abs(att.avg/se.avg)))*2
         est.avg <- t(as.matrix(c(att.avg, se.avg, CI.avg, pvalue.avg)))
-
-    }
-    
-    colnames(est.avg) <- c("ATT.avg", "S.E.", "CI.lower", "CI.upper", "p.value")
-    rownames(est.avg) <- ""
+    }    
+    colnames(est.avg) <- c("Estimate", "S.E.", "CI.lower", "CI.upper", "p.value")
+    rownames(est.avg) <- "ATT.avg"
     
     ## individual effects
     if (inference == "parametric") {
-        CI.ind <- apply(eff.boot,c(1,2),function(vec)
-            quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)) ## 2*T*Ntr
         est.ind <- array(NA,dim=c(TT, 5, Ntr)) ## eff, se, CI.lower, CI.upper
         est.ind[,1,] <- eff
         est.ind[,2,] <- apply(eff.boot,c(1,2),sd)
-        est.ind[,3,] <- CI.ind[1,,]
-        est.ind[,4,] <- CI.ind[2,,]
-        est.ind[,5,] <- apply(eff.boot,c(1,2),get.pvalue)
-
+        est.ind[,3,] <- est.ind[,1,] - est.ind[,2,] * qnorm(1-alpha/2)
+        est.ind[,4,] <- est.ind[,1,] + est.ind[,2,] * qnorm(1-alpha/2)
+        est.ind[,5,] <- (1-pnorm(abs(est.ind[,1,]/est.ind[,2,])))*2
         dimnames(est.ind)[[1]] <- rownames(est.att)
-        dimnames(est.ind)[[2]] <- c("EFF", "S.E.", "CI.lower", "CI.upper", "p.value")
+        dimnames(est.ind)[[2]] <- c("Eff", "S.E.", "CI.lower", "CI.upper", "p.value")
     }
-
     colboot <- sapply(1:nboots, function(i){paste("boot",i,sep="")})
 
     
-    ## regression coefficents
+    ## regression coefficients
     if (p>0) {
         if (inference == "jackknife") {
             beta.j <- jackknifed(beta, beta.boot, alpha)
             est.beta <- cbind(beta, beta.j$se, beta.j$CI.l, beta.j$CI.u, beta.j$P)
         } else {
-            CI.beta<-t(apply(beta.boot, 1, function(vec)
-                quantile(vec,c(conf.lvl.lb, conf.lvl.ub), na.rm=TRUE)))
             se.beta<-apply(beta.boot, 1, function(vec)sd(vec,na.rm=TRUE))
-            pvalue.beta <- apply(beta.boot, 1, get.pvalue)
-            ## beta[na.pos] <- NA
+            CI.beta<-cbind(c(beta) - se.beta * qnorm(1-alpha/2), c(beta) + se.beta * qnorm(1-alpha/2))
+            pvalue.beta <- (1-pnorm(abs(beta/se.beta)))*2
             est.beta<-cbind(beta, se.beta, CI.beta, pvalue.beta)
-        }
-        
+        }        
         colnames(est.beta)<-c("beta", "S.E.", "CI.lower", "CI.upper", "p.value")
         colnames(beta.boot) <- colboot
     }
-
     rownames(att.boot) <- rownames(est.att)
     colnames(att.boot) <- colboot
 
