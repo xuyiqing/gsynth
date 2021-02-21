@@ -70,8 +70,10 @@ cumuEff <- function(x,                ## a gsynth object
 
 	    		if (class(D.boot) == "array") {
 	    			for (i in 1:nboots) {
-		    			catt.boot[, i] <- getEffect(D.boot[,,i], I.boot[,,i], 
-		    				                        eff.boot[,,i], cumu, period)
+		    			catt.boot[, i] <- getEffect(as.matrix(D.boot[,,i]), 
+		    				                        as.matrix(I.boot[,,i]), 
+		    				                        as.matrix(eff.boot[,,i]), 
+		    				                        cumu, period)
 		    		}
 	    		} else {
 	    			for (i in 1:nboots) {
