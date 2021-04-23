@@ -5,6 +5,8 @@ importFrom("stats", "na.omit", "quantile", "sd", "var", "cov", "lm", "predict",
 "as.formula", "pnorm", "qnorm")
 importFrom("foreach","foreach","%dopar%")
 importFrom("doParallel","registerDoParallel")
+importFrom("future","makeClusterPSOCK")
+importFrom("doRNG","registerDoRNG")
 importFrom("parallel", "detectCores", "stopCluster", "makeCluster")
 importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
            "geom_point", "labs", "theme_bw", "scale_fill_manual", 

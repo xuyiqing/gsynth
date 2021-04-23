@@ -1,7 +1,7 @@
 Package: gsynth
 Type: Package
 Title: Generalized Synthetic Control Method
-Version: 1.1.8
+Version: 1.1.9
 Date: 2021-02-21
 Author: Yiqing Xu, Licheng Liu
 Maintainer: Yiqing Xu <yiqingxu@ucsd.edu>
