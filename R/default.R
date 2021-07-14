@@ -28,18 +28,18 @@
 
 gsynth <- function(formula = NULL, data, # a data frame (long-form)
                    Y, # outcome
-                   D, # treatment 
+                   D, # treatment
                    X = NULL, # time-varying covariates
                    na.rm = FALSE, # remove missing values
                    index, # c(unit, time) indicators
                    weight = NULL, # weighting
                    force = "unit", # fixed effects demeaning
-                   cl = NULL, 
+                   cl = NULL,
                    r = 0, # nubmer of factors
                    lambda = NULL, # mc method: regularization parameter
                    nlambda = 10, ## mc method: regularization parameter
                    CV = TRUE, # cross-validation
-                   criterion = "mspe", # mspe or pc 
+                   criterion = "mspe", # mspe or pc
                    k = 5, # cross-validation times
                    EM = FALSE, # EM algorithm
                    estimator = "ife", # ife/mc method
@@ -62,21 +62,21 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
 
 gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
                            Y, # outcome
-                           D, # treatment 
+                           D, # treatment
                            X = NULL, # time-varying covariates
                            na.rm = FALSE, # remove missing values
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
-                           cl = NULL, 
+                           cl = NULL,
                            r = 0, # nubmer of factors
                            lambda = NULL, # mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
                            CV = TRUE, # cross-validation
-                           criterion = "mspe", # mspe or pc 
+                           criterion = "mspe", # mspe or pc
                            k = 5, # cross-validation times
                            EM = FALSE, # EM algorithm
-                           estimator = "ife", # ife/mc method 
+                           estimator = "ife", # ife/mc method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "nonparametric", # type of inference
@@ -109,12 +109,12 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
     ## run the model
     out <- gsynth.default(formula = NULL, data = data, Y = Yname,
                           D = Dname, X = Xname,
-                          na.rm, index, weight, force, cl, r, lambda, nlambda, 
-                          CV, criterion, k, EM, estimator, se, nboots, 
-                          inference, cov.ar, 
+                          na.rm, index, weight, force, cl, r, lambda, nlambda,
+                          CV, criterion, k, EM, estimator, se, nboots,
+                          inference, cov.ar,
                           parallel, cores, tol, seed, min.T0, alpha,
                           normalize)
-    
+
     out$call <- match.call()
     out$formula <- formula
     ## print(out)
@@ -126,20 +126,20 @@ gsynth.formula <- function(formula = NULL,data, # a data frame (long-form)
 
 gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            Y, # outcome
-                           D, # treatment 
+                           D, # treatment
                            X = NULL, # time-varying covariates
                            na.rm = FALSE, # remove missing values
                            index, # c(unit, time) indicators
                            weight = NULL,
                            force = "unit", # fixed effects demeaning
-                           cl = NULL, 
+                           cl = NULL,
                            r = 0, # nubmer of factors
                            lambda = NULL, ## mc method: regularization parameter
                            nlambda = 10, ## mc method: regularization parameter
                            CV = TRUE, # cross-validation
-                           criterion = "mspe", # mspe or pc 
+                           criterion = "mspe", # mspe or pc
                            k = 5, # cross-validation times
-                           EM = FALSE, # EM algorithm 
+                           EM = FALSE, # EM algorithm
                            estimator = "ife", # ife/mc method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
@@ -152,11 +152,11 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                            min.T0 = 5,
                            alpha = 0.05,
                            normalize = FALSE
-                           ) {  
-    
+                           ) {
+
     ##-------------------------------##
     ## Checking Parameters
-    ##-------------------------------## 
+    ##-------------------------------##
     ## library(ggplot2)
 
     if (is.data.frame(data) == FALSE || length(class(data)) > 1) {
@@ -167,7 +167,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (length(index) != 2 | sum(index %in% colnames(data)) != 2) {
         stop("\"index\" option misspecified. Try, for example, index = c(\"unit.id\", \"time\").")
     }
-    
+
     unique_label <- unique(paste(data[,index[1]],"_",data[,index[2]],sep=""))
     if (length(unique_label)!= dim(data)[1]) {
         stop("Some records may be duplicated or wrongly marked in the data set. Check the index.")
@@ -180,12 +180,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         force <- 1
     } else if (force == "time") { # force = 2 "time": time fixed-effect
         force <- 2
-    } else if (force == "two-way") { # force = 3 "two-way": two-way fixed-effect 
+    } else if (force == "two-way") { # force = 3 "two-way": two-way fixed-effect
         force <- 3
     }
     if (!force %in% c(0, 1, 2, 3)) {
         stop("\"force\" option misspecified; choose from c(\"none\", \"unit\", \"time\", \"two-way\").")
-    } 
+    }
 
     ## estimator
     if (!estimator %in% c("ife","mc")) {
@@ -206,9 +206,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## lambda
     if ( MC == TRUE & !is.null(lambda)) {
         if (sum(lambda < 0) > 0) {
-            stop("\"lambda\" option misspecified. It must be non-negative.")    
+            stop("\"lambda\" option misspecified. It must be non-negative.")
         }
-    } 
+    }
 
     ## CV
     if (CV == TRUE) {
@@ -220,7 +220,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             if (nlambda <= 0) {
                 stop("\"nlambda\" option misspecified.")
             }
-        }  
+        }
     } else {
         if (MC == TRUE && is.null(lambda)) {
             stop("The value of \"lambda\" should be specified.")
@@ -245,17 +245,17 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## EM
     if (is.logical(EM) == FALSE & !EM%in%c(0, 1)) {
         stop("EM is not a logical flag.")
-    }   
+    }
 
     ## se
     if (is.logical(se) == FALSE & !se%in%c(0, 1)) {
         stop("se is not a logical flag.")
-    } 
+    }
 
     ## normalize
     if (is.logical(normalize) == FALSE & !normalize%in%c(0, 1)) {
         stop("normalize is not a logical flag.")
-    } 
+    }
 
     ## inference
     if (inference == "para") {
@@ -273,6 +273,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         cat("\nFor clustered bootsrap, please use the nonparametric procedure.\n")
     }
 
+    # Do not attempt to use the parametric bootstrap if the number of treated units is fewer than 40
+    n_treated = length(unique(data[data[,D] ==  1, index[1]]))
+    if (inference == "nonparametric" && n_treated < 40 && se) {
+        stop("Nonparametric bootstrap is inappropriate when there are fewer than 40 treated units")
+    }
+
     ## nboots
     if (se == TRUE & nboots <= 0) {
         stop("\"nboots\" option misspecified. Try, for example, nboots = 200.")
@@ -285,7 +291,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                 stop("\"cores\" option misspecified. Try, for example, cores = 2.")
             }
         }
-    } 
+    }
 
     ## tol
     if (tol <= 0) {
@@ -294,7 +300,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
 
     ## cl
     if (alpha <= 0 || alpha >= 1) {
-        stop("\"alpha\" should be in the range of 0 and 1. Try, for example, alpha = 0.05.")    
+        stop("\"alpha\" should be in the range of 0 and 1. Try, for example, alpha = 0.05.")
     }
 
     ## mc inference
@@ -314,7 +320,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ## remove missing values
     if (is.logical(na.rm) == FALSE & !na.rm%in%c(0, 1)) {
         stop("na.rm is not a logical flag.")
-    } 
+    }
 
     ## data <- data[,c(index, Y, D, X, weight)] ## some variables may not be used
     ## if (na.rm == TRUE) {
@@ -322,7 +328,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ##     data <- na.omit(data)
     ## }
 
-    ## select variable that are to be used 
+    ## select variable that are to be used
     if (!is.null(cl)) {
         if (cl %in% index) {
             data <- data[,c(index, Y, D, X, weight)]
@@ -340,7 +346,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
 
     ##-------------------------------##
     ## Parsing raw data
-    ##-------------------------------##  
+    ##-------------------------------##
 
     ##store variable names
     data.old <- data
@@ -368,16 +374,16 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (!(class(data[, Dname]) %in% c("numeric", "integer"))) {
         ## data[, Dname] <- as.numeric(as.character(data[, Dname]))
         stop("Treatment indicator should be a numberic value.")
-    } 
+    }
 
     if (class(data[, index[1]]) == "factor") {
         data[, index[1]] <- as.character(data[, index[1]])
-    } 
+    }
 
     if (class(data[, index[2]]) == "factor") {
         data[, index[2]] <- as.character(data[, index[2]])
-    } 
-    
+    }
+
     id <- index[1]
     time <- index[2]
     TT <- length(unique(data[,time]))
@@ -388,7 +394,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
 
     ## sort data
     data <- data[order(data[,id], data[,time]), ]
-    
+
     ## check missingness
     if (sum(is.na(data[, Yname])) > 0) {
         stop(paste("Missing values in variable \"", Yname,"\".", sep = ""))
@@ -420,28 +426,28 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
     if (sum(is.na(data[, time])) > 0) {
         stop(paste("Missing values in variable \"", time,"\".", sep = ""))
-    } 
+    }
 
     ## check balanced panel and fill unbalanced panel
-    if (dim(data)[1] < TT*N) {   
+    if (dim(data)[1] < TT*N) {
         data[,time] <- as.numeric(as.factor(data[,time]))
         ## ob <- "time_ob_ls"
-        
+
         ## while (ob %in% colnames(data)) {
         ##     ob <- paste(ob, ob, sep = "_")
         ## }
 
         ## data[, ob] <- data[, time]
         ## for (i in 1:N) {
-        ##     data[data[,id] == id.series[i], ob] <- data[data[,id] == id.series[i],time] + (i - 1) * TT  
+        ##     data[data[,id] == id.series[i], ob] <- data[data[,id] == id.series[i],time] + (i - 1) * TT
         ## }
 
         ob.indicator <- data[,time]
         id.indicator <- table(data[, id])
         sub.start <- 1
-        for (i in 1:(N - 1)) { 
-            sub.start <- sub.start + id.indicator[i] 
-            sub.end <- sub.start + id.indicator[i+1] - 1 
+        for (i in 1:(N - 1)) {
+            sub.start <- sub.start + id.indicator[i]
+            sub.end <- sub.start + id.indicator[i+1] - 1
             ob.indicator[sub.start:sub.end] <- ob.indicator[sub.start:sub.end] + i * TT
         }
 
@@ -454,7 +460,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         colnames(data) <- variable
     }
 
-    ## index matrix that indicates if data is observed 
+    ## index matrix that indicates if data is observed
     I <- matrix(1, TT, N)
     Y.ind <- matrix(data[, Yname], TT, N)
     I[is.nan(Y.ind)] <- 0
@@ -463,7 +469,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (0%in%I) {
         data[is.nan(data)] <- 0
     }
-    
+
     ##treatment indicator
     D <- matrix(data[, Dname], TT, N)
 
@@ -503,7 +509,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             ##         if (tot.var.unit == 0) {
                         ## time invariant covar can be removed
             ##             xp[i] <- 1
-            ##             cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))   
+            ##             cat(paste("Variable \"", Xname[i],"\" is time-invariant.\n", sep = ""))
             ##         }
             ##     }
             ## }
@@ -514,7 +520,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             ##         Xi <- X[,,i]
             ##         Xi[which(I == 0)] <- NA
             ##         tot.var.time <- sum(apply(Xi, 1, var, na.rm = TRUE))
-            ##     } 
+            ##     }
             ##     if (!is.na(tot.var.time)) {
             ##         if (tot.var.time == 0) {
                         ## can be removed in inter_fe
@@ -522,8 +528,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             ##             cat(paste("Variable \"", Xname[i],"\" has no cross-sectional variation.\n", sep = ""))
             ##         }
             ##     }
-            ## } 
-        } 
+            ## }
+        }
     }
 
     if (!is.null(clname)) {
@@ -544,29 +550,29 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     } else {
         cl <- NULL
     }
-    
+
     tr <- D[TT,] == 1     # cross-sectional: treated unit
     ## ----------------------------------------------------------- ##
     II <- I
-    II[which(D==1)] <- 0 ## regard treated values as missing 
-    
-    ## 1. remove units that have too few observations 
+    II[which(D==1)] <- 0 ## regard treated values as missing
+
+    ## 1. remove units that have too few observations
     T0 <- apply(II, 2, sum)
     T0.min <- min(T0)
 
     if (sum(T0[which(tr == 1)] >= min.T0) == 0) {
         stop ("All treated units have been removed.\n")
-    }   
+    }
     ## T0.min : minimum T0,  min.T0: manually set
-    ## rm.tr.id: relative location of treated units (within all treated units) 
-    ## that will be removed 
+    ## rm.tr.id: relative location of treated units (within all treated units)
+    ## that will be removed
     if (T0.min < min.T0) {
         cat("Some treated units has too few pre-treatment periods. \nThey will be automatically removed.\n")
     }
 
     rm.id <- sort(which(T0 < min.T0))
     ## rm.id <- which(T0 < min.T0) ## removed id
-    ## rem.id <- which(T0 >= min.T0) ## remaining id  
+    ## rem.id <- which(T0 >= min.T0) ## remaining id
     ## rem.id <- setdiff(1:N, rm.id)
 
     if (length(rm.id) == N) {
@@ -598,7 +604,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     ## 2. check if some periods when all units are missing
-    I.use <- apply(II, 1, sum) 
+    I.use <- apply(II, 1, sum)
     if (0%in%I.use) {
         for (i in 1:TT) {
             if (I.use[i] == 0) {
@@ -607,9 +613,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         }
         TT <- TT - sum(I.use == 0)
         time.uni <- time.uni[-which(I.use == 0)]
-        
+
         I <- I[-which(I.use == 0),] ## remove that period
-        II <- II[-which(I.use == 0),] ## remove that period        
+        II <- II[-which(I.use == 0),] ## remove that period
         D <- D[-which(I.use == 0),] ## remove that period
         Y <- Y[-which(I.use == 0),] ## remove that period
 
@@ -625,7 +631,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         }
     }
 
-    ## 3. check candidate factor numbers for cross-validation 
+    ## 3. check candidate factor numbers for cross-validation
     if (MC == FALSE) { ## factor model
         T0.min.2 <- min(T0)
         if ( (length(r) == 1) & (!CV) ) {
@@ -639,7 +645,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             }
             if (con1 | con2) {
                 stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended.\n")
-            } 
+            }
         }
         if (CV) {
             con1 <- (T0.min.2 < r.end + 1) & (force%in%c(0,2))
@@ -652,7 +658,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             }
             if (con1 | con2) {
                 stop("Some treated units has too few pre-treatment periods. Please set a larger value for min.T0 to remove them. Equal or greater than ",T0.min.e," is recommended. Or you can set a smaller range of factor numbers.\n")
-            } 
+            }
         }
     }
 
@@ -680,14 +686,14 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     ##         X[,,2:(p+1)] <- X.sav
     ##     }
     ##     T <- T-1
-    ## } 
+    ## }
 
     ##-------------------------------##
     ## Register clusters
     ##-------------------------------##
-    
+
     if (se == TRUE & parallel==TRUE) {
-   
+
         if (is.null(cores) == TRUE) {
             cores <- detectCores()
         }
@@ -697,43 +703,43 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         if (is.null(seed) == FALSE) {
             registerDoRNG(seed)
         }
-        
+
 
         cat("Parallel computing ...\n")
     }
-    
+
     ##-------------------------------##
     ## run main program
     ##-------------------------------##
 
     if (se == FALSE) {
         if (MC == FALSE) {
-            if (EM == FALSE) { # the algorithm suggested in the paper 
+            if (EM == FALSE) { # the algorithm suggested in the paper
                 out <- synth.core(Y = Y, X = X, D = D, I = I, W = W,
                                   r = r, r.end = r.end, force = force,
-                                  CV = CV, criterion = criterion, tol = tol, 
+                                  CV = CV, criterion = criterion, tol = tol,
                                   AR1 = AR1, norm.para = norm.para)
 
             } else { # EM algorithm
-                if (CV == FALSE) { 
+                if (CV == FALSE) {
                     out <- synth.em(Y = Y, X = X, D = D, I = I, W = W,
                                     r = r, force = force,
                                     tol = tol, AR1 = AR1, norm.para = norm.para)
 
-                
+
                 } else { # cross-validation
                     out <- synth.em.cv(Y = Y,X = X, D = D, I = I, W = W,
-                                       r = r, r.end = r.end, 
-                                       criterion = criterion, force = force, 
+                                       r = r, r.end = r.end,
+                                       criterion = criterion, force = force,
                                        tol = tol, AR1 = AR1, norm.para = norm.para)
 
-                } 
+                }
             }
         } else {
             out <- synth.mc(Y = Y, X = X, D = D, I = I, W = W, lambda = lambda,
                             nlambda = nlambda, force = force, CV = CV, k = k,
                             tol = tol, AR1 = AR1, norm.para = norm.para)
-        } 
+        }
     } else  {
         if (is.null(seed) == FALSE) {
             set.seed(seed)
@@ -741,15 +747,15 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         out <- synth.boot(Y = Y, X = X, D = D, cl = cl, I=I, W = W, EM = EM,
                           r = r, r.end = r.end, lambda = lambda,
                           nlambda = nlambda, force = force,
-                          CV = CV, criterion = criterion, k = k, 
+                          CV = CV, criterion = criterion, k = k,
                           tol = tol, MC = MC,
                           nboots = nboots, inference = inference,
                           cov.ar = cov.ar,
-                          parallel = parallel, cores = cores,           
+                          parallel = parallel, cores = cores,
                           AR1 = AR1, norm.para = norm.para,
                           alpha = alpha)
 
-    } 
+    }
 
     if (se == TRUE & parallel == TRUE) {
         stopCluster(para.clusters)
@@ -759,12 +765,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if ( (out$validX == 0) & (p!=0) ) {
         warning("Multi-colinearity among covariates. Try removing some of them.\r")
     }
-    
-    
+
+
     ##-------------------------------##
     ## storage
-    ##-------------------------------## 
-    
+    ##-------------------------------##
+
     iname.old <- iname <- unique(sort(data.old[, id]))
     ## tname.old <- tname <- unique(sort(data.old[,time]))
     if (!0%in%I.use) {
@@ -787,7 +793,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
 
     obs.missing <- matrix(1, TT, N) ## control group:1
-    
+
     tr.pre <- out$pre
     tr.post <- out$post
 
@@ -797,9 +803,9 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
 
     if (length(rm.id) > 0) {
         obs.missing[which(I.old == 0)] <- 0 ## I: after removing I.old: total
-        obs.missing[, rm.id] <- 4 ## removed 4 
+        obs.missing[, rm.id] <- 4 ## removed 4
     } else {
-        obs.missing[which(I == 0)] <- 0 ## missing 0 ## I: total    
+        obs.missing[which(I == 0)] <- 0 ## missing 0 ## I: total
     }
     ## obs.missing[which(obs.missing==1)] <- "control"
     ## obs.missing[which(obs.missing==2)] <- "pre"
@@ -824,10 +830,10 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     colnames(out$Y.ct) <- colnames(out$Y.tr) <- colnames(out$I.tr) <- colnames(out$D.tr) <- colnames(out$post) <- colnames(out$pre) <- iname[which(out$tr == 1)]
     rownames(out$Y.ct) <- rownames(out$Y.tr) <- rownames(out$I.tr) <- rownames(out$D.tr) <- rownames(out$Y.co) <- rownames(out$post) <- rownames(out$pre) <- rownames(out$Y.bar) <- rownames(Y) <- rownames(obs.missing) <- tname
 
-    
+
     if (AR1 == TRUE) {
         tname <- tname[-1]
-    } 
+    }
     Xname.tmp <- Xname
     if (AR1 == TRUE) {
         Xname.tmp <- c(paste(Yname, "_lag", sep=""), Xname)
@@ -842,7 +848,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         if (class(out$eff.boot) == "array") {
             dimnames(out$eff.boot)[[2]] <- iname[which(out$tr == 1)]
         }
-        
+
     }
     ## eff
     colnames(out$eff) <- iname[which(out$tr == 1)]
@@ -899,7 +905,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
             rownames(out$wgt.implied) <- iname[which(out$tr == 0)]
         }
     }
-   
+
     output <- c(list(Y.dat = Y,
                      Y = Yname,
                      D = Dname,
@@ -908,15 +914,15 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
                      index = index,
                      id = iname,
                      time = tname,
-                     obs.missing = obs.missing, 
+                     obs.missing = obs.missing,
                      id.tr = iname[which(out$tr == 1)],
                      id.co = iname[which(out$tr == 0)]),
                      out)
-    
+
     if (!is.null(Wname)) {
         output <- c(output, list(W = Wname))
     }
-                
+
     if (length(rm.id) > 0) {
         removed.id <- iname.old[rm.id]
         output <- c(output,list(removed.id = removed.id))
@@ -926,5 +932,5 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     output <- c(output, list(call = match.call()))
     class(output) <- "gsynth"
     return(output)
-    
-} ## Program GSynth ends 
+
+} ## Program GSynth ends
