@@ -53,9 +53,9 @@
   \item{est.boot}{a matrix storing results from bootstraps.}
 }
 \author{
-  Yiqing Xu <yiqingxu@ucsd.edu>
-
-  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
+  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  
+  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{Jushan Bai. 2009. "Panel Data Models with Interactive Fixed
   Effects." Econometrica 77:1229--1279.}

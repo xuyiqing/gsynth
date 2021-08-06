@@ -11,21 +11,22 @@
 # main: whether to show the title;
 # nfactors: whose loadings to be plotted 
 # id: individual plot
-plot.gsynth <- function(x,  
-                        type = "gap", 
-                        xlim = NULL, 
-                        ylim = NULL,
-                        xlab = NULL, 
-                        ylab = NULL,
-                        legendOff = FALSE,
-                        raw = "none", 
-                        main = NULL,
-                        nfactors = NULL, 
-                        id = NULL,
-                        axis.adjust = FALSE,
-                        theme.bw = FALSE,
-                        shade.post = NULL,
-                        ...){
+plot.gsynth <- function(
+    x,  
+    type = "gap", 
+    xlim = NULL, 
+    ylim = NULL,
+    xlab = NULL, 
+    ylab = NULL,
+    legendOff = FALSE,
+    raw = "none", 
+    main = NULL,
+    nfactors = NULL, 
+    id = NULL,
+    axis.adjust = FALSE,
+    theme.bw = TRUE,
+    shade.post = FALSE,
+    ...){
 
 
     ##-------------------------------##

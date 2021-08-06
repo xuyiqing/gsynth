@@ -275,8 +275,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
 
     # Do not attempt to use the parametric bootstrap if the number of treated units is fewer than 40
     n_treated = length(unique(data[data[,D] ==  1, index[1]]))
-    if (inference == "nonparametric" && n_treated < 40 && se) {
-        stop("Nonparametric bootstrap is inappropriate when there are fewer than 40 treated units")
+    if (inference == "nonparametric" && n_treated < 40 && se && estimator != "mc") {
+        warning("Nonparametric bootstrap may be inappropriate when there are too few 40 treated units; consider using parametric bootstrap or jackknife.")
     }
 
     ## nboots

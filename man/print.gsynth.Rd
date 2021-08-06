@@ -8,15 +8,15 @@
   \item{\dots}{other argv.}
 }
 \author{
-  Yiqing Xu  <yiqingxu@ucsd.edu>
-
-  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
+  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  
+  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25, 
-  Iss. 1, January 2017, pp. 57-76. Available at: \url{https://doi.org/10.1017/pan.2016.2}.
+  Iss. 1, January 2017, pp. 57-76. 
 
-  For more details, see \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html}. 
+  For more details, see \url{https://yiqingxu.org/packages/gsynth/gsynth_examples.html}. 
 }
 \seealso{
   \code{\link{gsynth}} and \code{\link{plot.gsynth}}

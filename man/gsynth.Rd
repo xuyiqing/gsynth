@@ -180,9 +180,9 @@ on interactive fixed effect models.}
   \item{beta.boot}{bootstrap results for \code{beta}.}
 }
 \author{
-  Yiqing Xu <yiqingxu@ucsd.edu>
-
-  Licheng Liu <liulch.16@sem.tsinghua.edu.cn>
+  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  
+  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{
   Laurent Gobillon and Thierry Magnac, 2016.
@@ -192,11 +192,11 @@ on interactive fixed effect models.}
 
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25, 
-  Iss. 1, January 2017, pp. 57-76. Available at: \url{https://doi.org/10.1017/pan.2016.2}.
+  Iss. 1, January 2017, pp. 57-76. 
 
   Athey S, Bayati M, Doudchenko N, et al. Matrix completion methods for causal panel data models[J]. arXiv preprint arXiv:1710.10251, 2017.
   
-  For more details, see \url{http://yiqingxu.org/software/gsynth/gsynth_examples.html}.
+  For more details, see \url{https://yiqingxu.org/packages/gsynth/gsynth_examples.html}.
 
   For more details about the matrix completion method, see \url{https://github.com/susanathey/MCPanel}. 
 }
