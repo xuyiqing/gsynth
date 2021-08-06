@@ -1289,7 +1289,7 @@ plot.gsynth <- function(
               ggplot(data = data, mapping = mapping) +
               geom_density(..., fill = "gray", alpha = 0.7, color = "gray50")
             }
-            p <- ggpairs(data, mapping = aes(color = group),
+            p <- GGally::ggpairs(data, mapping = aes(color = group),
              columns = 1:nfactors,
              columnLabels = Llabel[1:nfactors],
              diag = list(continuous = my_dens),
@@ -1299,7 +1299,7 @@ plot.gsynth <- function(
               ggplot(data = data, mapping = mapping) +
               geom_density(..., alpha = 0.7, color = NA)
             }
-            p <- ggpairs(data, mapping = aes(color = group, fill = group),
+            p <- GGally::ggpairs(data, mapping = aes(color = group, fill = group),
              columns = 1:nfactors,
              columnLabels = Llabel[1:nfactors],
              diag = list(continuous = my_dens),
