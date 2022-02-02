@@ -3,10 +3,13 @@ Type: Package
 Title: Generalized Synthetic Control Method
 Version: 1.2.1
 Date: 2021-08-06
-Author: Yiqing Xu, Licheng Liu
+Authors@R: 
+  c(person("Yiqing", "Xu", ,"yiqingxu@stanford.edu", role = c("aut", "cre"), 
+  comment = c(ORCID = "0000-0003-2041-6671")),
+  person("Licheng", "Liu", ,"liulch@mit.edu", role = c("aut")))
 Maintainer: Yiqing Xu <yiqingxu@stanford.edu>
-Description: Provides causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model that incorporates unit-specific intercepts interacted with time-varying coefficients. This method generalizes the synthetic control method to the case of multiple treated units and variable treatment periods, and improves efficiency and interpretability. This version supports unbalanced panels and implements the matrix completion method. 
-URL: https://yiqingxu.org/packages/gsynth/gsynth_examples.html
+Description: Conducts causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model that incorporates unit-specific intercepts interacted with time-varying coefficients. This method generalizes the synthetic control method to the case of multiple treated units and variable treatment periods, and improves efficiency and interpretability. This version supports unbalanced panels and implements the matrix completion method. 
+URL: https://yiqingxu.org/packages/gsynth/
 NeedsCompilation: yes
 License: MIT + file LICENSE
 Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1), future (>= 1.21.0), doRNG (>= 1.8.2),

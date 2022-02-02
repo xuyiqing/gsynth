@@ -1,0 +1,470 @@
+---
+title: 'Tutorial'
+output:
+  rmarkdown::html_vignette:
+    toc: false
+    toc_depth: 4
+    number_sections: false
+bibliography: references.bib      
+vignette: >
+  %\VignetteIndexEntry{Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}  
+---
+<!-- 
+  Code to Justify Text
+    <style>
+    body {
+    text-align: justify}
+    </style>
+-->   
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```  
+
+##  Multiperiod DID
+
+Two datasets **simdata** and **turnout** are shipped with the **gsynth** package. Load these two datasets:
+
+```{r, warning=FALSE}
+library(gsynth)
+data(gsynth)
+ls()
+```
+
+We start with the first example, a simulated dataset described in the paper. There are 5 treated units, 45 control units, and 30 time periods. The treatment kicks at Period 21 for all treated units.  
+
+```{r}
+head(simdata)
+```
+
+### Visualizing data
+
+Before we conduct any statistical analysis, it is helpful to visualize the data structure and/or spot missing values (if there are any). We can easily do so with the help of **panelview**. The following figure shows that: (1) there are 5 treated units and 45 control units; (2) the treated units start to be treated in period 21; and (3) there are no missing values, which is a rare case. 
+
+```{r simdata_panelview_raw, cache = FALSE, fig.height = 10}
+## devtools::install_github('xuyiqing/panelview')   # if not already installed
+library(panelview)
+panelview(Y ~ D, data = simdata,  index = c("id","time"), pre.post = TRUE) 
+```
+
+The following line of code visualizes the outcome variable; different colors correspond to different treatment status. 
+
+```{r simdata_panelview_miss, cache = FALSE}
+panelview(Y ~ D, data = simdata,  index = c("id","time"), type = "outcome") 
+```
+
+### Estimation
+
+We estimate the model only using information of the outcome variable $Y$, the treatment indicator $D$, and two observed covariates $X_{1}$ and $X_{2}$ (as well as the group indicators $id$ and $time$). 
+
+Now we formally run the **gsynth** algorithm proposed by @Xu2017. The first variable on the right-hand-side of the formula is a binary treatment indicator. The rest of the right-hand-side variables serve as controls. The `index` option specifies the unit and time indicators. 
+
+The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. The default option is "unit" (including additive unit fixed effects). A cross-validation procedure is provided (when `CV = TRUE`) to select the number of unobserved factors within the interval of `r=c(0,5)`. When cross-validation is switched off, the first element in `r` will be set as the number of factors. 
+
+When the uncertainty estimates are needed, set `se = TRUE`. When the number of treated units is small, a parametric bootstrap procedure is preferred. Alternatively, one can use a non-parametric bootstrap procedure by setting `inference = "nonparametric"`; it only works well when the treatment group is relatively large, e.g. $N_{tr}> 40$). The number of bootstrap runs is set by `nboots`.
+
+When dealing with clustered data, for example, panel data with regionally clustered 
+units, one can use the cluster bootstrap procedure by specifying name of the cluster 
+variable in option `cl`. For example, `cl = "state"` for city-level data. 
+
+```{r sim1, cache = TRUE}
+system.time(
+    out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
+                  index = c("id","time"), force = "two-way", 
+                  CV = TRUE, r = c(0, 5), se = TRUE, 
+                  inference = "parametric", nboots = 1000, 
+                  parallel = FALSE)
+)
+```
+
+Because the core function of **gsynth** is written in C++, the algorithm runs relatively fast. The entire procedure (including cross-validation and 1,000 bootstrap runs) takes about 6 seconds on an iMac (2016 model). 
+
+The algorithm prints out the results automatically. `sigma2` stands for the estimated variance of the error term; `IC` represents the Bayesian Information Criterion; and `MPSE` is the Mean Squared Prediction Error. The cross-validation procedure selects an $r$ that minimizes the MSPE. 
+
+Users can use the **print** function to visualize the result or retrieve the numbers by directly accessing the gsynth object. `est.att` reports the average treatment effect on the treated (ATT) by period; `est.avg` shows the ATT averaged over all periods; and `est.beta` reports the coefficients of the time-varying covariates. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
+
+
+```{r eval = FALSE}
+print(out)
+out$est.att
+out$est.avg
+out$est.beta
+```
+
+Parallel computing will speed up the bootstrap procedure significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatrically. (Warning: it may consume most of your computer's computational power if all cores are being used.)
+
+```{r sim2, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              index = c("id","time"), force = "two-way", 
+              CV = TRUE, r = c(0, 5), se = TRUE, 
+              inference = "parametric", nboots = 1000, 
+              parallel = TRUE, cores = 4)
+)
+```
+
+**gsynth** also incoporates jackknife method for uncertainty estimates. 
+
+```{r simJack, cache = TRUE}
+
+out2 <- gsynth(Y ~ D + X1 + X2, data = simdata, 
+               index = c("id","time"), force = "two-way", 
+               CV = FALSE, r = c(2, 5), se = TRUE,
+               inference = "jackknife", 
+               parallel = TRUE, cores = 4)
+
+```
+
+Sometimes researchers may be interested in cumulative treatment effects like 
+cumulative abnormal returns in event study. In this version, we add a simple 
+function *cumuEff* to calculate cumulative treatment effects. One can specify 
+a period of interest in option `period`. If left blank, cumulative treatment 
+effects for all post-treatment period will be calculated.  
+
+```{r cumu1, cache = TRUE}
+cumu1 <- cumuEff(out, cumu = TRUE, id = NULL, period = c(0,5))
+cumu1$est.catt
+```
+
+One can also calculate average treatment effect for a sub-group by specifying 
+unit names in option `id`. By specifying `cumu = FALSE`, average treatment effects 
+(rather than cumulative effects) at each period will be returned. Note that in 
+this case, parametric bootstrap procedure is needed for uncertainty estimates. 
+
+```{r cumu2, cache = TRUE}
+cumu2 <- cumuEff(out, cumu = FALSE, id = c(101, 102, 103), period = c(0,5))
+cumu2$est.catt
+```
+
+### Plot results
+
+By default, the **plot** function produce a "gap" plot -- as if we type `plot(out, type = "gap")` -- which visualize the estimated ATT by period. For your reference, the true effects in `simdata` go from 1 to 10 (plus some white noise) from period 21 to 30. You can save the graph, a **ggplot2** object, by directing **print** to an object name. 
+
+```{r sim_gap1}
+plot(out) # by default
+```
+
+A default *ggplot2* theme is available, too:
+```{r sim_gap1a}
+plot(out, theme.bw = FALSE) 
+```
+
+Users can adjust `xlim` and `ylim`, and supply the plot title and titles for the two axes.
+
+```{r sim_gap2}
+plot(out, type = "gap", ylim = c(-3,12), xlab = "Period", 
+     main = "My GSynth Plot")
+```
+
+The other four `type` options include `"raw"`, which plots the raw data (outcome) variable as *panelview()* does; `"counterfactual"` (or `"ct"` for short), which plots the estimated counterfactual(s); and `"factors"` and `"loadings"`, which plot estimated factors and loadings, respectively. The next figure is a raw plot with a black-and-white theme. The treated (pre- and post-treatment) and control units are painted with different colors. 
+
+```{r sim_raw1, cache = FALSE}
+plot(out, type = "raw")
+```
+
+We can set the axes limits, remove the legend and title, for example, by typing (figure not shown):
+
+```{r eval = FALSE}
+plot(out,type = "raw", legendOff = TRUE, ylim=c(-10,40), main="")
+```
+
+We use the following line of command to plot the estimated counterfactual. `raw = "none"` (the default option) means that we do not include the raw data in this figure: 
+
+```{r ct1}
+plot(out, type = "counterfactual", raw = "none", main="")
+```
+
+One can use `shade.post` to control the shading in the post-treatment period
+```{r ct1a}
+plot(out, type = "ct", raw = "none", main = "", 
+     shade.post = FALSE)
+```
+
+We can also add two 5 to 95% quantile bands of the treated and control outcomes as references to make sure the estimated counterfactuals are not results of severe extrapolations. 
+
+```{r ct2, cache = FALSE}
+plot(out, type = "counterfactual", raw = "band", 
+     xlab = "Time", ylim = c(-5,35))
+```
+
+
+... or simply plot all the raw data (for the outcome variable).
+
+```{r ct3}
+plot(out, type = "counterfactual", raw = "all")
+```
+
+\pagebreak
+
+One can also visualize the estimated counterfactual for each treated unit to evaluate the quality of model fit. 
+
+```{r ct4, cache = FALSE}
+plot(out, type = "counterfactual", id = 102)
+```
+
+We can add the reference band, a 5 to 95% quantile band the control outcomes.
+
+```{r ct5, cache = FALSE}
+plot(out, type = "counterfactual", id = 104, 
+     raw = "band", ylim = c(-10, 30))
+```
+
+... or replaced the band with the raw data of the control outcomes. 
+
+```{r ct6, cache = FALSE}
+plot(out, type = "counterfactual", id = 105, 
+     raw = "all", legendOff = TRUE)
+```
+
+The next two figures plot the estimated factors and factor loadings, respectively.
+
+```{r sim_F, message = FALSE, results='hide'}
+plot(out, type = "factors", xlab = "Time")
+```
+```{r sim_L, cache = TRUE, message = FALSE, results='hide', fig.height = 5}
+plot(out, type = "loadings")
+```
+
+### EM method
+
+The EM algorithm proposed by @Gobillon2016 takes advantage of the treatment group information in the pre-treatment period. We implement this method. The estimation takes more time, but the results are very similar to that from the original method -- the coefficients will be slightly more precisely estimated.
+
+```{r sim3, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
+              index = c("id","time"), EM = TRUE, 
+              force = "two-way", inference = "parametric", 
+              se = TRUE, nboots = 500, r = c(0, 5), 
+              CV = TRUE, parallel = TRUE, cores = 4)
+)
+```
+
+```{r sim_EM}
+plot(out, main = "Estimated ATT (EM)")
+```
+
+### Matrix completion
+
+In v1.0.9 or higher versions, we implement the matrix completion method proposed by @Athey2021 by setting `estimator = "mc"` (the default is `"ife"`, which represents the interactive fixed effects model). It uses a different regularization scheme and takes advantage of the treatment group information in the pre-treatment period. The option `lambda` controls the tuning parameter. If it is left blank, a sequence of candidate `lambda`s will be generated and tested sequentially. Users can set the length of candidate list by setting, for example, `nlambda = 10`. The option `lambda` can also receive a user-specified sequence as candidate `lambda`s. A built in cross-validation procedure will select the optimal hyper parameter when a single `lambda` is given. Users can specify the number of folds in cross-validation using the option `k` (e.g. `k = 5`).
+
+```{r sim_mc, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
+              estimator = "mc", index = c("id","time"), 
+              se = TRUE, nboots = 500, r = c(0, 5), 
+              CV = TRUE, force = "two-way", 
+              parallel = TRUE, cores = 4, 
+              inference = "nonparametric")
+)
+```
+
+```{r sim_MC}
+plot(out, main = "Estimated ATT (MC)")
+```
+
+---
+
+##  Staggered DID
+
+The second example investigates the effect of Election-Day Registration (EDR) reforms on voter turnout in the United States. Note that the treatment kicks in at different times. 
+
+```{r}
+data(gsynth)
+names(turnout)
+```
+
+### Data structure
+
+First, we take a look at the data structure. The following figure shows that (1) we have a balanced panel with 9 treated units and (2) the treatment starts at different time periods. 
+
+```{r turnout_obs, cache = FALSE, fig.height = 10}
+panelview(turnout ~ policy_edr, data = turnout, 
+          index = c("abb","year"), pre.post = TRUE, 
+          by.timing = TRUE) 
+```
+
+**panelview** can also visualize the outcome variable by group (change in treatment status)
+```{r turnout_obs2, cache = FALSE, fig.height = 10}
+panelview(turnout ~ policy_edr, data = turnout, 
+          index = c("abb","year"), type = "outcome", 
+          main = "EDR Reform and Turnout", 
+          by.group = TRUE)
+```
+
+### Estimation w/o factors
+
+When no factor is assumed, the estimates are close to what we obtain from difference-in-differences:
+
+```{r turnout_did, cache = TRUE}
+out0 <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor, 
+               data = turnout, index = c("abb","year"), 
+               se = TRUE, inference = "parametric", 
+               r = 0, CV = FALSE, force = "two-way", 
+               nboots = 1000, seed = 02139)
+```
+```{r turnout_did_gap}
+plot(out0, type = "gap", xlim = c(-15, 15))
+```
+
+### Estimation w/ factors
+
+Now we allow the algorithm to find the "correct" number of factors that predicts the pre-treatment data the best:
+
+```{r turnout_est, cache = TRUE}
+out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor, 
+              data = turnout,  index = c("abb","year"), 
+              se = TRUE, inference = "parametric", 
+              r = c(0, 5), CV = TRUE, force = "two-way", 
+              nboots = 1000, seed = 02139)
+```
+
+### Implied weights
+
+`out$wgt.implied` ($N_{co}\times N_{tr}$) stores the implied weights of all control units for each treated unit. Different from the synthetic control method, the weights can be both positive and negative. Below we show the control unit weights for Wisconsin.
+
+```{r}
+dim(out$wgt.implied)
+sort(out$wgt.implied[,8])
+```
+
+### Plot results
+
+The missing data plot can also be produced after the estimation is performed. In addition, **plot** allows users to changes axes labels and the graph title (figure not shown).
+
+```{r, eval = FALSE}
+plot(out, type = "missing", main = "Treatment Status",
+     xlab = "Year", ylab = "State")
+```
+
+The following line of code produces the "gap" plot:
+
+```{r turnout_gap}
+plot(out, type = "gap", xlim = c(-10, 5), ylim=c(-15,15))
+```
+
+If we want to know the treatment effect on a specific state, such as Wisconsin, we can specify the `id` option:
+
+```{r turnout_gap2}
+plot(out, type = "gap", id = "WI", main = "Wisconsin")
+```
+
+
+Plotting the raw turnout data:
+
+```{r turnout_raw}
+plot(out, type = "raw", xlab = "Year", ylab = "Turnout")
+```
+
+Plotting the estimated average counterfactual. Since EDR reforms kick in at different times, the algorithm realign the x-axis based on the timing of the treatment. `raw = all` shows the realigned outcomes of the treated units.
+
+```{r turnout_ct}
+plot(out, type = "counterfactual", raw = "all")
+```
+
+We can plot estimated counterfactuals for each treated unit:
+
+```{r turnout_ct1}
+plot(out, type="counterfactual", id = "CT")
+```
+
+```{r turnout_ct2}
+plot(out, type = "counterfactual", id = "WY", 
+     raw = "all", legendOff = TRUE)
+```
+
+```{r turnout_ct3}
+plot(out, type = "counterfactual", id = "WI", 
+     raw = "none", shade.post = FALSE, ylim = c(0,100),
+     legend.labs = c("Wisconsin Actual","Wisconsin Counterfactural"))
+```
+
+Estimated factors and factor loadings::
+
+```{r turnout_F, message = FALSE, results = 'hide'}
+plot(out, type = "factors", xlab="Year")
+```
+
+```{r turnout_L, message = FALSE, results = 'hide', fig.height = 5}
+plot(out, type = "loadings")
+```
+
+---
+
+## Unbalanced panels
+
+Starting from v1.0.7, **gsynth** can accommodate unbalanced panels. To illustrate how it works, we randomly remove 50 observations as well as the first 15 observations of Wyoming from the turnout dataset and then re-estimate the model:
+
+```{r}
+set.seed(123456)
+turnout.ub <- turnout[-c(which(turnout$abb=="WY")[1:15], 
+                         sample(1:nrow(turnout),50,replace=FALSE)),]
+```
+
+Again, before running any regressions, we first plot the data structure and visualize missing values. In the following plot, white cells represent missing values. 
+```{r turnout_ub_panelview_miss, cache = FALSE, fig.height = 10}
+panelview(turnout ~ policy_edr + policy_mail_in + policy_motor, 
+          data = turnout.ub,  index = c("abb","year"), 
+          pre.post = TRUE) 
+```
+
+### Estimation
+
+```{r turnout_ub_est, cache = TRUE}
+out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor, 
+              data = turnout.ub,  index = c("abb","year"), 
+              se = TRUE, inference = "parametric", 
+              r = c(0, 5), CV = TRUE, force = "two-way", 
+              parallel = TRUE, min.T0 = 8, 
+              nboots = 1000, seed = 02139)
+```
+
+### Plot results
+
+The `missing` plot visualizes the data being used in the regression (similar to that from turning on `quick_missing` in the main function). It is different from the plot generated from **panelview** in that
+observations for Wyoming are now represented by gray cells with red dots to indicate that they are removed from the sample because of insufficient number of pre-treatment periods. The missing data matrix can also be retrieved from `out$obs.missing`, in which 0, 1, 2, 3 4 represent missing values, control observations, treated (pre-treatment) observations,  treated (post-treatment) observations, and treated observations removed from the sample, respectively.
+```{r, turnout_ub_panelview_miss2, fig.height = 10}
+plot(out, type = "missing")
+```
+
+Like in **panelview**, users can plot part of all units by specifying `id` and adjust labels on x-axis when the the magnitude of data is too large. 
+```{r turnout_ub_obs_2}
+plot(out, type = "missing", xlab = "Year", ylab = "State", 
+     main = "Treatment Status", id = out$id.tr, 
+     xlim = c(1920,2012),  axis.adjust=TRUE)
+```
+
+We re-produce the "gap" plot with the unbalanced panel:
+
+```{r turnout_ub_gap}
+plot(out, type = "gap", ylim = c(-10, 20))
+```
+
+### Matrix completion
+
+Finally, we re-estimate the model using the matrix completion method:
+```{r turnout_ub_est2, cache = TRUE}
+out.mc <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor, 
+                 min.T0 = 8, data = turnout.ub,  
+                 index = c("abb","year"), estimator = "mc", 
+                 se = TRUE, nboots = 1000, seed = 02139)
+```
+```{r turnout_ub_mc_gap}
+plot(out.mc, main = "Estimated ATT (MC)", ylim = c(-10, 20))
+```
+
+## Additional Notes
+
+1. Running **gsynth** with unbalanced panels will take significantly more time than with balanced panels (the magnitude is often 100:1 or even higher). This is because the EM algorithm that fills in missing values (also written in C++) runs many more loops. This means users can often significantly reduce run-time by removing some units or time periods that have many missing values. Knowing the data structure before running any regressions always helps! 
+
+2. Similarly, adding covariates will significantly slow down the algorithm because the IFE/MC model will take more time to converge. 
+
+3. Set `min.T0` to a positive number helps. The algorithm will automatically discard treated units that have too few pre-treatment periods. A bigger $T_{0}$ reduces bias in the causal estimates and the chances of severe extrapolation. If users run cross-validation to select the number of factors, `min.T0` needs to be equal to or greater than (`r.max`+2).    
+
+# References
+
+
+

@@ -1,0 +1,42 @@
+url: https://yiqingxu.org/packages/gsynth/
+template:
+  bootstrap: 5
+
+navbar:
+  left:
+    - text: "Tutorial"
+      href: articles/tutorial.html
+    - text: "Functions"
+      href: reference/index.html
+    - text: "Changelog"
+      href: news/index.html
+  right:
+   - icon: fa-github
+     href: https://github.com/xuyiqing/gsynth
+
+reference:
+  - title: Functions
+  - contents:
+    - gsynth
+    - interFE
+    - cumuEff
+  - title: S3 methods
+  - contents:
+    - plot.gsynth
+    - print.gsynth
+    - print.interFE
+  - title: Test datasets
+  - contents:
+    - simdata
+    - turnout
+
+authors:
+  Yiqing Xu:
+    href: "https://yiqingxu.org/"
+  Licheng Liu:
+    href: "https://polisci.mit.edu/people/licheng-liu"
+
+
+home:
+  title: gsynth--The Generalized Synthetic Control Method
+  description: Causal inference with interactive fixed-effect models. It imputes counterfactuals for each treated unit using control group information based on a linear interactive fixed effects model.
