@@ -27,8 +27,10 @@ Liu](https://polisci.mit.edu/people/licheng-liu) (MIT)
 [CRAN](https://cran.r-project.org/web/packages/gsynth/index.html)
 (1.2.1)
 
-**Example:** R code used in the [tutorial](articles/tutorial.html) can
-be downloaded from [here](gsynth_examples.R).
+**Example:** R code used in the
+[tutorial](https://yiqingxu.org/packages/gsynth/articles/tutorial.html)
+can be downloaded from
+[here](https://yiqingxu.org/packages/gsynth/gsynth_examples.R).
 
 ------------------------------------------------------------------------
 
