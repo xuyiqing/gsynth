@@ -25,8 +25,6 @@ knitr::opts_chunk$set(
 )
 ```  
 
-##  Multiperiod DID
-
 Two datasets **simdata** and **turnout** are shipped with the **gsynth** package. Load these two datasets:
 
 ```{r, warning=FALSE}
@@ -35,7 +33,9 @@ data(gsynth)
 ls()
 ```
 
-We start with the first example, a simulated dataset described in the paper. There are 5 treated units, 45 control units, and 30 time periods. The treatment kicks at Period 21 for all treated units.  
+##  Multiperiod DID
+
+We start with the first example, a simulated dataset described in the paper. There are 5 treated units, 45 control units, and 30 time periods. The treatment kicks at Period 21 for all treated units, hence, a multiperiod DID set up.  
 
 ```{r}
 head(simdata)
@@ -43,11 +43,11 @@ head(simdata)
 
 ### Visualizing data
 
-Before we conduct any statistical analysis, it is helpful to visualize the data structure and/or spot missing values (if there are any). We can easily do so with the help of **panelview**. The following figure shows that: (1) there are 5 treated units and 45 control units; (2) the treated units start to be treated in period 21; and (3) there are no missing values, which is a rare case. 
+Before we conduct any statistical analysis, it is helpful to visualize the data structure and/or spot missing values (if there are any). We can easily do so with the help of the **panelView** package. The following figure shows that: (1) there are 5 treated units and 45 control units; (2) the treated units start to be treated in period 21; and (3) there are no missing values, which is a rare case. 
 
 ```{r simdata_panelview_raw, cache = FALSE, fig.height = 10}
-## devtools::install_github('xuyiqing/panelview')   # if not already installed
-library(panelview)
+## devtools::install_github('xuyiqing/panelView')   # if not already installed
+library(panelView)
 panelview(Y ~ D, data = simdata,  index = c("id","time"), pre.post = TRUE) 
 ```
 

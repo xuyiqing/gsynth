@@ -6,7 +6,7 @@
 <!-- badges: start -->
 
 [![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://www.tidyverse.org/lifecycle/#stablel)
+stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://www.tidyverse.org/lifecycle/#stablel)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
@@ -21,7 +21,7 @@ method.
 **Authors:** [Yiqing Xu](https://yiqingxu.org/) (Stanford), [Licheng
 Liu](https://polisci.mit.edu/people/licheng-liu) (MIT)
 
-**Date:** Aug 6, 2021
+**Date:** Feb 22, 2022
 
 **Repos:** [Github](https://github.com/xuyiqing/gsynth) (1.2.1)
 [CRAN](https://cran.r-project.org/web/packages/gsynth/index.html)
