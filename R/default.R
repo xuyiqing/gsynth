@@ -465,6 +465,7 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     Y.ind <- matrix(data[, Yname], TT, N)
     I[is.nan(Y.ind)] <- 0
     I.old <- I
+    TT.old <- TT # TR: save original TT
 
     if (0%in%I) {
         data[is.nan(data)] <- 0
@@ -776,7 +777,8 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     if (!0%in%I.use) {
         tname.old <- tname <- unique(sort(data.old[, time]))
     } else {
-        tname.old <- tname <- unique(sort(data.old[, time]))[which(I.use != 0)]
+        tname <- unique(sort(data.old[, time]))[which(I.use != 0)]
+        tname.old <- unique(sort(data.old[, time])) # TR: store full tnames
     }
 
     if (length(rm.id) > 0) {
@@ -792,20 +794,23 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
         id.co <- setdiff(id.co, rm.id)
     }
 
-    obs.missing <- matrix(1, TT, N) ## control group:1
+    obs.missing <- matrix(1, TT.old, N) ## control group:1 # TR: use TT.old
 
     tr.pre <- out$pre
     tr.post <- out$post
 
     tr.pre[which(tr.pre == 1)] <- 2 ## pre 2
     tr.post[which(tr.post == 1)] <- 3 ## post 3
-    obs.missing[, id.tr] <- tr.pre + tr.post
+    obs.missing[which(I.use != 0), id.tr] <- tr.pre + tr.post # TR: subset assignment to only used rows
 
     if (length(rm.id) > 0) {
         obs.missing[which(I.old == 0)] <- 0 ## I: after removing I.old: total
         obs.missing[, rm.id] <- 4 ## removed 4
     } else {
         obs.missing[which(I == 0)] <- 0 ## missing 0 ## I: total
+    }
+    if(0 %in% I.use){ # TR: removed 4 for dropped periods
+      obs.missing[which(I.use == 0), ] <- 4 ## removed 4
     }
     ## obs.missing[which(obs.missing==1)] <- "control"
     ## obs.missing[which(obs.missing==2)] <- "pre"
@@ -828,7 +833,12 @@ gsynth.default <- function(formula = NULL,data, # a data frame (long-form)
     }
     colnames(out$Y.co) <- iname[which(out$tr == 0)]
     colnames(out$Y.ct) <- colnames(out$Y.tr) <- colnames(out$I.tr) <- colnames(out$D.tr) <- colnames(out$post) <- colnames(out$pre) <- iname[which(out$tr == 1)]
-    rownames(out$Y.ct) <- rownames(out$Y.tr) <- rownames(out$I.tr) <- rownames(out$D.tr) <- rownames(out$Y.co) <- rownames(out$post) <- rownames(out$pre) <- rownames(out$Y.bar) <- rownames(Y) <- rownames(obs.missing) <- tname
+    rownames(out$Y.ct) <- rownames(out$Y.tr) <- rownames(out$I.tr) <- rownames(out$D.tr) <- rownames(out$Y.co) <- rownames(out$post) <- rownames(out$pre) <- rownames(out$Y.bar) <- rownames(Y) <- tname
+    if (!0%in%I.use) { # TR: assign old tnmaes if necessary
+      rownames(obs.missing) <- tname
+    } else {
+      rownames(obs.missing) <- tname.old
+    }
 
 
     if (AR1 == TRUE) {
