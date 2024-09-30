@@ -165,14 +165,14 @@ on interactive fixed effect models.}
   \item{lambda.co}{estimated loadings for the control group.}
   \item{lambda.tr}{estimated loadings for the treatment group.}
   \item{wgt.implied}{estimated weights of each of the control group unit for each of the treatment group unit.}
-  \item{mu}{estimated ground mean. }
+  \item{mu}{estimated grand mean. }
   \item{xi}{estimated time fixed effects.}
   \item{alpha.tr}{estimated unit fixed effects for the treated units.}
   \item{alpha.co}{estimated unit fixed effects for the control units.}
   \item{validX}{a logic value indicating if multicollinearity exists.}
   \item{inference}{a string indicating bootstrap procedure.}
   \item{est.att}{inference for \code{att}.}
-  \item{est.att.avg}{inference for \code{att.avg}.}
+  \item{est.avg}{inference for \code{att.avg}.}
   \item{est.beta}{inference for \code{beta}.}
   \item{est.ind}{inference for \code{att} of each treated unit.}
   \item{att.avg.boot}{bootstrap results for \code{att.avg}.}
