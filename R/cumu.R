@@ -2,7 +2,7 @@
 
 ## 1. cumulative effect for a specified event window
 ## 2. averaging treatment effect in a sub-group
-
+# This is amazing.
 
 cumuEff <- function(x,                ## a gsynth object 
 	                cumu = TRUE,      ## whether to calculate cumulative effect
