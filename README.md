@@ -67,6 +67,8 @@ require(future)
 require(doParallel) 
 require(abind) 
 require(lfe)
+## for compatibility with `fect` 
+require(fect)
 ```
 
 #### Notes on installation failures

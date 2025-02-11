@@ -12,9 +12,9 @@ Description: Conducts causal inference with interactive fixed-effect models. It 
 URL: https://yiqingxu.org/packages/gsynth/
 NeedsCompilation: yes
 License: MIT + file LICENSE
-Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1), future (>= 1.21.0), doRNG (>= 1.8.2),
+Imports: Rcpp (>= 0.12.3), ggplot2 (>= 2.1.0), GGally (>= 1.0.1), future (>= 1.21.0), doRNG (>= 1.8.2), fect (>= 2.0.0),
         doParallel (>= 1.0.10), foreach (>= 1.4.3), abind (>= 1.4-0), mvtnorm (>= 1.0-6), MASS (>= 7.3.47), lfe (>= 1.0-0)
 SystemRequirements: A C++11 compiler.
 Depends: R (>= 2.10)
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 6.0.1
+RoxygenNote: 7.3.2
