@@ -36,8 +36,8 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                            CV = TRUE, # cross-validation
                            criterion = "mspe", # mspe or pc
                            k = 5, # cross-validation times
-                           # EM = FALSE, # EM algorithm
-                           # estimator = "ife", # ife/mc method
+                           EM = FALSE, # EM algorithm
+                           estimator = "ife", # ife/mc method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = "parametric", # type of inference
@@ -50,20 +50,31 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                            alpha = 0.05,
                            normalize = FALSE
                            ) {
-  library(fect)
-  output <- fect(formula = formula, data = data, method = "gsynth", Y = Y, D = D, X = X,
+    method <- "gsynth"
+    if (EM == TRUE) {
+        method <- "ife" # Gobillon & Magnac (2016)
+    }
+    if (estimator == "mc") {
+        method <- "mc" # Athey et al. (2021)
+    }
+    if (inference == "nonparametric") {
+        inference <- "bootstrap"
+        warning("Using bootstrap for nonparametric inference.")
+    }
+    output <- fect::fect(formula = formula, data = data, method = method, Y = Y, D = D, X = X,
         na.rm = na.rm, index = index,
         force = force, r = r, lambda = lambda, nlambda = nlambda, CV = CV,
         criterion = criterion, k = k, se = se, nboots = nboots, vartype = inference,
         parallel = parallel, cores = cores, tol = tol, seed = seed, min.T0 = min.T0,
-        alpha = alpha, normalize = normalize)
+        alpha = alpha, normalize = normalize, need_cumu = TRUE)
 
     ##-------------------------------##
     ## storage
     ##-------------------------------##
 
     output$call = match.call()
-    # class(output) <- "gsynth"
+    output$data <- data
+    class(output) <- "gsynth"
     return(output)
 
 } ## Program GSynth ends
