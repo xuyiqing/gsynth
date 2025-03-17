@@ -135,7 +135,7 @@ unit names in option `id`. By specifying `cumu = FALSE`, average treatment effec
 (rather than cumulative effects) at each period will be returned. Note that in 
 this case, parametric bootstrap procedure is needed for uncertainty estimates. 
 
-```{r cumu2, cache = TRUE}
+```{r cumu2, cache=TRUE}
 cumu2 <- cumuEff(out, cumu = FALSE, id = c(101, 102, 103), period = c(0,5))
 cumu2$est.catt
 ```
