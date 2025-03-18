@@ -73,7 +73,8 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
     ##-------------------------------##
 
     output$call = match.call()
-    output$data <- data
+    output$call$vartype <- output$call$inference # Name is compatible with `fect`
+    output$data <- data # Save origninal long-form data, to utilize panelView
     class(output) <- "gsynth"
     return(output)
 
