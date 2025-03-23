@@ -27,7 +27,7 @@ plot.gsynth <- function(
     theme.bw = TRUE,
     shade.post = FALSE,
     ...){
-  
+
   if (type %in% c("raw","missing")){
     # Implementing missing data visualization
     # Extract data from the gsynth object
@@ -40,12 +40,12 @@ plot.gsynth <- function(
       if(is.null(main)) {
         main <- "Treatment Status and Missing Data"
       }
-      
+
       # Call panelview with pre.post=TRUE to show treatment status
-      p <- panelView::panelview(
+      panelView::panelview(
                     data = data,
-                    formula,  
-                    index = index, 
+                    formula,
+                    index = index,
                     pre.post = TRUE,
                     main = main,
                     xlab = xlab,
@@ -53,20 +53,18 @@ plot.gsynth <- function(
                     xlim = xlim,
                     ylim = ylim,
                     axis.adjust = axis.adjust)
-      
-      return(p)
     } else {
-      
+
       # Set default main title if not provided
       if(is.null(main)) {
         main <- "Raw Data"
       }
 
       # Call panelview with type="outcome" to show outcome values
-      p <- panelView::panelview(
+      panelView::panelview(
                     data = data,
-                    formula,  
-                    index = index, 
+                    formula,
+                    index = index,
                     type = "outcome",
                     main = main,
                     xlab = xlab,
@@ -75,8 +73,6 @@ plot.gsynth <- function(
                     ylim = ylim,
                     legendOff = legendOff,
                     axis.adjust = axis.adjust)
-      
-      return(p)
     }
   } else {
     class(x) <- "fect"
@@ -98,3 +94,5 @@ plot.gsynth <- function(
     return(p)
   }
 }
+
+

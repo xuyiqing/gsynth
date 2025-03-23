@@ -1,6 +1,5 @@
 useDynLib(gsynth, .registration=TRUE)
 ##exportPattern("^[[:alpha:]]+")
-importFrom(Rcpp, evalCpp)
 importFrom("stats", "na.omit", "quantile", "sd", "var", "cov", "lm", "predict",
 "as.formula", "pnorm", "qnorm")
 importFrom("foreach","foreach","%dopar%")
@@ -16,7 +15,6 @@ importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
            "scale_linetype_manual", "scale_size_manual", "theme",
            "scale_colour_manual", "aes", "annotate", "ggtitle", "geom_rect", "scale_color_discrete", "scale_color_manual", "ggplotGrob",
            "guide_legend", "margin", "guides","xlab","ylab","element_rect")
-##importFrom("GGally", "ggpairs")
 importFrom("abind", "abind")
 importFrom("mvtnorm", "rmvnorm")
 importFrom("MASS", "ginv")
@@ -26,5 +24,5 @@ importFrom("panelView", "panelview")
 export(gsynth)
 export(cumuEff)
 S3method(plot, gsynth)
+S3method(print, gsynth)
 
-##importFrom("panelView", "panelView")
