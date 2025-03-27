@@ -6,7 +6,7 @@ importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
            "scale_linetype_manual", "scale_size_manual", "theme",
            "scale_colour_manual", "aes", "annotate", "ggtitle", "geom_rect", "scale_color_discrete", "scale_color_manual", "ggplotGrob",
            "guide_legend", "margin", "guides","xlab","ylab","element_rect")
-importFrom("fect", "fect", "cumuEff", "plot.fect")
+importFrom("fect", "fect", "effect", "plot.fect")
 importFrom("panelView", "panelview")
 export(gsynth)
 export(effect)
