@@ -123,12 +123,12 @@ print(out2)
 
 Sometimes researchers may be interested in cumulative treatment effects like 
 cumulative abnormal returns in event study. We add a simple 
-function `cumuEff`` to calculate cumulative treatment effects. One can specify 
+function `effect`` to calculate cumulative treatment effects. One can specify 
 a period of interest in option `period`. If left blank, cumulative treatment 
 effects for all post-treatment period will be calculated.  
 
 ```{r cumu1, cache = TRUE}
-cumu1 <- cumuEff(out, cumu = TRUE, id = NULL)
+cumu1 <- effect(out, cumu = TRUE, id = NULL)
 cumu1$est.catt
 ```
 
@@ -138,7 +138,7 @@ unit names in option `id`. By specifying `cumu = FALSE`, average treatment effec
 this case, parametric bootstrap procedure is needed for uncertainty estimates. 
 
 ```{r cumu2, cache=TRUE}
-cumu2 <- cumuEff(out, cumu = FALSE, id = c(101, 102, 103), period = c(0,5))
+cumu2 <- effect(out, cumu = FALSE, id = c(101, 102, 103), period = c(1,5))
 cumu2$est.catt
 ```
 
