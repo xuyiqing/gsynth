@@ -8,7 +8,7 @@
 #' @param plot Whether to plot the cumulative effects
 #' @return Cumulative effects
 #' @export
-cumuEff <- function(x, cumu=TRUE, period=NULL, id=NULL, plot=FALSE){
-  out <- fect:::cumuEff(x=x, cumu=cumu, period=period, id=id, plot=plot)
+effect <- function(x, cumu=TRUE, period=NULL, id=NULL, plot=FALSE){
+  out <- fect:::effect(x=x, cumu=cumu, period=period, id=id, plot=plot)
   return(out)
 }

@@ -66,7 +66,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
         force = force, r = r, lambda = lambda, nlambda = nlambda, CV = CV,
         criterion = criterion, k = k, se = se, nboots = nboots, vartype = inference,
         parallel = parallel, cores = cores, tol = tol, seed = seed, min.T0 = min.T0,
-        alpha = alpha, normalize = normalize, need_cumu = TRUE)
+        alpha = alpha, normalize = normalize, keep.bs = TRUE)
 
     ##-------------------------------##
     ## storage
