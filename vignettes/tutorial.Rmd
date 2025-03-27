@@ -33,9 +33,9 @@ data(gsynth)
 ls()
 ```
 
-##  Multiperiod DID
+##  Block DID
 
-We start with the first example, a simulated dataset described in the paper. There are 5 treated units, 45 control units, and 30 time periods. The treatment kicks at Period 21 for all treated units, hence, a multiperiod DID set up.  
+We start with the first example, a simulated dataset described in the paper. There are 5 treated units, 45 control units, and 30 time periods. The treatment kicks at Period 21 for all treated units, hence, a multiperiod block DID setting.  
 
 ```{r}
 head(simdata)
@@ -65,7 +65,7 @@ Now we formally run the **gsynth** algorithm proposed by @Xu2017. The first vari
 
 The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. The default option is "unit" (including additive unit fixed effects). A cross-validation procedure is provided (when `CV = TRUE`) to select the number of unobserved factors within the interval of `r=c(0,5)`. When cross-validation is switched off, the first element in `r` will be set as the number of factors. 
 
-When the uncertainty estimates are needed, set `se = TRUE`. When the number of treated units is small, a parametric bootstrap procedure is preferred. Alternatively, one can use a non-parametric bootstrap procedure by setting `inference = "nonparametric"`; it only works well when the treatment group is relatively large, e.g. $N_{tr}> 40$). The number of bootstrap runs is set by `nboots`.
+When the uncertainty estimates are needed, set `se = TRUE`. When the number of treated units is small, a parametric bootstrap procedure is preferred. Alternatively, one can use a non-parametric bootstrap procedure by setting `inference = "nonparametric"`; it only works well when the treatment group is relatively large, e.g. $N_{tr} > 40$). The number of bootstrap runs is set by `nboots`.
 
 When dealing with clustered data, for example, panel data with regionally clustered 
 units, one can use the cluster bootstrap procedure by specifying name of the cluster 
@@ -88,8 +88,7 @@ The algorithm prints out the results automatically. `sigma2` stands for the esti
 Users can use the **print** function to visualize the result or retrieve the numbers by directly accessing the gsynth object. `est.att` reports the average treatment effect on the treated (ATT) by period; `est.avg` shows the ATT averaged over all periods; and `est.beta` reports the coefficients of the time-varying covariates. Treatment effect estimates from each bootstrap run is stored in `eff.boot`, an array whose dimension = (#time periods * #treated * #bootstrap runs).
 
 
-```{r eval = FALSE}
-print(out)
+```{r eval = TRUE}
 out$est.att
 out$est.avg
 out$est.beta
@@ -103,40 +102,43 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               index = c("id","time"), force = "two-way", 
               CV = TRUE, r = c(0, 5), se = TRUE, 
               inference = "parametric", nboots = 1000, 
-              parallel = TRUE, cores = 4)
+              parallel = TRUE, cores = 10)
 )
+print(out)
 ```
 
 **gsynth** also incoporates jackknife method for uncertainty estimates. 
 
 ```{r simJack, cache = TRUE}
-
 out2 <- gsynth(Y ~ D + X1 + X2, data = simdata, 
                index = c("id","time"), force = "two-way", 
                CV = FALSE, r = c(2, 5), se = TRUE,
                inference = "jackknife", 
-               parallel = TRUE, cores = 4)
+               parallel = TRUE, cores = 10)
 
+print(out2)
 ```
 
+### Cumulative effcts
+
 Sometimes researchers may be interested in cumulative treatment effects like 
-cumulative abnormal returns in event study. In this version, we add a simple 
-function *effect* to calculate cumulative treatment effects. One can specify 
+cumulative abnormal returns in event study. We add a simple 
+function `cumuEff`` to calculate cumulative treatment effects. One can specify 
 a period of interest in option `period`. If left blank, cumulative treatment 
 effects for all post-treatment period will be calculated.  
 
 ```{r cumu1, cache = TRUE}
-cumu1 <- effect(out, cumu = TRUE, id = NULL)
+cumu1 <- cumuEff(out, cumu = TRUE, id = NULL)
 cumu1$est.catt
 ```
 
-One can also calculate average treatment effect for a sub-group by specifying 
+One can also calculate ATT for a sub-group by specifying 
 unit names in option `id`. By specifying `cumu = FALSE`, average treatment effects 
 (rather than cumulative effects) at each period will be returned. Note that in 
 this case, parametric bootstrap procedure is needed for uncertainty estimates. 
 
 ```{r cumu2, cache=TRUE}
-cumu2 <- effect(out, cumu = FALSE, id = c(101, 102, 103), period = c(1,5))
+cumu2 <- cumuEff(out, cumu = FALSE, id = c(101, 102, 103), period = c(0,5))
 cumu2$est.catt
 ```
 
@@ -239,7 +241,7 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               index = c("id","time"), EM = TRUE, 
               force = "two-way", inference = "parametric", 
               se = TRUE, nboots = 500, r = c(0, 5), 
-              CV = TRUE, parallel = TRUE, cores = 4)
+              CV = TRUE, parallel = TRUE, cores = 10)
 )
 ```
 
@@ -257,7 +259,7 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               estimator = "mc", index = c("id","time"), 
               se = TRUE, nboots = 500, r = c(0, 5), 
               CV = TRUE, force = "two-way", 
-              parallel = TRUE, cores = 4, 
+              parallel = TRUE, cores = 10, 
               inference = "nonparametric")
 )
 ```
