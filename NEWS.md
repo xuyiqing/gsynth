@@ -1,3 +1,8 @@
+# gsynth 1.3.0
+
+We merged all functionalities of **gsynth** into the package **fect**. **gsynth** is now a wrapper of **fect**. Please check [fect User Manual](https://yiqingxu.org/packages/fect/) for updates. We maintain
+**gsynth** solely for backward compatibility.
+
 # gsynth 1.1.7
 
 Using normal approximation instead of the percentile method to obtain confidence intervals based on bootstrapped standard errors. 

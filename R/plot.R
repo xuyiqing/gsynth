@@ -33,7 +33,7 @@ plot.gsynth <- function(
     # Extract data from the gsynth object
     data <- x$data
     index <- x$index
-    formula <- out$call$formula
+    formula <- x$call$formula
     if (type=="missing"){
 
       # Set default main title if not provided
@@ -76,7 +76,7 @@ plot.gsynth <- function(
     }
   } else {
     class(x) <- "fect"
-    p <- fect:::plot.fect(x=x,
+    p <- fect::plot.fect(x=x,
       type=type,
       xlim=xlim,
       ylim=ylim,

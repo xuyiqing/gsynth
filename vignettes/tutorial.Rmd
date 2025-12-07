@@ -25,6 +25,10 @@ knitr::opts_chunk$set(
 )
 ```  
 
+Since **gsynth** is a wrapper package for **fect**, which is likely to be better maintained, we recommend users use **fect** ([User Manual](https://yiqingxu.org/packages/fect/)) directly for most purposes. We maintain this website and package solely for backward compatibility.
+
+---
+
 Two datasets **simdata** and **turnout** are shipped with the **gsynth** package. Load these two datasets:
 
 ```{r, warning=FALSE}
@@ -65,7 +69,7 @@ Now we formally run the **gsynth** algorithm proposed by @Xu2017. The first vari
 
 The `force` option ("none", "unit", "time", and "two-way") specifies the additive component(s) of the fixed effects included in the model. The default option is "unit" (including additive unit fixed effects). A cross-validation procedure is provided (when `CV = TRUE`) to select the number of unobserved factors within the interval of `r=c(0,5)`. When cross-validation is switched off, the first element in `r` will be set as the number of factors. 
 
-When the uncertainty estimates are needed, set `se = TRUE`. When the number of treated units is small, a parametric bootstrap procedure is preferred. Alternatively, one can use a non-parametric bootstrap procedure by setting `inference = "nonparametric"`; it only works well when the treatment group is relatively large, e.g. $N_{tr} > 40$). The number of bootstrap runs is set by `nboots`.
+When the uncertainty estimates are needed, set `se = TRUE`. When the number of treated units is small, a parametric bootstrap procedure is preferred, i.e., `inference = "parametric"`. Alternatively, one can use a non-parametric bootstrap procedure by setting `inference = "nonparametric"`; it only works well when the treatment group is relatively large, e.g. $N_{tr} > 40$). The number of bootstrap runs is set by `nboots`.
 
 When dealing with clustered data, for example, panel data with regionally clustered 
 units, one can use the cluster bootstrap procedure by specifying name of the cluster 
@@ -94,7 +98,7 @@ out$est.avg
 out$est.beta
 ```
 
-Parallel computing will speed up the bootstrap procedure significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatrically. (Warning: it may consume most of your computer's computational power if all cores are being used.)
+Parallel computing will speed up the bootstrap procedure significantly. When `parallel = TRUE` (default) and `cores` options are omitted, the algorithm will detect the number of available cores on your computer automatically. (Warning: it may consume most of your computer's computational power if all cores are being used.) Starting from v1.3.0, we use the **doRNG** package to ensure the reproducibility of results under parallel computing.
 
 ```{r sim2, cache = TRUE}
 system.time(
@@ -121,25 +125,18 @@ print(out2)
 
 ### Cumulative effcts
 
-Sometimes researchers may be interested in cumulative treatment effects like 
-cumulative abnormal returns in event study. We add a simple 
-function `effect`` to calculate cumulative treatment effects. One can specify 
-a period of interest in option `period`. If left blank, cumulative treatment 
-effects for all post-treatment period will be calculated.  
-
+Sometimes, researchers may be interested in cumulative treatment effects, such as cumulative abnormal returns in an event study. We provide a simple function, `effect`, to calculate cumulative treatment effects. You can specify a period of interest using the `period` option. If left blank, cumulative treatment effects for the entire post-treatment period will be calculated.
 ```{r cumu1, cache = TRUE}
 cumu1 <- effect(out, cumu = TRUE, id = NULL)
-cumu1$est.catt
+cumu1$effect.est.att
+plot(cumu1)
 ```
 
-One can also calculate ATT for a sub-group by specifying 
-unit names in option `id`. By specifying `cumu = FALSE`, average treatment effects 
-(rather than cumulative effects) at each period will be returned. Note that in 
-this case, parametric bootstrap procedure is needed for uncertainty estimates. 
-
+You can also calculate the ATT for a sub-group by specifying unit names in the `id` option. By setting `cumu = FALSE`, average treatment effects—rather than cumulative effects—will be returned for each period. Note that in this case, a parametric bootstrap procedure is required to estimate uncertainty.
 ```{r cumu2, cache=TRUE}
 cumu2 <- effect(out, cumu = FALSE, id = c(101, 102, 103), period = c(1,5))
-cumu2$est.catt
+cumu2$effect.est.att
+plot(cumu2)
 ```
 
 ### Plot results
@@ -162,7 +159,7 @@ plot(out, type = "gap", ylim = c(-3,12), xlab = "Period",
      main = "My GSynth Plot")
 ```
 
-The other four `type` options include `"raw"`, which plots the raw data (outcome) variable as *panelview()* does; `"counterfactual"` (or `"ct"` for short), which plots the estimated counterfactual(s); and `"factors"` and `"loadings"`, which plot estimated factors and loadings, respectively. The next figure is a raw plot with a black-and-white theme. The treated (pre- and post-treatment) and control units are painted with different colors. 
+The other four `type` options include `"raw"`, which plots the raw data (outcome) variable as **panelview** does; `"counterfactual"` (or `"ct"` for short), which plots the estimated counterfactual(s); and `"factors"` and `"loadings"`, which plot estimated factors and loadings, respectively. The next figure is a raw plot with a black-and-white theme. The treated (pre- and post-treatment) and control units are painted with different colors. 
 
 ```{r sim_raw1, cache = FALSE}
 plot(out, type = "raw")
@@ -233,13 +230,13 @@ plot(out, type = "loadings")
 
 ### EM method
 
-The EM algorithm proposed by @Gobillon2016 takes advantage of the treatment group information in the pre-treatment period. We implement this method. The estimation takes more time, but the results are very similar to that from the original method -- the coefficients will be slightly more precisely estimated.
+The EM algorithm proposed by @Gobillon2016 takes advantage of the treatment group information in the pre-treatment period. We implement this method. The estimation takes more time, but the results are very similar to that from the original method -- the coefficients will be slightly more precisely estimated. Only `nonparametric` or `jackknife` inference is allowed when EM is turned on.
 
 ```{r sim3, cache = TRUE}
 system.time(
 out <- gsynth(Y ~ D + X1 + X2, data = simdata, 
               index = c("id","time"), EM = TRUE, 
-              force = "two-way", inference = "parametric", 
+              force = "two-way", inference = "nonparametric", 
               se = TRUE, nboots = 500, r = c(0, 5), 
               CV = TRUE, parallel = TRUE, cores = 10)
 )
@@ -251,7 +248,9 @@ plot(out, main = "Estimated ATT (EM)")
 
 ### Matrix completion
 
-In v1.0.9 or higher versions, we implement the matrix completion method proposed by @Athey2021 by setting `estimator = "mc"` (the default is `"ife"`, which represents the interactive fixed effects model). It uses a different regularization scheme and takes advantage of the treatment group information in the pre-treatment period. The option `lambda` controls the tuning parameter. If it is left blank, a sequence of candidate `lambda`s will be generated and tested sequentially. Users can set the length of candidate list by setting, for example, `nlambda = 10`. The option `lambda` can also receive a user-specified sequence as candidate `lambda`s. A built in cross-validation procedure will select the optimal hyper parameter when a single `lambda` is given. Users can specify the number of folds in cross-validation using the option `k` (e.g. `k = 5`).
+We implement the matrix completion method proposed by @Athey2021 by setting `estimator = "mc"` (the default is `"ife"`, which represents the interactive fixed effects model). Only `nonparametric` or `jackknife` inference is allowed.
+
+Matrix completion uses a different regularization scheme and takes advantage of the treatment group information in the pre-treatment period. The option `lambda` controls the tuning parameter. If it is left blank, a sequence of candidate `lambda`s will be generated and tested sequentially. Users can set the length of candidate list by setting, for example, `nlambda = 10`. The option `lambda` can also receive a user-specified sequence as candidate `lambda`s. A built in cross-validation procedure will select the optimal hyper parameter when a single `lambda` is given. Users can specify the number of folds in cross-validation using the option `k` (e.g. `k = 5`).
 
 ```{r sim_mc, cache = TRUE}
 system.time(
@@ -398,7 +397,7 @@ plot(out, type = "loadings")
 
 ## Unbalanced panels
 
-Starting from v1.0.7, **gsynth** can accommodate unbalanced panels. To illustrate how it works, we randomly remove 50 observations as well as the first 15 observations of Wyoming from the turnout dataset and then re-estimate the model:
+**gsynth** can accommodate unbalanced panels. To illustrate how it works, we randomly remove 50 observations as well as the first 15 observations of Wyoming from the turnout dataset and then re-estimate the model:
 
 ```{r}
 set.seed(123456)

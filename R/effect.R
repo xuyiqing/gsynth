@@ -1,4 +1,4 @@
-# Calculate cumulative average treatment effect
+# Calculate cumulative average treatment effect or group effects
 # A wrapper function of fect:::cumuEff
 #' @import fect
 #' @param x A `fect` object with `method="gsynth"`.
@@ -9,6 +9,6 @@
 #' @return Cumulative effects
 #' @export
 effect <- function(x, cumu=TRUE, period=NULL, id=NULL, plot=FALSE){
-  out <- fect:::effect(x=x, cumu=cumu, period=period, id=id, plot=plot)
+  out <- fect::effect(x=x, cumu=cumu, period=period, id=id, plot=plot)
   return(out)
 }

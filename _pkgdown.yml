@@ -11,20 +11,19 @@ navbar:
     - text: "Changelog"
       href: news/index.html
   right:
-   - icon: fa-github
-     href: https://github.com/xuyiqing/gsynth
+    - icon: fa-github
+      aria-label: GitHub
+      href: https://github.com/your/repo
 
 reference:
-  - title: Functions
+  - title: Main Functions
   - contents:
     - gsynth
-    - interFE
-    - cumuEff
+    - effect
   - title: S3 methods
   - contents:
     - plot.gsynth
     - print.gsynth
-    - print.interFE
   - title: Test datasets
   - contents:
     - simdata

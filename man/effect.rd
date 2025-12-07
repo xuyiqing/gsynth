@@ -1,8 +1,8 @@
 \name{effect}
 \alias{effect}
-\title{Calculate Cumulative or sub-group Treatment Effects}
-\description{Calculate Cumulative or sub-group Treatment Effects}
-\usage{cumuEff(x, cumu = TRUE, id = NULL, period = NULL)}
+\title{Cumulative or Sub-group Treatment Effects}
+\description{Calculates cumulative or sub-group treatment effects}
+\usage{effect(x, cumu = TRUE, period = NULL, id = NULL, plot = FALSE)}
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}
   \item{cumu}{a logical flag indicating whether to calculate cumulative effects or not.}
@@ -19,13 +19,8 @@
 
 \author{
   Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
-
-  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{
-  Jushan Bai. 2009. "Panel Data Models with Interactive Fixed
-  Effects." Econometrica 77:1229--1279.
-
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25,
   Iss. 1, January 2017, pp. 57-76.
