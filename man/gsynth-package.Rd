@@ -1,6 +1,7 @@
 \name{gsynth-package}
 \alias{gsynth-package}
 \docType{package}
+\keyword{internal}
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based on interactive fixed effect models.}
 \details{
@@ -14,8 +15,6 @@
 }
 \author{
   Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
-
-  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference

@@ -1,4 +1,4 @@
-
+\keyword{internal}
 \name{gsynth-internal}
 \alias{XXinv}
 \alias{beta_iter}
@@ -39,10 +39,10 @@
 \alias{synth.boot}
 \alias{synth.core}
 \alias{synth.em}
-\alias{synth.em.cv} 
+\alias{synth.em.cv}
 \alias{synth.mc}
-\alias{res.vcov}   
-\alias{ct.adjsut} 
+\alias{res.vcov}
+\alias{ct.adjsut}
 \alias{initialFit}
 \title{Internal Gsynth Functions}
 \description{
@@ -52,4 +52,4 @@
 These are not to be called by the user (or in some cases are just
 waiting for proper documentation to be written :).
 }
-\keyword{ts}
+

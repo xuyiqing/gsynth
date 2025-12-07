@@ -13,10 +13,10 @@ usethis::use_news_md() # update logs
 pkgdown::build_site(install = FALSE)
 
 # or alternatively
+setwd("~/github/gsynth")
 library(pkgdown)
 init_site()
 build_home()
 build_reference()
-build_articles()
-build_tutorials()
 build_news()
+build_articles()

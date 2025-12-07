@@ -8,7 +8,7 @@ on interactive fixed effect models.}
        lambda = NULL, nlambda = 10, CV = TRUE, criterion = "mspe",
        k = 5, EM = FALSE, estimator = "ife",
        se = FALSE, nboots = 200,
-       inference = "nonparametric", cov.ar = 1, parallel = TRUE,
+       inference = NULL, parallel = TRUE,
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5,
        alpha = 0.05, normalize = FALSE)
 }
@@ -64,9 +64,6 @@ on interactive fixed effect models.}
   will be used, either "parametric" or "nonparametric". "parametric" is
   recommended when the number of treated units is small. parametric bootstrap
   is not valid for matrix completion method. Ignored if \code{estimator = "mc"}.}
-\item{cov.ar}{an integer specifying order of the auto regression process
-  that the residuals follow. Used for parametric bootstrap procedure when data
-  is in the form of unbalanced panel. The default value is 1.}
 \item{parallel}{a logical flag indicating whether parallel computing
   will be used in bootstrapping and/or cross-validation. Ignored if
   \code{se = FALSE}.}
@@ -152,7 +149,7 @@ on interactive fixed effect models.}
   \item{IC}{the information criterion.}
   \item{PC}{the proposed criterion for determining factor numbers.}
   \item{est.co}{result of the interactive fixed effect model based on
-    the control group data. An \code{\link{interFE}} object.}
+    the control group data.}
   \item{eff.cnt}{difference between actual outcome and predicted Y(0);
     rearranged based on the timing of the treatment.}
   \item{Y.tr.cnt}{data of the treated unit outcome, rearranged based on the timing of the treatment.}
@@ -181,8 +178,6 @@ on interactive fixed effect models.}
 }
 \author{
   Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
-
-  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{
   Laurent Gobillon and Thierry Magnac, 2016.

@@ -9,8 +9,6 @@
 }
 \author{
   Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
-
-  Licheng Liu <liulch@mit.edu>, M.I.T.
 }
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25,
