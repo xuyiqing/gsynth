@@ -1,0 +1,81 @@
+# Welcome {.unnumbered}
+
+This manual serves as a user guide for the **gsynth** package in R. 
+
+Starting from v1.3.0, **gsynth** becomes a wrapper of **fect**. We recommend users consult the **fect** [User Manual](https://yiqingxu.org/packages/fect/) for the most up-to-date features. We maintain **gsynth** for backward compatibility. For the technical details, see @Xu2017.
+
+## Installation
+
+```{r install-cran, eval = FALSE}
+# From CRAN
+install.packages("gsynth")
+```
+
+```{r install-github, eval = FALSE, message = FALSE, warning = FALSE}
+# Development version
+devtools::install_github("xuyiqing/gsynth")
+```
+
+```{r check-version}
+# Check version
+installed.packages()["gsynth", "Version"]
+```
+
+```{r load}
+# Load package
+library(gsynth)
+```
+
+## Quick-reference
+
+**gsynth** has one main function, `gsynth()`, which estimates causal effects using interactive fixed-effect models. Three estimation methods are available:
+
+| `estimator =` | Method | Algorithm | Reference |
+| --- | --- | --- | --- |
+| `"gsynth"` (default) | Generalized Synthetic Control | Factors estimated from control group only | @Xu2017 |
+| `"ife"` | Interactive Fixed Effects with EM | EM algorithm using treated units' pre-treatment data | @Gobillon2016 |
+| `"mc"` | Matrix Completion | Nuclear norm regularization | @Athey2021 |
+
+The legacy `EM = TRUE` parameter is equivalent to `estimator = "ife"`.
+
+### Key arguments
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `formula` | formula | `Y ~ D + X1 + X2`; first RHS variable is the treatment |
+| `data` | data.frame | Long-format panel data |
+| `index` | character(2) | `c("unit_var", "time_var")` |
+| `estimator` | character | `"gsynth"` / `"ife"` / `"mc"` |
+| `force` | character | `"none"` / `"unit"` / `"time"` / `"two-way"` |
+| `r` | integer(2) | Range for number of factors, e.g. `c(0, 5)` |
+| `CV` | logical | Cross-validation to select number of factors |
+| `se` | logical | Compute uncertainty estimates |
+| `inference` | character | `"parametric"` / `"nonparametric"` / `"jackknife"` |
+| `nboots` | integer | Number of bootstrap runs |
+| `parallel` | logical | Enable parallel computing |
+| `cores` | integer | Number of cores (default: auto-detect) |
+| `min.T0` | integer | Minimum pre-treatment periods for treated units |
+
+
+
+## Organization
+
+- [Chapter @sec-gsynth] — Generalized Synthetic Control (block DID, staggered DID, unbalanced panels)
+- [Chapter @sec-ife-mc] — IFE-EM and Matrix Completion methods
+
+## Contributors
+
+- [Yiqing Xu](https://yiqingxu.org/){target="_blank"}
+- [Licheng Liu](https://liulch.github.io/){target="_blank"}
+- Ziyi Liu
+- Shiyun Hu
+
+## Report bugs
+
+Please report bugs to yiqingxu [at] stanford.edu or open an issue on [GitHub](https://github.com/xuyiqing/gsynth/issues).
+
+<!-- badges: start -->
+
+[![Lifecycle: stable](https://lifecycle.r-lib.org/articles/figures/lifecycle-stable.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [<img src="https://www.r-pkg.org/badges/version/gsynth" alt="CRAN status"/>](https://CRAN.R-project.org/package=gsynth) [<img src="https://cranlogs.r-pkg.org/badges/grand-total/gsynth" alt="downloads: CRAN"/>](https://cran.r-project.org/package=gsynth)
+
+<!-- badges: end -->

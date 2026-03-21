@@ -6,7 +6,7 @@ on interactive fixed effect models.}
 \usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE,
        index, weight = NULL, force = "unit", cl = NULL, r = 0,
        lambda = NULL, nlambda = 10, CV = TRUE, criterion = "mspe",
-       k = 5, EM = FALSE, estimator = "ife",
+       k = 5, EM = FALSE, estimator = "gsynth",
        se = FALSE, nboots = 200,
        inference = NULL, parallel = TRUE,
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5,
@@ -54,8 +54,9 @@ on interactive fixed effect models.}
  completion algorithm. Default is \code{k = 5}.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016).}
-\item{estimator}{a string that controls the estimation method, either
-"ife" (interactive fixed effects) or "mc" (the matrix completion method).}
+\item{estimator}{a string that controls the estimation method: \code{"gsynth"}
+(generalized synthetic control, default), \code{"ife"} (interactive fixed effects
+with EM algorithm), or \code{"mc"} (matrix completion method).}
 \item{se}{a logical flag indicating whether uncertainty estimates will
   be produced.}
 \item{nboots}{an integer specifying the number of bootstrap
@@ -177,7 +178,7 @@ on interactive fixed effect models.}
   \item{beta.boot}{bootstrap results for \code{beta}.}
 }
 \author{
-  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  Yiqing Xu <yiqingxu@stanford.edu>, Stanford University
 }
 \references{
   Laurent Gobillon and Thierry Magnac, 2016.

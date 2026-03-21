@@ -39,4 +39,8 @@ vignettes/tutorial_files/
 docs
 vignettes/panelview_cache
 vignettes/tutorial_cache
+tutorial/_book/
+tutorial/*_cache/
+tutorial/*_files/
+tests/testthat/Rplots.pdf
 .DS_Store

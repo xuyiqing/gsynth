@@ -1,3 +1,14 @@
+# gsynth 1.4.0
+
+* **Breaking change**: The `estimator` parameter now maps directly to estimation methods. `estimator = "gsynth"` (new default) uses the generalized synthetic control method (Xu 2017); `estimator = "ife"` uses the IFE-EM algorithm (Gobillon & Magnac 2016); `estimator = "mc"` uses matrix completion (Athey et al. 2021). The legacy `EM = TRUE` parameter is equivalent to `estimator = "ife"` when `estimator` is not explicitly specified.
+* Fixed loadings plot warnings from `GGally::ggpairs` (upstream fix in **fect**).
+* Replaced pkgdown vignette with Quarto book tutorial.
+* Updated DESCRIPTION: added BugReports, Encoding, GitHub URL.
+
+# gsynth 1.3.1
+
+* Updated DESCRIPTION and documentation.
+
 # gsynth 1.3.0
 
 We merged all functionalities of **gsynth** into the package **fect**. **gsynth** is now a wrapper of **fect**. Please check [fect User Manual](https://yiqingxu.org/packages/fect/) for updates. We maintain
