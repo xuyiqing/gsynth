@@ -15,5 +15,8 @@ URL: https://yiqingxu.org/packages/gsynth/
 NeedsCompilation: no
 License: MIT + file LICENSE
 Imports: ggplot2 (>= 2.1.0), fect (>= 2.0.0), panelView (>= 1.1.17)
+Suggests: testthat (>= 3.0.0)
 Depends: R (>= 2.10)
+LazyData: true
+Config/testthat/edition: 3
 RoxygenNote: 7.3.2
