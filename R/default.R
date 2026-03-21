@@ -36,8 +36,8 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                            CV = TRUE, # cross-validation
                            criterion = "mspe", # mspe or pc
                            k = 5, # cross-validation times
-                           EM = FALSE, # EM algorithm
-                           estimator = "ife", # ife/mc method
+                           EM = FALSE, # EM algorithm (legacy; use estimator = "ife" instead)
+                           estimator = "gsynth", # gsynth/ife/mc method
                            se = FALSE, # report uncertainties
                            nboots = 200, # number of bootstraps
                            inference = NULL, # type of inference
@@ -50,27 +50,29 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
                            alpha = 0.05,
                            normalize = FALSE
                            ) {
-    method <- "gsynth"
-    if (EM == TRUE) {
-        method <- "ife" # Gobillon & Magnac (2016)
-    }
-    if (estimator == "mc") {
-        method <- "mc" # Athey et al. (2021)
+    ## Method routing
+    ## estimator = "gsynth" -> Xu (2017): factors from control group only
+    ## estimator = "ife"    -> Gobillon & Magnac (2016): EM using treated pre-treatment
+    ## estimator = "mc"     -> Athey et al. (2021): matrix completion
+    ## EM = TRUE (legacy)   -> same as estimator = "ife"
+    method <- estimator
+    if (EM == TRUE && missing(estimator)) {
+        method <- "ife" # legacy backward compatibility
     }
     if (is.null(inference) == TRUE) {
-      if (EM == TRUE | estimator == "mc") {
+      if (method %in% c("ife", "mc")) {
         inference <- "bootstrap"
-      } else { # gsynth, no EM
+      } else { # gsynth
         inference <- "parametric"
       }
     }
     if (inference == "nonparametric") {
       inference <- "bootstrap"
     }
-    if (EM == TRUE | estimator == "mc") {
+    if (method %in% c("ife", "mc")) {
       if (inference == "parametric") {
         inference <- "bootstrap"
-        warning("Using nonparametric bootstrap for inference with EM algorithm.")
+        warning("Using nonparametric bootstrap for inference with EM/MC method.")
       }
     }
     output <- fect::fect(formula = formula, data = data, method = method, Y = Y, D = D, X = X,

@@ -1,0 +1,356 @@
+# Gsynth {#sec-gsynth}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+```
+
+This chapter demonstrates the default **gsynth** estimator (`estimator = "gsynth"`, [@Xu2017]), which estimates latent factors from the control group only and then imputes counterfactuals for treated units. We cover three settings: block DID, staggered DID, and unbalanced panels.
+
+```{r}
+library(gsynth)
+library(panelView)
+data(gsynth)
+```
+
+## Block DID
+
+We start with a simulated dataset: 5 treated units, 45 control units, and 30 time periods. Treatment begins at Period 21 for all treated units.
+
+```{r}
+head(simdata)
+```
+
+### Visualizing data
+
+Before estimation, visualize the data structure with **panelView**.
+
+```{r simdata-panelview-raw, fig.height = 10}
+panelview(Y ~ D, data = simdata, index = c("id", "time"), 
+          pre.post = TRUE)
+```
+
+Outcome trajectories by treatment status:
+
+```{r simdata-panelview-outcome}
+panelview(Y ~ D, data = simdata, index = c("id", "time"), 
+          type = "outcome")
+```
+
+### Estimation & Inference
+
+We estimate the model using the outcome $Y$, the treatment indicator $D$, and two covariates $X_1$ and $X_2$.
+
+The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`.
+
+For finite sample inference, set `se = TRUE`. With few treated units, use `inference = "parametric"`. 
+```{r sim1, cache = TRUE}
+system.time(
+    out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                  index = c("id", "time"), force = "two-way",
+                  CV = TRUE, r = c(0, 5), se = TRUE,
+                  inference = "parametric", nboots = 1000,
+                  parallel = FALSE)
+)
+```
+
+For super-population inferences (with a large $N$, and $N_{tr}$ grows with $N$), users can also use `inference = "nonparametric"` or `inference = "jackknife"`.
+
+The output shows: `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation selects the $r$ that minimizes MSPE.
+
+```{r}
+out$est.att
+out$est.avg
+out$est.beta
+```
+
+### Parallel computing
+
+Parallel computing (`parallel = TRUE`) speeds up the bootstrap procedure. We recommend that users manually set the number of cores using the `cores` option. If this is not supplied or is `NULL`, we will automatically select the smaller of `8` and the number of usable system cores minus `2`, to prevent excessive use of system resources.
+
+```{r sim2, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              index = c("id", "time"), force = "two-way",
+              CV = TRUE, r = c(0, 5), se = TRUE,
+              inference = "parametric", nboots = 1000,
+              parallel = TRUE, cores = 10)
+)
+print(out)
+```
+
+
+### Cumulative effects
+
+The `effect` function calculates cumulative treatment effects. Specify a period of interest with `period`; if omitted, all post-treatment periods are used.
+
+```{r cumu1, cache = TRUE}
+cumu1 <- effect(out, cumu = TRUE, id = NULL)
+cumu1$effect.est.att
+plot(cumu1)
+```
+
+Sub-group effects and average (non-cumulative) effects:
+
+```{r cumu2, cache = TRUE}
+cumu2 <- effect(out, cumu = FALSE, id = c(101, 102, 103), 
+                period = c(1, 5))
+cumu2$effect.est.att
+plot(cumu2)
+```
+
+### Plot results
+
+The default `plot` produces a "gap" plot showing the estimated ATT by period. The true effects in `simdata` go from 1 to 10 (plus noise) from period 21 to 30.
+
+```{r sim-gap1}
+plot(out)
+```
+
+A default *ggplot2* theme:
+
+```{r sim-gap1a}
+plot(out, theme.bw = FALSE)
+```
+
+Customize axes and title:
+
+```{r sim-gap2}
+plot(out, type = "gap", ylim = c(-10, 12), xlab = "Period",
+     main = "My GSynth Plot")
+```
+
+#### Raw data
+
+```{r sim-raw1}
+plot(out, type = "raw")
+```
+
+#### Counterfactuals
+
+```{r ct1}
+plot(out, type = "counterfactual", raw = "none", main = "")
+```
+
+Without post-treatment shading:
+
+```{r ct1a}
+plot(out, type = "ct", raw = "none", main = "",
+     shade.post = FALSE)
+```
+
+With quantile bands (5th--95th percentile):
+
+```{r ct2}
+plot(out, type = "counterfactual", raw = "band",
+     xlab = "Time", ylim = c(-5, 35))
+```
+
+With all raw data:
+
+```{r ct3}
+plot(out, type = "counterfactual", raw = "all")
+```
+
+Unit-level counterfactuals:
+
+```{r ct4}
+plot(out, type = "counterfactual", id = 102)
+```
+
+```{r ct5}
+plot(out, type = "counterfactual", id = 104,
+     raw = "band", ylim = c(-10, 30))
+```
+
+```{r ct6}
+plot(out, type = "counterfactual", id = 105,
+     raw = "all", legendOff = TRUE)
+```
+
+#### Factors and loadings
+
+```{r sim-factors, results='hide'}
+plot(out, type = "factors", xlab = "Time")
+```
+
+```{r sim-loadings, fig.height = 5, results='hide'}
+plot(out, type = "loadings")
+```
+
+## Staggered DID
+
+The `turnout` dataset examines the effect of Election Day Registration (EDR) reforms on voter turnout in the United States, where treatment kicks in at different times.
+
+```{r}
+names(turnout)
+```
+
+### Data structure
+
+The balanced panel has 9 treated units with staggered treatment timing.
+
+```{r turnout-obs, fig.height = 10}
+panelview(turnout ~ policy_edr, data = turnout,
+          index = c("abb", "year"), pre.post = TRUE,
+          by.timing = TRUE)
+```
+
+Outcome trajectories by treatment-status group:
+
+```{r turnout-obs2, fig.height = 10}
+panelview(turnout ~ policy_edr, data = turnout,
+          index = c("abb", "year"), type = "outcome",
+          main = "EDR Reform and Turnout",
+          by.group = TRUE)
+```
+
+### Estimation without factors
+
+When no factor is assumed, the estimates are close to difference-in-differences:
+
+```{r turnout-did, cache = TRUE}
+out0 <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
+               data = turnout, index = c("abb", "year"),
+               se = TRUE, inference = "parametric",
+               r = 0, CV = FALSE, force = "two-way",
+               nboots = 1000, seed = 02139)
+```
+
+```{r turnout-did-gap}
+plot(out0, type = "gap", xlim = c(-10, 5), ylim = c(-30, 20))
+```
+
+### Estimation with factors
+
+Cross-validation selects the number of factors:
+
+```{r turnout-est, cache = TRUE}
+out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
+              data = turnout, index = c("abb", "year"),
+              se = TRUE, inference = "parametric",
+              r = c(0, 5), CV = TRUE, force = "two-way",
+              nboots = 1000, seed = 02139)
+```
+
+### Implied weights
+
+`out$wgt.implied` ($N_{co} \times N_{tr}$) stores the implied weights of all control units for each treated unit. Unlike synthetic control, the weights can be both positive and negative.
+
+```{r}
+dim(out$wgt.implied)
+sort(out$wgt.implied[, 8])
+```
+
+### Plot results
+
+Gap plot:
+
+```{r turnout-gap}
+plot(out, type = "gap", xlim = c(-10, 5), ylim = c(-15, 15))
+```
+
+State-specific gap (Wisconsin):
+
+```{r turnout-gap2}
+plot(out, type = "gap", id = "WI", main = "Wisconsin")
+```
+
+Raw turnout data:
+
+```{r turnout-raw}
+plot(out, type = "raw", xlab = "Year", ylab = "Turnout")
+```
+
+Estimated average counterfactual (realigned by treatment timing):
+
+```{r turnout-ct}
+plot(out, type = "counterfactual", raw = "all")
+```
+
+Unit-level counterfactuals:
+
+```{r turnout-ct1}
+plot(out, type = "counterfactual", id = "CT")
+```
+
+```{r turnout-ct2}
+plot(out, type = "counterfactual", id = "WY",
+     raw = "all", legendOff = TRUE)
+```
+
+```{r turnout-ct3}
+plot(out, type = "counterfactual", id = "WI",
+     raw = "none", shade.post = FALSE, ylim = c(0, 100),
+     legend.labs = c("Wisconsin Actual", "Wisconsin Counterfactual"))
+```
+
+Estimated factors and loadings:
+
+```{r turnout-factors, results='hide'}
+plot(out, type = "factors", xlab = "Year")
+```
+
+```{r turnout-loadings, fig.height = 5, results='hide'}
+plot(out, type = "loadings")
+```
+
+## Unbalanced panels
+
+**gsynth** can accommodate unbalanced panels. We demonstrate by randomly removing observations from the `turnout` dataset.
+
+```{r}
+set.seed(123456)
+turnout.ub <- turnout[-c(which(turnout$abb == "WY")[1:15],
+                         sample(1:nrow(turnout), 50, 
+                                replace = FALSE)), ]
+```
+
+Visualize the data structure. White cells represent missing values.
+
+```{r turnout-ub-panelview, fig.height = 10}
+panelview(turnout ~ policy_edr + policy_mail_in + policy_motor,
+          data = turnout.ub, index = c("abb", "year"),
+          pre.post = TRUE)
+```
+
+### Estimation
+
+```{r turnout-ub-est, cache = TRUE}
+out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
+              data = turnout.ub, index = c("abb", "year"),
+              se = TRUE, inference = "parametric",
+              r = c(0, 5), CV = TRUE, force = "two-way",
+              parallel = TRUE, min.T0 = 8,
+              nboots = 1000, seed = 02139)
+```
+
+### Plot results
+
+The `"missing"` plot shows the data used in estimation. Gray cells with red dots indicate observations removed due to insufficient pre-treatment periods. The matrix is available in `out$obs.missing`, where 0 = missing, 1 = control, 2 = treated (pre), 3 = treated (post), 4 = treated (removed).
+
+```{r turnout-ub-missing, fig.height = 10}
+plot(out, type = "missing")
+```
+
+Subset to treated units only:
+
+```{r turnout-ub-missing2}
+plot(out, type = "missing", xlab = "Year", ylab = "State",
+     main = "Treatment Status", id = out$id.tr,
+     xlim = c(1920, 2012), axis.adjust = TRUE)
+```
+
+Gap plot with the unbalanced panel:
+
+```{r turnout-ub-gap}
+plot(out, type = "gap", xlim = c(-10, 5), ylim = c(-15, 15))
+```
+
+### Notes on performance
+
+1. Unbalanced panels take significantly more time than balanced panels (often 100:1 or higher) due to the EM algorithm for missing values.
+
+2. Adding covariates also slows the algorithm because the IFE/MC model takes more iterations to converge.
+
+3. Setting `min.T0` to a positive number helps --- the algorithm discards treated units with too few pre-treatment periods. A larger $T_0$ reduces bias and extrapolation risk. For cross-validation, `min.T0` must be at least `r.max + 2`.

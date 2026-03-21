@@ -1,0 +1,105 @@
+# IFE-EM & MC {#sec-ife-mc}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+```
+
+In the difference-in-differences setting (with a large $N$, and $N_{tr}$ grows with $N$), @Gobillon2016 propose an EM algorithm that exploits pre-treatment observations from treated units, while @Athey2021 propose a matrix completion approach that imputes counterfactual outcomes under a low-rank structure. Both methods use information from never-treated controls and not-yet-treated observations of treated units, and conduct inference under a super-population framework.
+
+For a comparison with Gsynth, see the discussion in the **fect** [User Manual](https://yiqingxu.org/packages/fect/index.html).
+
+## Breaking change in v1.4.0 {#sec-breaking}
+
+We realize the `EM` option has caused confusion. In fact, when there are missing data in the control group, Gsynth will automatically use the EM algorithm to fill the missing data. The key difference is that the factors are learned from the control units only, not from pre-treatment observations of the treated units.
+
+In early versions, when the estimator is not specified, `EM = TRUE` activates the Gobillon-Magnac IFE-EM estimator, which has implications for what inferential method is feasible. For example, `inference = "parametric"` is not suitable for the IFE-EM and MC estimators given they are super-population based. 
+
+To avoid this confusion, starting from v1.4.0, the `estimator` parameter maps directly to the estimation method.
+
+**What changed from v1.3.x:**
+
+| Code | v1.3.x behavior | v1.4.0 behavior |
+| --- | --- | --- |
+| `gsynth(...)` (default) | Xu (2017) | Xu (2017)  |
+| `gsynth(..., estimator = "gsynth", EM = TRUE)` | Not available  | Xu (2017) — Gsynth |
+| `gsynth(..., estimator = "ife")` | Xu (2017) — Gsynth | Gobillon & Magnac (2016) — IFE-EM |
+| `gsynth(..., EM = TRUE)` | Gobillon & Magnac (2016) — IFE-EM | Gobillon & Magnac (2016) — IFE-EM (unchanged) |
+| `gsynth(..., estimator = "mc")` | Matrix completion | Matrix completion (unchanged) |
+
+**Notes**: 
+
+(a) *Backward compatibility*: `gsynth(..., EM = TRUE)` maps to IFE-EM (unless `estimator = "gsynth"`) for backward compatiblity. 
+
+(a) *Migration*: If your existing code uses `estimator = "ife"` with `EM = FALSE` (by default, mapped to Gysnth) and you want to preserve prior results, change it to `estimator = "gsynth"`. The default behavior (no `estimator` argument) is unchanged. 
+
+(b) *Implementation error*: If your existing code uses `estimator = "ife"` with `EM = TRUE`, which maps to IFE-EM, do not use `inference = "parametric"`; a previous version contained an erroneous implementation, which severely underestimates uncertainties. It was removed in v1.3.1.
+
+
+
+## IFE-EM
+
+Starting from v1.4.0, set `estimator = "ife"` to use the IFE-EM approach. Since inference is based on the super-population framework, only `"nonparametric"` or `"jackknife"` inference is allowed.
+
+```{r}
+library(gsynth)
+data(gsynth)
+```
+
+```{r sim-ife, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              index = c("id", "time"), estimator = "ife",
+              force = "two-way", inference = "nonparametric",
+              se = TRUE, nboots = 500, r = c(0, 5),
+              CV = TRUE, parallel = TRUE, cores = 10)
+)
+print(out)
+```
+
+```{r sim-ife-plot}
+plot(out, main = "Estimated ATT (IFE-EM)")
+```
+
+## Matrix completion
+
+Set `estimator = "mc"` to use the matrix completion method proposed by @Athey2021. Only `"nonparametric"` or `"jackknife"` inference is allowed.
+
+The option `lambda` controls the tuning parameter. If left blank, a sequence of candidates is generated and tested via built-in cross-validation. Users can set the length of the candidate list with `nlambda`, or supply a custom sequence via `lambda`. The number of folds is set with `k` (e.g. `k = 5`).
+
+```{r sim-mc, cache = TRUE}
+system.time(
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              estimator = "mc", index = c("id", "time"),
+              se = TRUE, nboots = 500, r = c(0, 5),
+              CV = TRUE, force = "two-way",
+              parallel = TRUE, cores = 10,
+              inference = "nonparametric")
+)
+```
+
+```{r sim-mc-plot}
+plot(out, main = "Estimated ATT (MC)")
+```
+
+## Matrix completion on turnout data
+
+Applying matrix completion to the unbalanced `turnout` data:
+
+```{r}
+set.seed(123456)
+turnout.ub <- turnout[-c(which(turnout$abb == "WY")[1:15],
+                         sample(1:nrow(turnout), 50, replace = FALSE)), ]
+```
+
+```{r turnout-mc, cache = TRUE}
+out.mc <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
+                 min.T0 = 8, data = turnout.ub,
+                 index = c("abb", "year"), estimator = "mc",
+                 se = TRUE, nboots = 1000, seed = 02139)
+```
+
+```{r turnout-mc-plot}
+plot(out.mc, main = "Estimated ATT (MC)",
+     xlim = c(-10, 5), ylim = c(-10, 20))
+```

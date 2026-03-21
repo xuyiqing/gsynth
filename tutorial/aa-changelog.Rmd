@@ -1,0 +1,47 @@
+# Changelog {#sec-changelog .unnumbered}
+
+## v1.4.0
+
+(2026-03-21)
+
+* **Breaking change**: `estimator` parameter now maps directly to estimation methods. `estimator = "gsynth"` (new default) uses @Xu2017; `estimator = "ife"` uses @Gobillon2016 EM algorithm; `estimator = "mc"` uses @Athey2021 matrix completion. The legacy `EM = TRUE` parameter is equivalent to `estimator = "ife"`. 
+* Fixed loadings plot warnings (upstream fix in **fect**).
+* Replaced pkgdown vignette with Quarto book tutorial.
+
+## v1.3.1
+
+(2025-12-07)
+
+* Updated DESCRIPTION and documentation.
+
+## v1.3.0
+
+Merged all functionalities of **gsynth** into **fect**. **gsynth** is now a wrapper of **fect**. See the [fect User Manual](https://yiqingxu.org/packages/fect/) for updates.
+
+## v1.1.7
+
+Normal approximation for confidence intervals based on bootstrapped standard errors (replacing the percentile method).
+
+## v1.1.4
+
+1. Import *felm* from **lfe** for two-way FE starting values with unbalanced panels.
+2. Add cluster bootstrap option.
+3. Add jackknife uncertainty estimates.
+4. Add `cumuEff` function for sub-group and cumulative treatment effects.
+
+## v1.0.9
+
+1. `panelView()` removed from **gsynth** and released as an independent package.
+2. Implement matrix completion method.
+3. Bug fixes and color scheme changes.
+
+## v1.0.8
+
+1. Add `panelView()` for data visualization.
+2. Bug fixes.
+
+## v1.0.7
+
+1. Add implied weights (`wgt.implied`) to output.
+2. Add missing data / treatment status plot (`type = "missing"`).
+3. Accommodate unbalanced panels.
