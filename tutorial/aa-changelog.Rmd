@@ -2,7 +2,7 @@
 
 ## v1.4.0
 
-(2026-03-21)
+(2026-03-27) CRAN release.
 
 * **Breaking change**: `estimator` parameter now maps directly to estimation methods. `estimator = "gsynth"` (new default) uses @Xu2017; `estimator = "ife"` uses @Gobillon2016 EM algorithm; `estimator = "mc"` uses @Athey2021 matrix completion. The legacy `EM = TRUE` parameter is equivalent to `estimator = "ife"`. 
 * Fixed loadings plot warnings (upstream fix in **fect**).

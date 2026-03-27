@@ -70,7 +70,25 @@ The legacy `EM = TRUE` parameter is equivalent to `estimator = "ife"`.
 - Ziyi Liu
 - Shiyun Hu
 
-## Report bugs
+## How to Cite
+
+To cite the **gsynth** package, please use:
+
+> Xu, Yiqing. 2017. "Generalized Synthetic Control Method: Causal Inference with Interactive Fixed Effects Models." *Political Analysis* 25 (1): 57--76.
+
+```bibtex
+@article{Xu2017,
+  title = {Generalized Synthetic Control Method: Causal Inference with Interactive Fixed Effects Models},
+  author = {Xu, Yiqing},
+  journal = {Political Analysis},
+  volume = {25},
+  number = {1},
+  pages = {57--76},
+  year = {2017}
+}
+```
+
+## Report Bugs
 
 Please report bugs to yiqingxu [at] stanford.edu or open an issue on [GitHub](https://github.com/xuyiqing/gsynth/issues).
 
