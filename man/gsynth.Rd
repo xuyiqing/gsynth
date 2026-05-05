@@ -3,14 +3,18 @@
 \title{Generalized Synthetic Control Method}
 \description{Implements the generalized synthetic control method based
 on interactive fixed effect models.}
-\usage{gsynth(formula=NULL, data, Y, D, X = NULL, na.rm = FALSE,
+\usage{gsynth(formula = NULL, data, Y, D, X = NULL, na.rm = FALSE,
        index, weight = NULL, force = "unit", cl = NULL, r = 0,
        lambda = NULL, nlambda = 10, CV = TRUE, criterion = "mspe",
-       k = 5, EM = FALSE, estimator = "gsynth",
+       k = 20, cv.method = "rolling", cv.prop = 0.1, cv.buffer = 1,
+       EM = FALSE, estimator = "gsynth", time.component.from = NULL,
        se = FALSE, nboots = 200,
        inference = NULL, parallel = TRUE,
        cores = NULL, tol = 0.001, seed = NULL, min.T0 = 5,
-       alpha = 0.05, normalize = FALSE)
+       alpha = 0.05, normalize = FALSE,
+       W.est = NULL, W.agg = NULL,
+       ci.method = "normal",
+       placeboTest = FALSE, placebo.period = NULL)
 }
 \arguments{
 \item{formula}{an object of class "formula": a symbolic description of
@@ -25,8 +29,10 @@ on interactive fixed effect models.}
   exist.}
 \item{index}{a two-element string vector specifying the unit (group)
     and time indicators. Must be of length 2.}
-\item{weight}{a string specifying the weighting variable(if any) to estimate
-    the weighted average treatment effect. Default is \code{weight = NULL}.}
+\item{weight}{a string specifying the weighting variable (if any) to
+    estimate the weighted average treatment effect. Default is
+    \code{weight = NULL}. Applies to both estimation and aggregation
+    roles. For per-role control, use \code{W.est} and \code{W.agg}.}
 \item{force}{a string indicating whether unit or time fixed effects will be
     imposed. Must be one of the following,
     "none", "unit", "time", or "two-way". The default is "unit".}
@@ -50,21 +56,47 @@ on interactive fixed effect models.}
   prediction error obtained through the loocv procedure, and "pc" stands for a kind
   of information criterion. If \code{criterion = "pc"}, the number of factors that
   minimize "pc" will be selected. Default is \code{criterion = "mspe"}.}
-\item{k}{a positive integer specifying cross-validation times for matrix
- completion algorithm. Default is \code{k = 5}.}
+\item{k}{a positive integer specifying the number of cross-validation folds.
+  Default is \code{k = 20} (changed from \code{k = 5} in v1.5.0 to align with
+  \code{fect} v2.3.0+ defaults).}
+\item{cv.method}{a string specifying the cross-validation masking strategy.
+  Either \code{"rolling"} (default; rolling-window CV introduced in
+  \code{fect} v2.3.0) or \code{"block"} (the pre-v1.5.0 design, retained
+  for replication). New in v1.5.0.}
+\item{cv.prop}{numeric. Fraction of eligible units sampled per fold under
+  rolling CV (proportion of observations masked per round under block CV).
+  Default \code{0.1}. New in v1.5.0.}
+\item{cv.buffer}{integer. Past-side buffer (in time periods) for
+  \code{cv.method = "rolling"}. Default \code{1}. New in v1.5.0.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
-  algorithm will be used (Gobillon and Magnac 2016).}
-\item{estimator}{a string that controls the estimation method: \code{"gsynth"}
-(generalized synthetic control, default), \code{"ife"} (interactive fixed effects
-with EM algorithm), or \code{"mc"} (matrix completion method).}
+  algorithm will be used (Gobillon and Magnac 2016). Soft-deprecated in
+  v1.5.0; equivalent to \code{estimator = "ife"}. Removal targeted for
+  v2.0.0. For IFE-EM, use \code{fect::fect(method = "ife", ...)} directly.}
+\item{estimator}{a string that controls the estimation method:
+  \code{"gsynth"} (generalized synthetic control, default), \code{"ife"}
+  (interactive fixed effects with EM algorithm), or \code{"mc"} (matrix
+  completion method). \code{"ife"} and \code{"mc"} are soft-deprecated in
+  v1.5.0; removal targeted for v2.0.0. For IFE-EM or matrix completion,
+  use \code{fect::fect(method = "ife", ...)} or
+  \code{fect::fect(method = "mc", ...)} directly.}
+\item{time.component.from}{a string specifying the sample for factor
+  estimation: \code{"nevertreated"} (control units only; the GSC objective)
+  or \code{"notyettreated"} (includes treated-unit pre-treatment cells).
+  Default \code{NULL} routes by \code{estimator}: \code{"gsynth"} maps to
+  \code{"nevertreated"}; \code{"ife"} and \code{"mc"} map to
+  \code{"notyettreated"}. New in v1.5.0.}
 \item{se}{a logical flag indicating whether uncertainty estimates will
   be produced.}
 \item{nboots}{an integer specifying the number of bootstrap
   runs. Ignored if \code{se = FALSE}.}
 \item{inference}{a string specifying which type of inferential method
-  will be used, either "parametric" or "nonparametric". "parametric" is
-  recommended when the number of treated units is small. parametric bootstrap
-  is not valid for matrix completion method. Ignored if \code{estimator = "mc"}.}
+  will be used: \code{"parametric"}, \code{"nonparametric"}, or
+  \code{"jackknife"}. \code{"parametric"} is recommended when the number of
+  treated units is small and is only valid for \code{estimator = "gsynth"}.
+  \strong{Breaking change in v1.5.0:} \code{inference = "parametric"} with
+  \code{estimator = "ife"} or \code{"mc"} now errors instead of silently
+  falling back to nonparametric bootstrap, aligning with the hard gate in
+  \code{fect} v2.2.0+ and the public commitment in Xu (2026), Appendix A.5.}
 \item{parallel}{a logical flag indicating whether parallel computing
   will be used in bootstrapping and/or cross-validation. Ignored if
   \code{se = FALSE}.}
@@ -88,6 +120,40 @@ with EM algorithm), or \code{"mc"} (matrix completion method).}
 \item{normalize}{a logic flag indicating whether to scale outcome and
   covariates. Useful for accelerating computing speed when magnitude of
   data is large. The default is \code{normalize=FALSE}.}
+\item{W.est}{a string specifying the weighting column for the
+  outcome-model fit (per-role weight). Overrides \code{weight} for that
+  role. From \code{fect} v2.3.1; new in gsynth v1.5.0.}
+\item{W.agg}{a string specifying the weighting column for the ATT
+  aggregation step (per-role weight). Overrides \code{weight} for that
+  role. From \code{fect} v2.3.1; new in gsynth v1.5.0.}
+\item{ci.method}{a string controlling the confidence-interval method
+  used for the \code{est.*} slots. \code{"normal"} (default) uses Wald
+  intervals (\eqn{\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}});
+  \code{"basic"} uses the reflected-pivot bootstrap interval (Davison and
+  Hinkley 1997, Sec. 5.2.1) when \code{inference = "bootstrap"} or
+  \code{"jackknife"}. For percentile, BC, and BCa intervals on
+  alternative estimands (cumulative ATT, APTT, log-ATT), call
+  \code{\link[fect]{estimand}} on the fit object after class-munging
+  to \code{"fect"}. New in v1.5.0 (forwards \code{fect}'s
+  \code{ci.method}, added in fect v2.4.2).}
+\item{placeboTest}{a logical flag. If \code{TRUE}, a contiguous block of
+  pre-treatment periods specified by \code{placebo.period} is held out
+  from estimation and used as a placebo region. The fitted ATT is
+  reported on the placebo periods, allowing the analyst to check
+  whether the estimator produces non-zero "effects" in periods where
+  no effect should exist. New in v1.5.0; forwards \code{fect}'s
+  \code{placeboTest}.}
+\item{placebo.period}{an integer vector specifying which event-time
+  periods to use as the placebo block. For example,
+  \code{placebo.period = c(-2, 0)} treats event-times \eqn{-2} through
+  \eqn{0} as placebo. Default \code{NULL} lets \code{fect} pick a
+  sensible default (typically the two periods immediately preceding
+  treatment). Ignored unless \code{placeboTest = TRUE}.
+
+  \pkg{gsynth} does not expose \code{fect}'s \code{carryoverTest}.
+  The carryover test requires panels with treatment reversals, which
+  the GSC estimator does not allow. For carryover diagnostics on
+  reversal-friendly panels, use \code{\link[fect]{fect}} directly.}
 }
 \details{
   \code{gsynth} implements the generalized synthetic control method. It
@@ -101,6 +167,14 @@ with EM algorithm), or \code{"mc"} (matrix completion method).}
   reasonable modeling assumptions. With a built-in cross-validation
   procedure, it avoids specification searches and thus is easy to
   implement. Data must be with a dichotomous treatment.
+
+  \strong{Note (v1.5.0).} The \code{estimator = "ife"} (Gobillon-Magnac
+  IFE-EM) and \code{estimator = "mc"} (matrix completion) paths are
+  soft-deprecated in this release; each call emits a one-time-per-session
+  message. For IFE-EM or matrix completion, use \code{fect::fect()}
+  directly with \code{method = "ife"} or \code{method = "mc"} and
+  \code{time.component.from = "notyettreated"}. Removal is targeted for
+  gsynth v2.0.0. See \code{vignette("02-ife-mc", package = "gsynth")}.
 }
 \value{
   \item{Y.dat}{a matrix storing data of the outcome variable.}
@@ -192,12 +266,15 @@ with EM algorithm), or \code{"mc"} (matrix completion method).}
 
   Athey S, Bayati M, Doudchenko N, et al. Matrix completion methods for causal panel data models[J]. arXiv preprint arXiv:1710.10251, 2017.
 
+  Yiqing Xu. 2026. "A Response to Green and Aronow."
+
   For more details, see \url{https://yiqingxu.org/packages/gsynth/}.
 
   For more details about the matrix completion method, see \url{https://github.com/susanathey/MCPanel}.
 }
 \seealso{
-  \code{\link{plot.gsynth}} and \code{\link{print.gsynth}}
+  \code{\link{plot.gsynth}}, \code{\link{print.gsynth}},
+  \code{\link[fect]{fect}}.
 }
 \examples{
 library(gsynth)
@@ -207,5 +284,3 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata, parallel = FALSE,
               CV = TRUE, r = c(0, 5), se = FALSE)
 print(out)
 }
-
-

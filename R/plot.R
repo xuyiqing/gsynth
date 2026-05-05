@@ -26,6 +26,9 @@ plot.gsynth <- function(
     axis.adjust = FALSE,
     theme.bw = TRUE,
     shade.post = FALSE,
+    legacy.style = FALSE,
+    highlight = NULL,
+    highlight.fill = FALSE,
     ...){
 
   if (type %in% c("raw","missing")){
@@ -90,6 +93,9 @@ plot.gsynth <- function(
       axis.adjust = axis.adjust,
       theme.bw=theme.bw,
       shade.post = shade.post,
+      legacy.style = legacy.style,
+      highlight = highlight,
+      highlight.fill = highlight.fill,
         ...)
     return(p)
   }

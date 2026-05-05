@@ -1,0 +1,143 @@
+# Plot customization {#sec-plots}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 7)
+```
+
+```{r}
+library(gsynth)
+data(gsynth)
+```
+
+The `plot.gsynth()` method passes most arguments through to **fect**'s `plot.fect()`. This chapter collects the customization options most commonly used with `gsynth` fits, including the modern visual recipe introduced in **fect** v2.3.x and the new `legacy.style`, `highlight`, and `highlight.fill` arguments available from v1.5.0.
+
+For this chapter we use a fitted block-DID example:
+
+```{r plots-fit, cache = TRUE}
+## Pin r = 2 so the factors / loadings examples below have a
+## non-trivial factor structure to plot (CV may pick r = 0 on the
+## bundled simdata under v1.5.0 defaults).
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              index = c("id", "time"), force = "two-way",
+              r = 2, CV = FALSE, se = TRUE,
+              inference = "parametric", nboots = 200,
+              parallel = FALSE)
+```
+
+## Modern vs legacy visual recipe
+
+Starting in **fect** v2.3.1, the default `plot.fect()` recipe was overhauled: white panel, dashed treatment-onset vertical line at `x = 0.5`, smaller publication-sized axis text, compact legends, and pre/post grayscale color contrast. `gsynth` inherits this recipe automatically.
+
+```{r modern-default}
+plot(out, type = "gap")
+```
+
+To reproduce figures from earlier submissions exactly (where the visual recipe must match the prior version), pass `legacy.style = TRUE`:
+
+```{r legacy-style}
+plot(out, type = "gap", legacy.style = TRUE)
+```
+
+`theme.bw = FALSE` (the original ggplot2 default theme) is soft-deprecated and slated for removal in **fect** v2.5.0; passing it now emits a one-time-per-session message.
+
+## The highlight API
+
+For placebo and carryover tests, the modern recipe uses colored-glyph highlighting on the test periods. The behavior is controlled by two arguments:
+
+- `highlight`: which test types receive highlighting. `NULL` (default) auto-detects from the fit. `TRUE` enables across all types; `FALSE` disables. A character subset of `c("placebo", "carryover", "carryover.rm")` selects specific types.
+- `highlight.fill`: when `TRUE`, draws a lightened-tone background rectangle behind each highlighted period (slide / talk style). When `FALSE` (default), uses glyph-only highlighting that survives grayscale printing.
+
+```{r highlight-default}
+plot(out, type = "gap")
+```
+
+```{r highlight-fill, eval = FALSE}
+## With background rectangles for talk slides:
+plot(out, type = "gap", highlight.fill = TRUE)
+```
+
+## Counterfactual plots
+
+The counterfactual plot type (`"counterfactual"` or `"ct"`) shows the observed treated-unit trajectory against the imputed counterfactual:
+
+```{r ct-default}
+plot(out, type = "counterfactual", raw = "none", main = "")
+```
+
+Without post-treatment shading:
+
+```{r ct-no-shade}
+plot(out, type = "ct", raw = "none", main = "",
+     shade.post = FALSE)
+```
+
+With quantile bands (5th–95th percentile of the control-pool raw outcomes):
+
+```{r ct-band}
+plot(out, type = "counterfactual", raw = "band",
+     xlab = "Time", ylim = c(-5, 35))
+```
+
+With all raw control trajectories overlaid:
+
+```{r ct-all}
+plot(out, type = "counterfactual", raw = "all")
+```
+
+Unit-level counterfactuals via `id`:
+
+```{r ct-unit-1}
+plot(out, type = "counterfactual", id = 102)
+```
+
+```{r ct-unit-2}
+plot(out, type = "counterfactual", id = 104,
+     raw = "band", ylim = c(-10, 30))
+```
+
+```{r ct-unit-3}
+plot(out, type = "counterfactual", id = 105,
+     raw = "all", legendOff = TRUE)
+```
+
+## Factors and loadings
+
+```{r factors, results='hide'}
+plot(out, type = "factors", xlab = "Time")
+```
+
+```{r loadings, fig.height = 5, results='hide'}
+plot(out, type = "loadings")
+```
+
+`type = "loading.overlap"` shows the treated and control loadings in the first two factor dimensions, with the convex hull of control loadings shaded. Treated points outside the hull indicate that the GSC counterfactual extrapolates beyond the observed support. See [Chapter @sec-gsynth] §Loading-overlap diagnostic for the workflow.
+
+```{r loading-overlap, fig.height = 5, results='hide'}
+plot(out, type = "loading.overlap")
+```
+
+## Raw data and missing-data plots
+
+```{r raw}
+plot(out, type = "raw")
+```
+
+The `"missing"` plot is most useful on unbalanced panels:
+
+```{r missing, eval = FALSE}
+plot(out, type = "missing")
+```
+
+White cells are missing observations; gray with red dots are observations removed due to insufficient pre-treatment periods. The matrix is also available in `out$obs.missing`, where `0` = missing, `1` = control, `2` = treated (pre), `3` = treated (post), `4` = treated (removed).
+
+## Customizing axes and titles
+
+Standard arguments control axes and the title:
+
+```{r ct-customized}
+plot(out, type = "gap", ylim = c(-10, 12), xlab = "Period",
+     main = "My GSynth Plot")
+```
+
+Legend can be suppressed with `legendOff = TRUE`. Axis labels rotate automatically when there are many time periods; force with `axis.adjust = TRUE`.

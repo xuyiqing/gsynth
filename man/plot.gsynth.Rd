@@ -5,7 +5,9 @@
 \usage{\method{plot}{gsynth}(x, type = "gap", xlim = NULL, ylim = NULL,
             xlab = NULL, ylab = NULL, legendOff = FALSE, raw = "none",
             main = NULL, nfactors = NULL, id = NULL, axis.adjust = FALSE,
-            theme.bw = TRUE, shade.post = FALSE, \dots)
+            theme.bw = TRUE, shade.post = FALSE,
+            legacy.style = FALSE, highlight = NULL, highlight.fill = FALSE,
+            \dots)
 }
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}
@@ -14,7 +16,11 @@
     the treated; "raw" (plotting the raw data); "counterfactual", or "ct" for short,
     (plotting predicted Y(0)'s); "factors" (plotting estimated factors);
     "loadings" (plotting the distribution of estimated factor
-    loadings); "missing" (plotting status of each unit at each time point).}
+    loadings); "loading.overlap" (a diagnostic scatter of treated- and
+    control-unit loadings in the first two factor dimensions, with the
+    convex hull of control loadings shaded; new in v1.5.0, useful for
+    GSC overlap diagnostics); "missing" (plotting status of each unit at
+    each time point).}
   \item{xlim}{a two-element numeric vector specifying the range of x-axis. When
     class of time variable is string, must specify not original value but a
     counting number e.g. \code{xlim=c(1,30)}.}
@@ -42,6 +48,19 @@
     Useful when class of time variable is string and data magnitude is large.}
   \item{theme.bw}{a logical flag indicating whether to use a black/white theme.}
   \item{shade.post}{a logical flag controlling whether to shade the post-treatment periods.}
+  \item{legacy.style}{a logical flag (default \code{FALSE}). When \code{TRUE},
+    reproduces the pre-v1.5.0 visual recipe (legacy axis text sizes, colors,
+    and plot elements). Useful for byte-identical rendering of figures
+    embedded in papers under review. New in v1.5.0.}
+  \item{highlight}{controls which test-period types receive colored-glyph
+    highlighting. \code{NULL} (default) auto-detects from the fit;
+    \code{TRUE}/\code{FALSE} enables/disables across all types; or a character
+    subset of \code{c("placebo", "carryover", "carryover.rm")} to highlight
+    selected types only. New in v1.5.0.}
+  \item{highlight.fill}{a logical flag (default \code{FALSE}). When \code{TRUE},
+    draws a lightened-tone background rectangle behind each highlighted
+    period (slide / talk style). Default \code{FALSE} keeps the glyph-only
+    minimal look. New in v1.5.0.}
   \item{\dots}{other argv.}
 }
 \details{
