@@ -10,6 +10,7 @@ book:
     - index.qmd
     - 01-gsynth.Rmd
     - 02-ife-mc.Rmd
+    - 03-plots.Rmd
     - aa-changelog.Rmd
     - references.qmd
 
@@ -27,8 +28,10 @@ format:
     code-fold: false
     code-tools: true
     code-link: true
+    fig-format: svg
 
 knitr:
   opts_chunk:
     collapse: true
     comment: "#>"
+    dev: svg

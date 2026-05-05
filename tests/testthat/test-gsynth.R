@@ -21,9 +21,11 @@ test_that("gsynth() default method returns valid object without SE", {
 
 test_that("gsynth() EM method returns valid object", {
   skip_on_cran()
-  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), EM = TRUE, se = FALSE,
-                r = 2, parallel = FALSE)
+  out <- suppressPackageStartupMessages(
+    gsynth(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"), EM = TRUE, se = FALSE,
+           r = 2, parallel = FALSE)
+  )
 
   expect_s3_class(out, "gsynth")
   expect_equal(out$method, "ife")
@@ -31,9 +33,11 @@ test_that("gsynth() EM method returns valid object", {
 
 test_that("gsynth() MC method returns valid object", {
   skip_on_cran()
-  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), estimator = "mc",
-                se = FALSE, parallel = FALSE)
+  out <- suppressPackageStartupMessages(
+    gsynth(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"), estimator = "mc",
+           se = FALSE, parallel = FALSE)
+  )
 
   expect_s3_class(out, "gsynth")
   expect_equal(out$method, "mc")
@@ -54,7 +58,7 @@ test_that("gsynth() with parametric SE returns uncertainty estimates", {
 
 test_that("gsynth() with EM + SE uses bootstrap by default", {
   skip_on_cran()
-  out <- expect_no_warning(
+  out <- suppressPackageStartupMessages(
     gsynth(Y ~ D + X1 + X2, data = simdata,
            index = c("id", "time"), EM = TRUE, se = TRUE,
            nboots = 50, r = 2, parallel = FALSE)
@@ -63,16 +67,19 @@ test_that("gsynth() with EM + SE uses bootstrap by default", {
   expect_equal(out$vartype, "bootstrap")
 })
 
-test_that("gsynth() EM + parametric inference produces override warning", {
+# v1.5.0 BREAKING CHANGE: parametric × IFE-EM/MC was previously coerced
+# to bootstrap with a warning. It now errors via fect's hard gate.
+# See gsynth-note (Xu 2026), Appendix A.5.
+test_that("gsynth() EM + parametric inference now errors (v1.5.0 hard gate)", {
   skip_on_cran()
-  expect_warning(
-    out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                  index = c("id", "time"), EM = TRUE, se = TRUE,
-                  inference = "parametric", nboots = 50, r = 2,
-                  parallel = FALSE),
-    "nonparametric bootstrap"
+  expect_error(
+    suppressPackageStartupMessages(
+      gsynth(Y ~ D + X1 + X2, data = simdata,
+             index = c("id", "time"), EM = TRUE, se = TRUE,
+             inference = "parametric", nboots = 50, r = 2,
+             parallel = FALSE)
+    )
   )
-  expect_equal(out$vartype, "bootstrap")
 })
 
 test_that("gsynth() nonparametric inference is remapped", {
@@ -174,4 +181,49 @@ test_that("gsynth() normalize = TRUE works", {
                 normalize = TRUE, parallel = FALSE)
 
   expect_s3_class(out, "gsynth")
+})
+
+# --- v1.5.0 new pass-through args ---
+
+test_that("gsynth() accepts cv.method = 'rolling' (default in v1.5.0)", {
+  skip_on_cran()
+  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                index = c("id", "time"), CV = TRUE, r = c(0, 3),
+                cv.method = "rolling", cv.prop = 0.1, k = 20,
+                se = FALSE, parallel = FALSE)
+
+  expect_s3_class(out, "gsynth")
+  expect_false(is.null(out$r.cv))
+})
+
+test_that("gsynth() accepts cv.method = 'block' (pre-v1.5 reproduction)", {
+  skip_on_cran()
+  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                index = c("id", "time"), CV = TRUE, r = c(0, 3),
+                cv.method = "block", k = 5,
+                se = FALSE, parallel = FALSE)
+
+  expect_s3_class(out, "gsynth")
+  expect_false(is.null(out$r.cv))
+})
+
+test_that("gsynth() accepts cv.buffer", {
+  skip_on_cran()
+  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                index = c("id", "time"), CV = TRUE, r = c(0, 3),
+                cv.method = "rolling", cv.buffer = 2,
+                se = FALSE, parallel = FALSE)
+
+  expect_s3_class(out, "gsynth")
+})
+
+test_that("gsynth() accepts time.component.from = 'nevertreated'", {
+  skip_on_cran()
+  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                index = c("id", "time"),
+                time.component.from = "nevertreated",
+                se = FALSE, r = 2, parallel = FALSE)
+
+  expect_s3_class(out, "gsynth")
+  expect_equal(out$method, "gsynth")
 })

@@ -1,7 +1,15 @@
 \name{effect}
 \alias{effect}
 \title{Cumulative or Sub-group Treatment Effects}
-\description{Calculates cumulative or sub-group treatment effects}
+\description{Calculates cumulative or sub-group treatment effects.
+
+  \strong{Soft-deprecated in v1.5.0}: for cumulative or sub-group
+  estimands, use \code{\link[fect]{estimand}} from \pkg{fect} (v2.4.0+).
+  After class-munging the gsynth fit to \code{"fect"}, call
+  \code{fect::estimand(fit, "att.cumu", ...)}. Each call to
+  \code{effect()} emits a one-time-per-session message. Removal not
+  before gsynth v2.0.0.
+}
 \usage{effect(x, cumu = TRUE, period = NULL, id = NULL, plot = FALSE)}
 \arguments{
   \item{x}{a \code{\link{gsynth}} object.}
@@ -26,7 +34,7 @@
   Iss. 1, January 2017, pp. 57-76.
 }
 \seealso{
-  \code{\link{gsynth}}
+  \code{\link{gsynth}}, \code{\link[fect]{estimand}}.
 }
 
 

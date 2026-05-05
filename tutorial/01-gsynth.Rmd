@@ -5,7 +5,20 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 10, fig.height = 7)
 ```
 
-This chapter demonstrates the default **gsynth** estimator (`estimator = "gsynth"`, [@Xu2017]), which estimates latent factors from the control group only and then imputes counterfactuals for treated units. We cover three settings: block DID, staggered DID, and unbalanced panels.
+This chapter demonstrates the default **gsynth** estimator---`estimator = "gsynth"`, [@Xu2017]--- which estimates latent factors from the control group only and then imputes counterfactuals for treated units. We cover three settings: block DID, staggered DID, and unbalanced panels, with a dedicated section on inference and one on the placebo test.
+
+For plot customization, see [Chapter @sec-plots]. For IFE-EM and matrix completion (the soft-deprecated paths), see [Chapter @sec-ife-mc].
+
+::: {.callout-important}
+## Conduct diagnostics
+
+GSC imputes treated counterfactuals by projecting treated-unit loadings onto a factor space estimated from controls. The estimator can return tight-looking confidence intervals even when (a) the treated loadings sit outside the convex hull of control loadings, so the imputation is an extrapolation, or (b) the model overfits, and the parallel-trends-on-factors assumption fails. A point estimate plus a CI is not enough. Two checks should accompany every gsynth fit:
+
+- **Loading-overlap** (`plot(out, type = "loading.overlap")`): are treated points inside the shaded control hull? Outside-hull treated units flag extrapolation; report results with that caveat or drop those units.
+- **Placebo test** (`placeboTest = TRUE, placebo.period = c(...)`): does the model recover near-zero effects on held-out pre-treatment periods? A rejected placebo is evidence against the valid assumptions, and the headline ATT should not be read at face value.
+
+Both diagnostics are demonstrated below for the simulated data and again for the staggered turnout application.
+:::
 
 ```{r}
 library(gsynth)
@@ -26,37 +39,32 @@ head(simdata)
 Before estimation, visualize the data structure with **panelView**.
 
 ```{r simdata-panelview-raw, fig.height = 10}
-panelview(Y ~ D, data = simdata, index = c("id", "time"), 
+panelview(Y ~ D, data = simdata, index = c("id", "time"),
           pre.post = TRUE)
 ```
 
 Outcome trajectories by treatment status:
 
 ```{r simdata-panelview-outcome}
-panelview(Y ~ D, data = simdata, index = c("id", "time"), 
+panelview(Y ~ D, data = simdata, index = c("id", "time"),
           type = "outcome")
 ```
 
-### Estimation & Inference
+### Estimation
 
 We estimate the model using the outcome $Y$, the treatment indicator $D$, and two covariates $X_1$ and $X_2$.
 
-The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`.
+The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
 
-For finite sample inference, set `se = TRUE`. With few treated units, use `inference = "parametric"`. 
 ```{r sim1, cache = TRUE}
-system.time(
-    out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                  index = c("id", "time"), force = "two-way",
-                  CV = TRUE, r = c(0, 5), se = TRUE,
-                  inference = "parametric", nboots = 1000,
-                  parallel = FALSE)
-)
+out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+              index = c("id", "time"), force = "two-way",
+              CV = TRUE, r = c(0, 5), se = TRUE,
+              inference = "parametric", nboots = 1000,
+              parallel = TRUE, cores = 16)
 ```
 
-For super-population inferences (with a large $N$, and $N_{tr}$ grows with $N$), users can also use `inference = "nonparametric"` or `inference = "jackknife"`.
-
-The output shows: `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation selects the $r$ that minimizes MSPE.
+The output reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation selects the `r` that minimizes MSPE.
 
 ```{r}
 out$est.att
@@ -64,119 +72,137 @@ out$est.avg
 out$est.beta
 ```
 
-### Parallel computing
-
-Parallel computing (`parallel = TRUE`) speeds up the bootstrap procedure. We recommend that users manually set the number of cores using the `cores` option. If this is not supplied or is `NULL`, we will automatically select the smaller of `8` and the number of usable system cores minus `2`, to prevent excessive use of system resources.
-
-```{r sim2, cache = TRUE}
-system.time(
-out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-              index = c("id", "time"), force = "two-way",
-              CV = TRUE, r = c(0, 5), se = TRUE,
-              inference = "parametric", nboots = 1000,
-              parallel = TRUE, cores = 10)
-)
-print(out)
-```
-
-
-### Cumulative effects
-
-The `effect` function calculates cumulative treatment effects. Specify a period of interest with `period`; if omitted, all post-treatment periods are used.
-
-```{r cumu1, cache = TRUE}
-cumu1 <- effect(out, cumu = TRUE, id = NULL)
-cumu1$effect.est.att
-plot(cumu1)
-```
-
-Sub-group effects and average (non-cumulative) effects:
-
-```{r cumu2, cache = TRUE}
-cumu2 <- effect(out, cumu = FALSE, id = c(101, 102, 103), 
-                period = c(1, 5))
-cumu2$effect.est.att
-plot(cumu2)
-```
-
 ### Plot results
 
-The default `plot` produces a "gap" plot showing the estimated ATT by period. The true effects in `simdata` go from 1 to 10 (plus noise) from period 21 to 30.
+The default `plot()` produces a "gap" plot showing the estimated ATT by period. The true effects in `simdata` go from 1 to 10 (plus noise) from period 21 to 30.
 
-```{r sim-gap1}
+```{r sim-gap}
 plot(out)
 ```
 
-A default *ggplot2* theme:
+For counterfactual plots, factor / loading plots, and customization (axes, legends, modern vs legacy visual recipe, highlight API), see [Chapter @sec-plots].
 
-```{r sim-gap1a}
-plot(out, theme.bw = FALSE)
+### Factors and loadings
+
+We fit with two factors (`r=2`) to inspect the estimated factor structure directly:
+
+```{r r2-fit, cache = TRUE}
+out_r2 <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                 index = c("id", "time"), force = "two-way",
+                 r = 2, CV = FALSE, se = FALSE,
+                 parallel = FALSE)
 ```
 
-Customize axes and title:
-
-```{r sim-gap2}
-plot(out, type = "gap", ylim = c(-10, 12), xlab = "Period",
-     main = "My GSynth Plot")
-```
-
-#### Raw data
-
-```{r sim-raw1}
-plot(out, type = "raw")
-```
-
-#### Counterfactuals
-
-```{r ct1}
-plot(out, type = "counterfactual", raw = "none", main = "")
-```
-
-Without post-treatment shading:
-
-```{r ct1a}
-plot(out, type = "ct", raw = "none", main = "",
-     shade.post = FALSE)
-```
-
-With quantile bands (5th--95th percentile):
-
-```{r ct2}
-plot(out, type = "counterfactual", raw = "band",
-     xlab = "Time", ylim = c(-5, 35))
-```
-
-With all raw data:
-
-```{r ct3}
-plot(out, type = "counterfactual", raw = "all")
-```
-
-Unit-level counterfactuals:
-
-```{r ct4}
-plot(out, type = "counterfactual", id = 102)
-```
-
-```{r ct5}
-plot(out, type = "counterfactual", id = 104,
-     raw = "band", ylim = c(-10, 30))
-```
-
-```{r ct6}
-plot(out, type = "counterfactual", id = 105,
-     raw = "all", legendOff = TRUE)
-```
-
-#### Factors and loadings
+`type = "factors"` plots the estimated time-varying factors (one curve per factor), and `type = "loadings"` shows the distribution of unit-level loadings on each factor:
 
 ```{r sim-factors, results='hide'}
-plot(out, type = "factors", xlab = "Time")
+plot(out_r2, type = "factors", xlab = "Time")
 ```
 
 ```{r sim-loadings, fig.height = 5, results='hide'}
-plot(out, type = "loadings")
+plot(out_r2, type = "loadings")
 ```
+
+### Loading-overlap diagnostic
+
+The generalized synthetic control method imputes each treated unit's counterfactual by projecting its loadings onto a factor space estimated from controls. When the treated-unit loadings sit *outside* the convex hull of control-unit loadings, the imputed counterfactual is an extrapolation rather than a weighted combination of observed control trajectories.
+
+`plot(out, type = "loading.overlap")` shows treated and control loadings in the first two factor dimensions, with the convex hull of control loadings shaded. Use it as an at-fit diagnostic, paired with the placebo test below.
+
+```{r sim-loading-overlap, fig.height = 5, results='hide'}
+plot(out_r2, type = "loading.overlap")
+```
+
+When all treated points fall inside the shaded control hull, the GSC counterfactual is supported by interpolation across observed control trajectories. When treated points fall outside the hull, the counterfactual extrapolates beyond the observed support, and the placebo test below should be checked carefully.
+
+## Inference
+
+`gsynth()` supports three inference methods via the `inference` argument; the default depends on the estimator:
+
+| `inference =` | Method | When to use | Default for |
+| --- | --- | --- | --- |
+| `"parametric"` | Parametric bootstrap with AR-aware residual draws (@Xu2017; AR-preserving fix in **fect** v2.3.0) | Small $N_{tr}$; finite-sample setting | `estimator = "gsynth"` |
+| `"bootstrap"` (alias `"nonparametric"`) | Block bootstrap at unit level (or cluster level if `cl` set) | Large $N$, $N_{tr}$ growing with $N$; super-population framework | `estimator = "ife"` and `"mc"` |
+| `"jackknife"` | Leave-one-unit-out jackknife | Cluster-robust under leave-one-unit-out resampling; computationally cheap when $N_{co}$ is moderate | --- |
+
+### Confidence-interval method (`ci.method`)
+
+New in v1.5.0. The `ci.method` argument controls how the confidence intervals stored in the `est.*` slots (e.g. `out$est.att`) are formed:
+
+- `ci.method = "normal"` (default): Wald intervals, $\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}$. Symmetric around the point estimate.
+- `ci.method = "basic"`: reflected-pivot bootstrap interval (@DavisonHinkley1997, Sec. 5.2.1). Asymmetric; reads tail quantiles of the bootstrap distribution. Requires `inference = "bootstrap"` or `"jackknife"`. With $B < 1000$ replications the tail-quantile endpoints can be unstable; **fect** emits a warning and recommends `nboots = 1000` for publication-grade CIs.
+
+For percentile, BC, and BCa intervals on the alternative estimands (`att.cumu`, `aptt`, `log.att`), call `estimand(fit, type, ci.method = ...)` post-fit.
+
+### Number of bootstrap replicates (`nboots`)
+
+The default is `nboots = 200`, sufficient for SEs and Wald (`"normal"`) CIs. For tail-quantile-based intervals (`ci.method = "basic"`, `"percentile"`, `"bc"`, `"bca"`), bump to `nboots = 1000+`.
+
+### Parallel computing
+
+`parallel = TRUE` (default) speeds up both the bootstrap and the cross-validation. Set `cores` explicitly when running on a shared machine; if `cores = NULL`, `gsynth` selects `min(8, parallel::detectCores() - 2)`.
+
+```{r sim2, cache = TRUE}
+out_fast <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                   index = c("id", "time"), force = "two-way",
+                   CV = TRUE, r = c(0, 5), se = TRUE,
+                   inference = "parametric", nboots = 1000,
+                   parallel = TRUE, cores = 16)
+print(out_fast)
+```
+
+### Comparing CI methods on the same fit
+
+```{r ci-method-compare, cache = TRUE}
+out_basic <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                    index = c("id", "time"), force = "two-way",
+                    CV = TRUE, r = c(0, 5), se = TRUE,
+                    inference = "bootstrap", nboots = 1000,
+                    ci.method = "basic",
+                    parallel = TRUE, cores = 16)
+head(out_basic$est.att)
+```
+
+The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; only the CI columns differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution.
+
+## Placebo test {#sec-placebo}
+
+A placebo test re-fits the model after pretending some pre-treatment periods are part of the treated window, then asks whether the estimated effect on those held-out periods is close to zero. If the model is well-specified and the parallel-trends assumption holds, the placebo effect should be near zero. If it is not, the headline ATT estimate is suspect.
+
+In v1.5.0, `gsynth()` accepts two new arguments for this:
+
+- `placeboTest = TRUE` --- turn the placebo test on.
+- `placebo.period = c(start, end)` --- which event-time periods to use as the placebo block. For example, `c(-2, 0)` treats event-times $-2$ through $0$ as placebo.
+
+The default `plot()` highlights the placebo region automatically when `placeboTest = TRUE` was set at fit time.
+
+```{r placebo-intro, cache = TRUE}
+out_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                 index = c("id", "time"), force = "two-way",
+                 r = 2, CV = FALSE, se = TRUE,
+                 inference = "bootstrap", nboots = 500,
+                 placeboTest = TRUE, placebo.period = c(-2, 0),
+                 parallel = TRUE, cores = 16)
+```
+
+```{r placebo-intro-plot}
+plot(out_pb, main = "Placebo test on simdata")
+```
+
+The plot has two regions worth checking:
+
+- **Pre-placebo (event time $< -2$):** the estimated effect should fluctuate around zero. Persistent deviation here means the model is fitting noise as signal, not an overlap problem.
+- **Placebo region (event times $-2$ through $0$):** the confidence interval should cover zero. If it does, the test fails to reject pre-treatment zero, which is consistent with the parallel-trends assumption.
+
+For numeric output by event time, the slot `out_pb$est.placebo` holds the placebo-region inference (point estimate, SE, CI), and `out_pb$est.att` holds the ATT estimates outside the placebo block.
+
+```{r placebo-intro-table}
+out_pb$est.placebo
+```
+
+A note on language: a placebo test that *fails to reject* pre-treatment zero is consistent with the assumption; it does not prove the assumption holds. Conversely, a placebo test that *rejects* pre-treatment zero is evidence against the model's pre-treatment fit, and the post-treatment ATT should then be reported with that caveat.
+
+The placebo test comes back in [Chapter @sec-ife-mc] applied to the IFE-EM and matrix-completion estimators.
 
 ## Staggered DID
 
@@ -235,7 +261,7 @@ out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
 
 ### Implied weights
 
-`out$wgt.implied` ($N_{co} \times N_{tr}$) stores the implied weights of all control units for each treated unit. Unlike synthetic control, the weights can be both positive and negative.
+`out$wgt.implied` (`N_co × N_tr`) stores the implied weights of all control units for each treated unit. Unlike classical synthetic control, the weights can be both positive and negative.
 
 ```{r}
 dim(out$wgt.implied)
@@ -243,8 +269,6 @@ sort(out$wgt.implied[, 8])
 ```
 
 ### Plot results
-
-Gap plot:
 
 ```{r turnout-gap}
 plot(out, type = "gap", xlim = c(-10, 5), ylim = c(-15, 15))
@@ -256,36 +280,9 @@ State-specific gap (Wisconsin):
 plot(out, type = "gap", id = "WI", main = "Wisconsin")
 ```
 
-Raw turnout data:
+### Factors and loadings
 
-```{r turnout-raw}
-plot(out, type = "raw", xlab = "Year", ylab = "Turnout")
-```
-
-Estimated average counterfactual (realigned by treatment timing):
-
-```{r turnout-ct}
-plot(out, type = "counterfactual", raw = "all")
-```
-
-Unit-level counterfactuals:
-
-```{r turnout-ct1}
-plot(out, type = "counterfactual", id = "CT")
-```
-
-```{r turnout-ct2}
-plot(out, type = "counterfactual", id = "WY",
-     raw = "all", legendOff = TRUE)
-```
-
-```{r turnout-ct3}
-plot(out, type = "counterfactual", id = "WI",
-     raw = "none", shade.post = FALSE, ylim = c(0, 100),
-     legend.labs = c("Wisconsin Actual", "Wisconsin Counterfactual"))
-```
-
-Estimated factors and loadings:
+The estimated time-varying factors and unit-level loadings:
 
 ```{r turnout-factors, results='hide'}
 plot(out, type = "factors", xlab = "Year")
@@ -295,6 +292,14 @@ plot(out, type = "factors", xlab = "Year")
 plot(out, type = "loadings")
 ```
 
+Loading-overlap check on the turnout fit, in the first two factor dimensions:
+
+```{r turnout-loading-overlap, fig.height = 5, results='hide'}
+plot(out, type = "loading.overlap")
+```
+
+Additional plot types and customization (raw, counterfactual, modern theme, highlight API) are in [Chapter @sec-plots].
+
 ## Unbalanced panels
 
 **gsynth** can accommodate unbalanced panels. We demonstrate by randomly removing observations from the `turnout` dataset.
@@ -302,7 +307,7 @@ plot(out, type = "loadings")
 ```{r}
 set.seed(123456)
 turnout.ub <- turnout[-c(which(turnout$abb == "WY")[1:15],
-                         sample(1:nrow(turnout), 50, 
+                         sample(1:nrow(turnout), 50,
                                 replace = FALSE)), ]
 ```
 
@@ -325,9 +330,11 @@ out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
               nboots = 1000, seed = 02139)
 ```
 
-### Plot results
+On unbalanced panels, the parametric bootstrap uses a unit-level Gaussian approximation for residual perturbations (introduced in **fect** v2.3.0); residuals are drawn from a Gaussian fitted to each unit's residual structure rather than from the empirical pool, naturally accommodating missing cells. This is automatic — no API change for the user. Balanced panels see no change in behavior.
 
-The `"missing"` plot shows the data used in estimation. Gray cells with red dots indicate observations removed due to insufficient pre-treatment periods. The matrix is available in `out$obs.missing`, where 0 = missing, 1 = control, 2 = treated (pre), 3 = treated (post), 4 = treated (removed).
+### Missing-data plot
+
+The `"missing"` plot shows the data used in estimation. Gray cells with red dots indicate observations removed due to insufficient pre-treatment periods. The matrix is available in `out$obs.missing` (`0` = missing, `1` = control, `2` = treated pre, `3` = treated post, `4` = treated removed).
 
 ```{r turnout-ub-missing, fig.height = 10}
 plot(out, type = "missing")
@@ -350,7 +357,5 @@ plot(out, type = "gap", xlim = c(-10, 5), ylim = c(-15, 15))
 ### Notes on performance
 
 1. Unbalanced panels take significantly more time than balanced panels (often 100:1 or higher) due to the EM algorithm for missing values.
-
 2. Adding covariates also slows the algorithm because the IFE/MC model takes more iterations to converge.
-
-3. Setting `min.T0` to a positive number helps --- the algorithm discards treated units with too few pre-treatment periods. A larger $T_0$ reduces bias and extrapolation risk. For cross-validation, `min.T0` must be at least `r.max + 2`.
+3. Setting `min.T0` to a positive number helps — the algorithm discards treated units with too few pre-treatment periods. A larger `T_0` reduces bias and extrapolation risk. For cross-validation, `min.T0` must be at least `r.max + 2`.

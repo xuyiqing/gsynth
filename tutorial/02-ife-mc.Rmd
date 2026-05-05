@@ -5,41 +5,25 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 10, fig.height = 7)
 ```
 
-In the difference-in-differences setting (with a large $N$, and $N_{tr}$ grows with $N$), @Gobillon2016 propose an EM algorithm that exploits pre-treatment observations from treated units, while @Athey2021 propose a matrix completion approach that imputes counterfactual outcomes under a low-rank structure. Both methods use information from never-treated controls and not-yet-treated observations of treated units, and conduct inference under a super-population framework.
+::: {.callout-warning}
 
-For a comparison with Gsynth, see the discussion in the **fect** [User Manual](https://yiqingxu.org/packages/fect/index.html).
+## Soft-deprecated in v1.5.0
 
-## Breaking change in v1.4.0 {#sec-breaking}
+`estimator = "ife"` (IFE-EM, @Gobillon2016), `estimator = "mc"` (matrix completion, @Athey2021), and the legacy `EM = TRUE` flag are soft-deprecated in `gsynth` v1.5.0 and will be **removed in v2.0.0** (target: late 2026).
 
-We realize the `EM` option has caused confusion. In fact, when there are missing data in the control group, Gsynth will automatically use the EM algorithm to fill the missing data. The key difference is that the factors are learned from the control units only, not from pre-treatment observations of the treated units.
+Each call to one of these paths emits a one-time-per-session console message. Behavior is unchanged from v1.4.0 --- the deprecation is a signal, not a break.
 
-In early versions, when the estimator is not specified, `EM = TRUE` activates the Gobillon-Magnac IFE-EM estimator, which has implications for what inferential method is feasible. For example, `inference = "parametric"` is not suitable for the IFE-EM and MC estimators given they are super-population based. 
+For new code, use [`fect::fect()`](https://yiqingxu.org/packages/fect/) directly. The **gsynth** package is built around the GSC estimator (@Xu2017); IFE-EM and matrix completion are now documented and maintained in **fect**. Migration recipes are in @sec-migration below.
 
-To avoid this confusion, starting from v1.4.0, the `estimator` parameter maps directly to the estimation method.
+:::
 
-**What changed from v1.3.x:**
+In the difference-in-differences setting (with a large $N$, and $N_{tr}$ growing with $N$), @Gobillon2016 propose an EM algorithm that exploits pre-treatment observations from treated units; @Athey2021 propose a matrix-completion approach that imputes counterfactual outcomes under a low-rank structure. Both methods use information from never-treated controls and not-yet-treated observations of treated units, and conduct inference under a super-population framework.
 
-| Code | v1.3.x behavior | v1.4.0 behavior |
-| --- | --- | --- |
-| `gsynth(...)` (default) | Xu (2017) | Xu (2017)  |
-| `gsynth(..., estimator = "gsynth", EM = TRUE)` | Not available  | Xu (2017) — Gsynth |
-| `gsynth(..., estimator = "ife")` | Xu (2017) — Gsynth | Gobillon & Magnac (2016) — IFE-EM |
-| `gsynth(..., EM = TRUE)` | Gobillon & Magnac (2016) — IFE-EM | Gobillon & Magnac (2016) — IFE-EM (unchanged) |
-| `gsynth(..., estimator = "mc")` | Matrix completion | Matrix completion (unchanged) |
+For a full treatment, see the **fect** [User Manual](https://yiqingxu.org/packages/fect/).
 
-**Notes**: 
+This chapter documents the v1.5.0 wrapper paths for users with existing code that depends on `estimator = "ife"` or `estimator = "mc"`, and shows how to run a placebo test on the resulting fit. The chapter ends with migration recipes that move existing calls to `fect::fect()` directly.
 
-(a) *Backward compatibility*: `gsynth(..., EM = TRUE)` maps to IFE-EM (unless `estimator = "gsynth"`) for backward compatiblity. 
-
-(a) *Migration*: If your existing code uses `estimator = "ife"` with `EM = FALSE` (by default, mapped to Gysnth) and you want to preserve prior results, change it to `estimator = "gsynth"`. The default behavior (no `estimator` argument) is unchanged. 
-
-(b) *Implementation error*: If your existing code uses `estimator = "ife"` with `EM = TRUE`, which maps to IFE-EM, do not use `inference = "parametric"`; a previous version contained an erroneous implementation, which severely underestimates uncertainties. It was removed in v1.3.1.
-
-
-
-## IFE-EM
-
-Starting from v1.4.0, set `estimator = "ife"` to use the IFE-EM approach. Since inference is based on the super-population framework, only `"nonparametric"` or `"jackknife"` inference is allowed.
+## A working IFE-EM fit
 
 ```{r}
 library(gsynth)
@@ -47,42 +31,78 @@ data(gsynth)
 ```
 
 ```{r sim-ife, cache = TRUE}
-system.time(
-out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-              index = c("id", "time"), estimator = "ife",
-              force = "two-way", inference = "nonparametric",
-              se = TRUE, nboots = 500, r = c(0, 5),
-              CV = TRUE, parallel = TRUE, cores = 10)
-)
-print(out)
+out_ife <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                  index = c("id", "time"), estimator = "ife",
+                  force = "two-way", inference = "bootstrap",
+                  se = TRUE, nboots = 500, r = c(0, 5),
+                  CV = TRUE, parallel = TRUE, cores = 16)
+print(out_ife)
 ```
 
 ```{r sim-ife-plot}
-plot(out, main = "Estimated ATT (IFE-EM)")
+plot(out_ife, main = "Estimated ATT (IFE-EM)")
 ```
 
-## Matrix completion
+## A working matrix-completion fit
 
-Set `estimator = "mc"` to use the matrix completion method proposed by @Athey2021. Only `"nonparametric"` or `"jackknife"` inference is allowed.
-
-The option `lambda` controls the tuning parameter. If left blank, a sequence of candidates is generated and tested via built-in cross-validation. Users can set the length of the candidate list with `nlambda`, or supply a custom sequence via `lambda`. The number of folds is set with `k` (e.g. `k = 5`).
+The `lambda` argument controls the regularization parameter. If left unset, a sequence of candidates is generated and selected via cross-validation. Set the candidate-list length with `nlambda`, or supply your own sequence via `lambda`. The number of CV folds is set with `k`.
 
 ```{r sim-mc, cache = TRUE}
-system.time(
-out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-              estimator = "mc", index = c("id", "time"),
-              se = TRUE, nboots = 500, r = c(0, 5),
-              CV = TRUE, force = "two-way",
-              parallel = TRUE, cores = 10,
-              inference = "nonparametric")
-)
+out_mc <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                 estimator = "mc", index = c("id", "time"),
+                 se = TRUE, nboots = 500, r = c(0, 5),
+                 CV = TRUE, force = "two-way",
+                 parallel = TRUE, cores = 16,
+                 inference = "bootstrap")
 ```
 
 ```{r sim-mc-plot}
-plot(out, main = "Estimated ATT (MC)")
+plot(out_mc, main = "Estimated ATT (MC)")
 ```
 
-## Matrix completion on turnout data
+::: {.callout-important}
+
+## Hard gate on parametric × IFE-EM (breaking change in v1.5.0)
+
+In v1.4.0, `inference = "parametric"` combined with `estimator = "ife"` or `"mc"` was silently coerced to bootstrap inference with a warning. **In v1.5.0 this combination errors instead.**
+
+```{r hard-gate, eval = FALSE}
+## v1.4.0 (worked, with a warning):
+gsynth(Y ~ D, data = ..., estimator = "ife",
+       inference = "parametric", se = TRUE, nboots = 200)
+
+## v1.5.0 (errors). Migrate to:
+gsynth(Y ~ D, data = ..., estimator = "ife",
+       inference = "bootstrap", se = TRUE, nboots = 200)
+```
+
+The hard gate matches **fect** v2.2.0+. The reason is that silent coercion can hide an inferential issue from users who deliberately chose IFE-EM: the parametric bootstrap is designed for the small-$N_{tr}$ GSC setting and is not a sensible choice once you switch to a super-population estimator. A hard error forces a conscious choice. For the longer discussion, see the **fect** [User Manual](https://yiqingxu.org/packages/fect/).
+
+:::
+
+## Placebo tests for IFE-EM and MC {#sec-ife-mc-placebo}
+
+The basic placebo workflow is in [Chapter @sec-placebo]. We repeat it here on an IFE-EM fit because the placebo test is especially worth running on these estimators: the EM step blends pre-treatment treated cells into the factor estimates, and the matrix-completion regularizer trades bias for variance, so both can produce non-zero pre-treatment "effects" without a real signal.
+
+```{r placebo-ife, cache = TRUE}
+out_ife_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                     index = c("id", "time"), estimator = "ife",
+                     force = "two-way", CV = FALSE, r = 2,
+                     se = TRUE, inference = "bootstrap",
+                     nboots = 500, parallel = TRUE, cores = 16,
+                     placeboTest = TRUE,
+                     placebo.period = c(-2, 0))
+```
+
+```{r placebo-ife-plot}
+plot(out_ife_pb, main = "Placebo test --- IFE-EM on simdata")
+```
+
+The numeric output for the placebo region is in `out_ife_pb$est.placebo`.
+
+A note on what `gsynth()` does *not* expose: **fect** also has a `carryoverTest` argument that holds out late post-treatment periods to check whether treatment effects persist past the end of the treatment window. That test requires panels with treatment reversals, which the GSC framework does not allow, so `gsynth()` does not accept `carryoverTest`. If you have a panel with reversals and want a carryover test, use `fect::fect()` directly.
+
+## Matrix completion on unbalanced data
 
 Applying matrix completion to the unbalanced `turnout` data:
 
@@ -93,13 +113,99 @@ turnout.ub <- turnout[-c(which(turnout$abb == "WY")[1:15],
 ```
 
 ```{r turnout-mc, cache = TRUE}
-out.mc <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
-                 min.T0 = 8, data = turnout.ub,
-                 index = c("abb", "year"), estimator = "mc",
-                 se = TRUE, nboots = 1000, seed = 02139)
+out_mc_ub <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
+                    min.T0 = 8, data = turnout.ub,
+                    index = c("abb", "year"), estimator = "mc",
+                    se = TRUE, inference = "bootstrap",
+                    nboots = 1000, seed = 02139,
+                    parallel = TRUE, cores = 16)
 ```
 
 ```{r turnout-mc-plot}
-plot(out.mc, main = "Estimated ATT (MC)",
+plot(out_mc_ub, main = "Estimated ATT (MC, unbalanced turnout)",
      xlim = c(-10, 5), ylim = c(-10, 20))
 ```
+
+## Migration to fect {#sec-migration}
+
+When v2.0.0 ships (target: late 2026), the IFE-EM and MC paths in `gsynth` will be removed entirely. Migrating now means moving these calls to `fect::fect()`. The substitution is mechanical.
+
+### IFE-EM migration
+
+```{r ife-migration, eval = FALSE}
+## v1.4.0:
+gsynth(Y ~ D + X1 + X2, data = simdata,
+       index = c("id", "time"), estimator = "ife",
+       inference = "bootstrap", se = TRUE,
+       nboots = 200, r = c(0, 5), CV = TRUE,
+       force = "two-way")
+
+## v1.5.0+ (use fect directly):
+fect::fect(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"),
+           method = "ife",
+           time.component.from = "notyettreated",
+           vartype = "bootstrap", se = TRUE,
+           nboots = 200, r = c(0, 5), CV = TRUE,
+           force = "two-way")
+```
+
+### Matrix completion migration
+
+```{r mc-migration, eval = FALSE}
+## v1.4.0:
+gsynth(Y ~ D + X1 + X2, data = simdata,
+       index = c("id", "time"), estimator = "mc",
+       inference = "bootstrap", se = TRUE, nboots = 200,
+       force = "two-way")
+
+## v1.5.0+ (use fect directly):
+fect::fect(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"),
+           method = "mc",
+           time.component.from = "notyettreated",
+           vartype = "bootstrap", se = TRUE, nboots = 200,
+           force = "two-way")
+```
+
+### `EM = TRUE` migration
+
+`EM = TRUE` was an early flag that mapped to IFE-EM. In v1.5.0, the canonical replacement is `fect::fect(method = "ife", ...)` directly:
+
+```{r em-migration, eval = FALSE}
+## v1.4.0:
+gsynth(Y ~ D + X1 + X2, data = simdata,
+       index = c("id", "time"), EM = TRUE,
+       se = TRUE, nboots = 200, r = c(0, 5))
+
+## v1.5.0+:
+fect::fect(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"),
+           method = "ife",
+           time.component.from = "notyettreated",
+           vartype = "bootstrap", se = TRUE,
+           nboots = 200, r = c(0, 5))
+```
+
+### Argument mapping
+
+| `gsynth()` arg | `fect::fect()` equivalent |
+| --- | --- |
+| `inference = "parametric"` | `vartype = "parametric"` |
+| `inference = "nonparametric"` | `vartype = "bootstrap"` |
+| `inference = "bootstrap"` | `vartype = "bootstrap"` |
+| `inference = "jackknife"` | `vartype = "jackknife"` |
+| `weight = "col"` | `W = "col"` |
+| `EM = TRUE` | `method = "ife"`, `time.component.from = "notyettreated"` |
+| `estimator = "ife"` | `method = "ife"`, `time.component.from = "notyettreated"` |
+| `estimator = "mc"` | `method = "mc"`, `time.component.from = "notyettreated"` |
+| `estimator = "gsynth"` | `method = "ife"` (or `"gsynth"`), `time.component.from = "nevertreated"` |
+
+Most other arguments (`CV`, `r`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name.
+
+If you maintain a replication archive that depends on `gsynth(..., estimator = "ife")` or `gsynth(..., estimator = "mc")`, plan for one of two paths:
+
+1. **Pin to gsynth 1.4.0** via the CRAN archive: `remotes::install_version("gsynth", "1.4.0")`.
+2. **Migrate the calls to `fect::fect()`** using the recipes above.
+
+After v2.0.0, bug fixes and feature work for IFE-EM and MC happen exclusively in **fect**.
