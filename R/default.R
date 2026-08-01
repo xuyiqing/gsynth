@@ -76,7 +76,7 @@ gsynth <- function(formula = NULL,data, # a data frame (long-form)
       }
     }
     output <- fect::fect(formula = formula, data = data, method = method, Y = Y, D = D, X = X,
-        na.rm = na.rm, index = index, cl = cl,
+        na.rm = na.rm, index = index, cl = cl, W = weight,
         force = force, r = r, lambda = lambda, nlambda = nlambda, CV = CV,
         criterion = criterion, k = k, se = se, nboots = nboots, vartype = inference,
         parallel = parallel, cores = cores, tol = tol, seed = seed, min.T0 = min.T0,
