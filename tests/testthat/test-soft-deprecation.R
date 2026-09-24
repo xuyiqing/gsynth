@@ -2,7 +2,7 @@
 # and effect(). Each message fires once per session via the
 # .gsynth_deprecation_seen closure in R/default.R.
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 # Helper: peel into the package internals to reset the deprecation cache,
 # so each test starts from a clean slate. Tests run in the package's own

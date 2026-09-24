@@ -2,7 +2,7 @@
 # legacy.style, highlight, highlight.fill. Also verifies that
 # type = "loading.overlap" routes through to fect cleanly.
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 test_that("plot(out, type = 'gap', legacy.style = TRUE) returns a plot", {
   skip_on_cran()
