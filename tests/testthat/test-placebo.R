@@ -3,7 +3,7 @@
 # carryoverTest because gsynth does not allow treatment reversals,
 # which fect's carryover test requires.
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 test_that("placeboTest = TRUE produces placebo slots on the fit", {
   skip_on_cran()

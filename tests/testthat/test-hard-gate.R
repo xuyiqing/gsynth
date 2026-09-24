@@ -3,7 +3,7 @@
 # Appendix A.5: inference = "parametric" combined with IFE-EM or MC
 # now errors instead of silently coercing to bootstrap.
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 test_that("inference = 'parametric' + estimator = 'ife' errors", {
   skip_on_cran()

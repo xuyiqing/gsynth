@@ -1,6 +1,6 @@
 # Tests for print.gsynth()
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 skip_on_cran()
 

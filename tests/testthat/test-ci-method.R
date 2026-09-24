@@ -1,7 +1,7 @@
 # Tests for the v1.5.0 ci.method argument on gsynth()
 # (forwards fect's ci.method, added in fect v2.4.2).
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 test_that("ci.method = 'normal' produces Wald CIs (point +/- z * SE)", {
   skip_on_cran()

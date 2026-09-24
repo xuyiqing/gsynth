@@ -1,6 +1,6 @@
 # Tests for the effect() function
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 # Shared fixture: gsynth object with SE (required for effect())
 # Created once at file scope to avoid repeated slow computation

@@ -1,6 +1,6 @@
 # Tests for the main gsynth() function
 
-data(simdata, package = "gsynth")
+data("gsynth", package = "gsynth")  # loads simdata and turnout
 
 # --- Basic functionality ---
 
