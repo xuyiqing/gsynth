@@ -57,6 +57,9 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                            cv.method = "rolling", # NEW: "rolling" or "block"
                            cv.prop = 0.1, # NEW: per-fold unit-sampling fraction
                            cv.buffer = 1, # NEW: past-side buffer for rolling CV
+                           cv.nobs = 3, # block CV: consecutive periods per held-out run
+                           cv.donut = 1, # block CV: unscored periods at each end of a run
+                           cv.rule = "1se", # rule for picking r from the CV errors
                            EM = FALSE, # legacy; use estimator = "ife" instead
                            estimator = "gsynth", # gsynth/ife/mc method
                            time.component.from = NULL, # NEW: NULL lets fect dispatch by estimator
@@ -184,6 +187,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
         force = force, r = r, lambda = lambda, nlambda = nlambda,
         CV = CV, criterion = criterion, k = k,
         cv.method = cv.method, cv.prop = cv.prop, cv.buffer = cv.buffer,
+        cv.nobs = cv.nobs, cv.donut = cv.donut, cv.rule = cv.rule,
         time.component.from = time.component.from,
         se = se, nboots = nboots, vartype = inference,
         ci.method = ci.method,
