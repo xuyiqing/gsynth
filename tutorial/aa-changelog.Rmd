@@ -8,6 +8,7 @@
 * **Inference**: new `ci.method` argument --- `"normal"` (default; Wald) or `"basic"` ---reflected-pivot bootstrap, @DavisonHinkley1997.
 * **Plot recipe**: modern visual style from **fect** v2.3.x, with new arguments `legacy.style`, `highlight`, `highlight.fill`. See [Chapter @sec-plots].
 * **CV defaults**: rolling-window (`cv.method = "rolling"`, `cv.prop = 0.1`, `cv.buffer = 1`); default `k` is now 20.
+* **CV settings**: new `cv.rule` (`"1se"` default, `"min"`, `"1pct"`) for choosing the number of factors, and `cv.nobs` and `cv.donut` for block cross-validation, all passed to **fect**. With `estimator = "gsynth"`, `cv.rule` takes effect with **fect** 2.4.6 or later.
 * **Soft-deprecated paths**: `estimator = "ife"`, `estimator = "mc"`, `EM = TRUE`, and `effect()`. For these methods --- and for post-hoc estimands (cumulative ATT, APTT, log-ATT) --- use `fect::fect()` and `fect::estimand()` directly. Migration recipes in [Chapter @sec-ife-mc].
 * **Guardrail**: `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of silently falling back to nonparametric bootstrap.
 
