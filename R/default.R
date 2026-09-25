@@ -218,8 +218,14 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     ## Storage
     ##-------------------------------##
 
+    ## The call is stored as typed (print() and update() use it). The
+    ## inference actually used is recorded in output$vartype, which fect
+    ## sets for every se = TRUE fit and its readers (effect(), plots) use.
     output$call <- match.call()
-    output$call$vartype <- output$call$inference # Name compatible with fect
+    if (isTRUE(as.logical(se))) {
+        vt <- output$vartype
+        if (!(is.character(vt) && length(vt) == 1L)) output$vartype <- inference
+    }
     output$data <- data # Save original long-form data, to utilize panelView
     class(output) <- "gsynth"
     return(output)
