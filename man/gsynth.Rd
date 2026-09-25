@@ -135,20 +135,20 @@ on interactive fixed effect models.}
   be produced.}
 \item{nboots}{an integer specifying the number of bootstrap
   runs. Ignored if \code{se = FALSE}.}
-\item{inference}{the type of uncertainty estimates:
-  \code{"parametric"}, \code{"nonparametric"} (alias
-  \code{"bootstrap"}: resamples units, or the clusters given by
-  \code{cl}) or \code{"jackknife"}. \code{NULL} (default) uses
+\item{inference}{the type of uncertainty estimates. One of
+  \code{"parametric"}; \code{"nonparametric"}, which resamples units,
+  or the clusters given by \code{cl} (alias \code{"bootstrap"}); or
+  \code{"jackknife"}. \code{NULL} (default) uses
   \code{"parametric"} for \code{estimator = "gsynth"} and
   \code{"bootstrap"} for \code{"ife"} and \code{"mc"}.
   \code{"parametric"} is recommended when the number of treated units is
   small. \strong{Breaking change in v1.5.0:} with \code{se = TRUE},
-  \code{inference = "parametric"} is not available for
-  \code{estimator = "ife"} or \code{"mc"}, or for \code{EM = TRUE} (for
-  \code{"ife"}, unless \code{time.component.from = "nevertreated"}).
-  gsynth then stops with a message instead of silently falling back to
-  the nonparametric bootstrap, as \pkg{fect} v2.2.0 and later do and as
-  committed in Xu (2026), Appendix A.5.}
+  parametric inference is not available for \code{estimator = "ife"}
+  or \code{"mc"}, or for \code{EM = TRUE}. gsynth then stops with a
+  message instead of silently falling back to the nonparametric
+  bootstrap, as \pkg{fect} v2.2.0 and later do and as committed in Xu
+  (2026), Appendix A.5. The one exception is \code{estimator = "ife"}
+  with \code{time.component.from} set to \code{"nevertreated"}.}
 \item{parallel}{\code{TRUE} (default) runs the bootstrap in parallel R
   worker processes (and the cross-validation too, on large panels).
   \code{FALSE} runs everything in the current R session. \code{"boot"}
@@ -301,9 +301,10 @@ on interactive fixed effect models.}
     that gsynth accepts.}
   \item{method}{the estimator used: \code{"gsynth"}, \code{"ife"} or
     \code{"mc"}.}
-  \item{time.component.from}{\code{"nevertreated"} (factors estimated
-    from control units only) or \code{"notyettreated"} (also from the
-    treated units' cells before treatment).}
+  \item{time.component.from}{where the factors were estimated:
+    \code{"nevertreated"} means from control units only, and
+    \code{"notyettreated"} means also from the treated units' cells
+    before treatment.}
   \item{em}{\code{TRUE} if \pkg{fect} filled in cells by an EM algorithm
     while fitting (estimators \code{"ife"} and \code{"mc"}).}
   \item{force}{the fixed effects, coded 0 = none, 1 = unit, 2 = time,
@@ -408,9 +409,9 @@ on interactive fixed effect models.}
   \item{eff.pre, eff.pre.equiv, pre.sd}{the treated units' residuals
     before treatment, in long form (columns \code{eff}, \code{period},
     \code{unit}); the same from the model without factors (column
-    \code{eff.equiv}); and the standard deviation of
-    \code{eff.pre.equiv} by event time (columns \code{sd},
-    \code{period}, \code{count}).}
+    \code{eff.equiv}); and, by event time, the standard deviation of
+    \code{eff.pre.equiv} (columns \code{sd}, \code{period} and
+    \code{count}).}
   \item{pre.periods, proportion, tost.threshold}{settings of the
     pre-trend tests: the event times used; the minimum share, relative
     to the event time with the most treated observations, that an event
@@ -447,8 +448,8 @@ on interactive fixed effect models.}
     placebo draws centered at zero, not draws around the estimate.}
   \item{att.boot, att.boot.original, att.count.boot}{the draws of
     \code{att} and of the counts by event time, one column per draw.
-    \code{att.boot.original} also keeps the draws that failed, which the
-    other elements drop.}
+    Draws that failed are dropped, except in \code{att.boot.original},
+    which keeps them.}
   \item{beta.boot, att.placebo.boot}{the draws of \code{beta} (one row
     per covariate) and of \code{att.placebo}.}
   \item{att.vcov}{the covariance matrix of \code{att} across event
