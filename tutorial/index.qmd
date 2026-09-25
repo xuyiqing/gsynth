@@ -8,6 +8,7 @@ Starting from v1.3.0, **gsynth** becomes a wrapper of **fect**. We recommend use
 
 ## What's new in v1.5.0
 
+- **Changes that affect results.** Some calls now give different results than in v1.4.0; for example, the default call now chooses the number of factors by cross-validation. See "Changes that affect results" in the [Changelog](aa-changelog.Rmd).
 - **fect 2.4.x catch-up.** 
   - new rolling-window cross-validation defaults (`cv.method = "rolling"`, `k = 20`); 
   - new `ci.method` argument for the confidence intervals reported in `est.*` slots; 

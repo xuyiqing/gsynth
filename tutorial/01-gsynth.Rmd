@@ -274,10 +274,10 @@ sort(out$wgt.implied[, 8])
 plot(out, type = "gap", xlim = c(-10, 5), ylim = c(-15, 15))
 ```
 
-State-specific gap (Wisconsin):
+The gap plot always shows the average effect over all treated states. For one state, the counterfactual plot shows its observed outcome and its estimated counterfactual (Wisconsin):
 
-```{r turnout-gap2}
-plot(out, type = "gap", id = "WI", main = "Wisconsin")
+```{r turnout-ct-wi}
+plot(out, type = "counterfactual", id = "WI", main = "Wisconsin")
 ```
 
 ### Factors and loadings
