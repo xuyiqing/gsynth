@@ -18,32 +18,39 @@ Starting from v1.3.0, **gsynth** becomes a wrapper of **fect**. We recommend use
   - `estimator = "ife"` (IFE-EM), `estimator = "mc"` (matrix completion), `EM = TRUE`, and `effect()`. Each emits a one-time-per-session deprecation message. 
   - For IFE-EM, matrix completion, and post-hoc estimands (cumulative ATT, APTT, log-ATT), use [`fect::fect()`](https://yiqingxu.org/packages/fect/) and `fect::estimand()` directly. 
 - **Breaking change.** `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of silently coercing to bootstrap. See [Chapter @sec-ife-mc].
+- **Changes that affect results.**
+  - A single `r` with `CV = TRUE` (the default) now searches `r` to 5, as documented. In v1.3.1--v1.4.0 it was fitted without a search, so the default call fitted no factors.
+  - `weight` weights only the averaged effects, like `W.agg` (in v1.3.x--v1.4.0 it was ignored). Use `W.est` to weight the model fit.
+  - Several **fect** 2.4.6 fixes also change results (for example, `wgt.implied`). See the Changelog chapter.
 
 :::
 
 ## Installation
 
-**gsynth** v1.5.0 requires **fect** `>= 2.4.2`. Until **fect** v2.4.2 is on CRAN, install both the **fect** development branch and **gsynth** from GitHub:
+**gsynth** v1.5.0 requires **fect** `>= 2.4.6`. Until both are on CRAN, install the development versions from GitHub, **fect** first:
 
 ```{r install-fect-dev, eval = FALSE}
-# Up-to-date fect from the dev branch (>= 2.4.2)
+# fect from the dev branch (>= 2.4.6, with the fixes gsynth 1.5.0 needs)
 devtools::install_github("xuyiqing/fect", ref = "dev")
 ```
 
 ```{r install-github, eval = FALSE, message = FALSE, warning = FALSE}
-# gsynth development version
-devtools::install_github("xuyiqing/gsynth")
+# gsynth from the dev branch
+devtools::install_github("xuyiqing/gsynth", ref = "dev")
 ```
 
-Once **fect** v2.4.2 is on CRAN, the standard install will suffice:
+If you installed **fect** from `dev` earlier, reinstall it: builds from before the 2.4.6 fixes were merged also report version 2.4.6.
+
+Once **gsynth** v1.5.0 is on CRAN, the standard install will suffice:
 
 ```{r install-cran, eval = FALSE}
 install.packages("gsynth")
 ```
 
 ```{r check-version}
-# Check version
-installed.packages()["gsynth", "Version"]
+# Check versions
+packageVersion("gsynth")
+packageVersion("fect")
 ```
 
 ```{r load}
@@ -72,8 +79,8 @@ The legacy `EM = TRUE` parameter is also soft-deprecated and equivalent to `esti
 | `index` | character(2) | `c("unit_var", "time_var")` |
 | `estimator` | character | `"gsynth"` (recommended); `"ife"` / `"mc"` soft-deprecated |
 | `force` | character | `"none"` / `"unit"` / `"time"` / `"two-way"` |
-| `r` | integer(2) | Range for number of factors, e.g. `c(0, 5)` |
-| `CV` | logical | Cross-validation to select number of factors |
+| `r` | integer | Number of factors on top of the fixed effects: one number (with `CV = TRUE`, CV searches `r` to 5) or a range `c(r.min, r.max)` |
+| `CV` | logical | Cross-validation to select number of factors (default `TRUE`) |
 | `cv.method` | character | `"rolling"` (default) or `"block"` |
 | `cv.prop` | numeric | Per-fold unit-sampling fraction (default 0.1) |
 | `cv.buffer` | integer | Past-side buffer for rolling CV (default 1) |
@@ -85,9 +92,9 @@ The legacy `EM = TRUE` parameter is also soft-deprecated and equivalent to `esti
 | `nboots` | integer | Number of bootstrap runs (default 200; bump to 1000+ for tail-quantile CIs) |
 | `placeboTest` | logical | Hold out pre-treatment periods as placebo. New in v1.5.0. |
 | `placebo.period` | integer | Event-time periods used for the placebo block, e.g. `c(-2, 0)` |
-| `weight`, `W.est`, `W.agg` | character | Weight column(s); per-role variants for outcome fit / aggregation |
-| `parallel` | logical | Enable parallel computing |
-| `cores` | integer | Number of cores (default: auto-detect) |
+| `weight`, `W.est`, `W.agg` | character | Weight column: `weight` (same as `W.agg`) weights the averaged effects; `W.est` weights the model fit |
+| `parallel` | logical | `TRUE` (default): run the bootstrap in parallel R worker processes; `FALSE`: run everything in the current session |
+| `cores` | integer | Number of parallel R worker processes (default: available cores minus 2, at most 8) |
 | `min.T0` | integer | Minimum pre-treatment periods for treated units |
 
 ## Organization

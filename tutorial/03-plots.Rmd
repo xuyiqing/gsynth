@@ -129,7 +129,7 @@ The `"missing"` plot is most useful on unbalanced panels:
 plot(out, type = "missing")
 ```
 
-White cells are missing observations; gray with red dots are observations removed due to insufficient pre-treatment periods. The matrix is also available in `out$obs.missing`, where `0` = missing, `1` = control, `2` = treated (pre), `3` = treated (post), `4` = treated (removed).
+White cells are missing observations; gray with red dots are observations removed due to insufficient pre-treatment periods. The matrix is also available in `out$obs.missing`, where `1` = treated, `2` = not under treatment (controls, and treated units before treatment), `3` = missing, `4` = removed, `5` = placebo.
 
 ## Customizing axes and titles
 

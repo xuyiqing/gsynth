@@ -2,8 +2,13 @@
 
 ## v1.5.0
 
-(2026-05-04) Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.2)`.
+(2026-05-04) Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.6)` and `panelView (>= 1.3.1)`.
 
+* **Requires the fect 2.4.6 fixes**: fect 2.4.6 on CRAN will include them. Until then, install **fect** from GitHub `dev` after the fect fix PR is merged there; a `dev` build from before that merge also reports 2.4.6 but lacks the fixes.
+* **Result change, cross-validation of `r`**: one number for `r` with `CV = TRUE` (the default) now searches `r` to 5, as documented and as in v1.2.1. v1.3.1--v1.4.0 fitted a single `r` without a search, so the default call fitted no factors. Pass `CV = FALSE` to fix `r`.
+* **Result change, `weight`**: `weight` weights only the averaged effects (`att.avg`, `att`), like `W.agg` and as in v1.2.1; v1.3.x--v1.4.0 ignored it. Use `W.est` to weight the model fit.
+* **Result change, fect 2.4.6**: several **fect** fixes also change gsynth results (for example, `wgt.implied`); see the **fect** changelog.
+* **Fixes**: `effect()` confidence intervals after the default parametric inference (with **fect** 2.4.6); the stored call is the call as typed, so `update()` works; `plot(type = "raw")` and `plot(type = "missing")` work for every way of naming the variables, use `id`, and return the plot; the parametric-inference stop for `"ife"`/`"mc"` names gsynth's arguments; `print()` returns the fit invisibly.
 * **Diagnostics**: placebo test (`placeboTest = TRUE`, `placebo.period`) and loading-overlap plot (`plot(fit, type = "loading.overlap")`). See [Chapter @sec-gsynth].
 * **Inference**: new `ci.method` argument --- `"normal"` (default; Wald) or `"basic"` ---reflected-pivot bootstrap, @DavisonHinkley1997.
 * **Plot recipe**: modern visual style from **fect** v2.3.x, with new arguments `legacy.style`, `highlight`, `highlight.fill`. See [Chapter @sec-plots].

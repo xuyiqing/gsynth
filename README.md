@@ -6,13 +6,13 @@
 <!-- badges: start -->
 
 [![Lifecycle:
-stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://www.tidyverse.org/lifecycle/#stablel)
+stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
 
 **gsynth** implements the [generalized synthetic control
-method](https://doi-org.stanford.idm.oclc.org/10.1017/pan.2016.2), which
+method](https://doi.org/10.1017/pan.2016.2), which
 imputes counterfactuals for each treated unit using control group
 information based on a linear interactive fixed effects model.
 
@@ -20,16 +20,14 @@ information based on a linear interactive fixed effects model.
 Liu](https://liulch.github.io/) (UMich), Ziyi Liu (Berkeley), Shiyun Hu
 (PKU)
 
-**Date:** Dec 7, 2025
-
-**Repos:** [Github](https://github.com/xuyiqing/gsynth) (1.3.1)
+**Repos:** [GitHub](https://github.com/xuyiqing/gsynth) (1.5.0 on the
+`dev` branch)
 [CRAN](https://cran.r-project.org/web/packages/gsynth/index.html)
-(1.3.1)
+(1.4.0)
 
-**Example:** R code used in the
-[tutorial](https://yiqingxu.org/packages/gsynth/articles/tutorial.html)
-can be downloaded from
-[here](https://yiqingxu.org/packages/gsynth/gsynth_examples.R).
+**Manual:** the [gsynth user
+manual](https://yiqingxu.org/packages/gsynth/) has worked examples
+with R code.
 
 ------------------------------------------------------------------------
 
@@ -42,12 +40,14 @@ command in the **R** console:
 install.packages('gsynth')
 ```
 
-You can also install the development version of the package from Github
-by typing:
+You can also install the development version (1.5.0) from GitHub. It
+needs the development version of **fect** (\>= 2.4.6), so install
+**fect** first:
 
 ``` r
 install.packages('devtools', repos = 'http://cran.us.r-project.org') # if not already installed
-devtools::install_github('xuyiqing/gsynth')
+devtools::install_github('xuyiqing/fect', ref = 'dev')
+devtools::install_github('xuyiqing/gsynth', ref = 'dev')
 ```
 
 **gsynth** depends on the following packages, which will be installed
@@ -55,7 +55,7 @@ automatically when **gsynth** is being installed; you can also install
 them manually:
 
 ``` r
-packages <- c("ggplot2", "panelViews", "fect")
+packages <- c("ggplot2", "panelView", "fect")
 
 # install packages if not already installed
 install_all <- function(packages) {

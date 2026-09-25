@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 
 `estimator = "ife"` (IFE-EM, @Gobillon2016), `estimator = "mc"` (matrix completion, @Athey2021), and the legacy `EM = TRUE` flag are soft-deprecated in `gsynth` v1.5.0 and will be **removed in v2.0.0** (target: late 2026).
 
-Each call to one of these paths emits a one-time-per-session console message. Behavior is unchanged from v1.4.0 --- the deprecation is a signal, not a break.
+Each call to one of these paths emits a one-time-per-session console message. The deprecation itself changes no results --- it is a signal, not a break. (Some v1.5.0 fixes do change results, for example the search over `r`; see the Changelog.)
 
 For new code, use [`fect::fect()`](https://yiqingxu.org/packages/fect/) directly. The **gsynth** package is built around the GSC estimator (@Xu2017); IFE-EM and matrix completion are now documented and maintained in **fect**. Migration recipes are in @sec-migration below.
 
@@ -195,13 +195,14 @@ fect::fect(Y ~ D + X1 + X2, data = simdata,
 | `inference = "nonparametric"` | `vartype = "bootstrap"` |
 | `inference = "bootstrap"` | `vartype = "bootstrap"` |
 | `inference = "jackknife"` | `vartype = "jackknife"` |
-| `weight = "col"` | `W = "col"` |
+| `weight = "col"` | `W.agg = "col"` |
+| `r = k` (one number below 5, with `CV = TRUE`) | `r = c(k, 5)`. In **fect**, one number is a single candidate; `r = NULL` (the default from **fect** 2.4.6) searches 0 to 5 |
 | `EM = TRUE` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "ife"` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "mc"` | `method = "mc"`, `time.component.from = "notyettreated"` |
 | `estimator = "gsynth"` | `method = "ife"` (or `"gsynth"`), `time.component.from = "nevertreated"` |
 
-Most other arguments (`CV`, `r`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name.
+Most other arguments (`CV`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name. `r` carries over when it is a range or when `CV = FALSE`; see the table for a single `r` with `CV = TRUE`.
 
 If you maintain a replication archive that depends on `gsynth(..., estimator = "ife")` or `gsynth(..., estimator = "mc")`, plan for one of two paths:
 
