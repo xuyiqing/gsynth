@@ -9,3 +9,4 @@
 ^vignettes$
 ^pkgdown$
 ^tutorial$
+^ARCHITECTURE\.md$
