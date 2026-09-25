@@ -14,7 +14,7 @@
   See \code{\link{gsynth}} for details.
 }
 \author{
-  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  Yiqing Xu <yiqingxu@stanford.edu>, Stanford University
 }
 \references{
   Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
