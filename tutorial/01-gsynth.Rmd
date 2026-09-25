@@ -54,7 +54,7 @@ panelview(Y ~ D, data = simdata, index = c("id", "time"),
 
 We estimate the model using the outcome $Y$, the treatment indicator $D$, and two covariates $X_1$ and $X_2$.
 
-The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. The number of factors `r` counts factors on top of these fixed effects, so `r = 0` with `force = "two-way"` is the two-way fixed-effects model. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. A single `r` with `CV = TRUE` searches from `r` to 5, so a call without `r` also searches 0 to 5. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
+The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. The number of factors `r` counts factors on top of these fixed effects, so with `force = "two-way"`, setting `r` to 0 gives the two-way fixed-effects model. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. A single `r` with `CV = TRUE` searches from `r` to 5, so a call without `r` also searches 0 to 5. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
 
 ```{r sim1, cache = TRUE}
 out <- gsynth(Y ~ D + X1 + X2, data = simdata,
