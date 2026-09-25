@@ -28,10 +28,10 @@ test_that("plot.gsynth() type = 'ct' with SE works", {
   expect_no_error(plot(out_se, type = "ct"))
 })
 
-test_that("plot.gsynth() type = 'ct' without SE triggers known fect bug", {
-  # Known upstream bug: fect's plot.R checks x$vartype which is NULL when se=FALSE
-  # This will be fixed in a future fect release
-  expect_error(plot(out_nose, type = "ct"))
+## Needs fect >= 2.4.6 with its fix B6: fect dev 412d7ae's plot.R reads
+## x$vartype, which is NULL when se = FALSE, and stops.
+test_that("plot.gsynth() type = 'ct' without SE works (fect B6)", {
+  expect_no_error(plot(out_nose, type = "ct"))
 })
 
 test_that("plot.gsynth() type = 'factors' works", {
