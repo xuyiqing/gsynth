@@ -141,7 +141,8 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
 
     ## v1.5.0 behavior: do NOT silently coerce inference = "parametric"
     ## to "bootstrap" for IFE-EM / MC. fect's hard gate (v2.2.0+) errors
-    ## on this combination, and the wrapper passes the error through.
+    ## on this combination; gsynth stops first, with the same condition
+    ## and a message in gsynth's argument names (see below).
     ##
     ## Public commitment: gsynth-note (Xu 2026), Appendix A.5 ("Hard gate
     ## on IFE-EM + parametric") states that this combination must error
@@ -174,6 +175,22 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
         } else {
             "notyettreated"
         }
+    }
+
+    ##-------------------------------##
+    ## Hard gate: parametric inference with IFE-EM / MC
+    ##-------------------------------##
+
+    ## Same condition as fect's gate (so the same calls stop), checked
+    ## before any fitting and worded in gsynth's arguments. fect allows
+    ## estimator = "ife" with time.component.from = "nevertreated", and
+    ## estimator = "gsynth" (always never-treated controls).
+    if (isTRUE(as.logical(se)) && identical(inference, "parametric") &&
+        (method == "mc" ||
+         (method == "ife" && !identical(time.component.from, "nevertreated")))) {
+        stop("inference = \"parametric\" is not available for estimator = \"ife\" ",
+             "or \"mc\", or for EM = TRUE. ",
+             "Use inference = \"nonparametric\" or \"jackknife\".", call. = FALSE)
     }
 
     ##-------------------------------##
