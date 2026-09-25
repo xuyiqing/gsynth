@@ -19,7 +19,7 @@ test_that("estimator = 'ife' emits a deprecation message", {
   msg <- capture.output(
     out <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), estimator = "ife",
-                  se = FALSE, r = 2, parallel = FALSE),
+                  se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   expect_match(paste(msg, collapse = "\n"),
@@ -51,7 +51,7 @@ test_that("EM = TRUE emits a deprecation message", {
   msg <- capture.output(
     out <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), EM = TRUE,
-                  se = FALSE, r = 2, parallel = FALSE),
+                  se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   combined <- paste(msg, collapse = "\n")
@@ -68,14 +68,14 @@ test_that("deprecation message fires only once per session per key", {
   msg1 <- capture.output(
     gsynth(Y ~ D + X1 + X2, data = simdata,
            index = c("id", "time"), estimator = "ife",
-           se = FALSE, r = 2, parallel = FALSE),
+           se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   ## Second call: message should NOT fire again
   msg2 <- capture.output(
     gsynth(Y ~ D + X1 + X2, data = simdata,
            index = c("id", "time"), estimator = "ife",
-           se = FALSE, r = 2, parallel = FALSE),
+           se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
 
@@ -89,7 +89,7 @@ test_that("effect() emits a deprecation message pointing to estimand()", {
 
   ## fect::effect() requires bootstrap/jackknife results; fit with se = TRUE.
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = TRUE, nboots = 50, r = 2,
+                index = c("id", "time"), se = TRUE, nboots = 50, r = 2, CV = FALSE,
                 parallel = FALSE)
 
   msg <- capture.output(
