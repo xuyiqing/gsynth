@@ -27,10 +27,11 @@ test_that("plot.gsynth() type = 'ct' with SE works", {
   expect_no_error(plot(out_se, type = "ct"))
 })
 
-test_that("plot.gsynth() type = 'ct' without SE triggers known fect bug", {
-  # Known upstream bug: fect's plot.R checks x$vartype which is NULL when se=FALSE
-  # This will be fixed in a future fect release
-  expect_error(plot(out_nose, type = "ct"))
+# Needs fect >= 2.4.6 with the counterfactual-plot fix (fect run B6): fect
+# dev 412d7ae stops here with "argument is of length zero" (x$vartype is
+# NULL when se = FALSE).
+test_that("plot.gsynth() type = 'ct' without SE works", {
+  expect_no_error(plot(out_nose, type = "ct"))
 })
 
 test_that("plot.gsynth() type = 'factors' works", {
