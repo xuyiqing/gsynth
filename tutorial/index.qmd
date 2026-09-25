@@ -86,7 +86,7 @@ The legacy `EM = TRUE` parameter is also soft-deprecated and equivalent to `esti
 | `placeboTest` | logical | Hold out pre-treatment periods as placebo. New in v1.5.0. |
 | `placebo.period` | integer | Event-time periods used for the placebo block, e.g. `c(-2, 0)` |
 | `weight`, `W.est`, `W.agg` | character | `weight`: averaging weight (the same as `W.agg`); `W.est`: weight for the model fit |
-| `parallel` | logical | `TRUE` (default): bootstrap in parallel R worker processes (cross-validation too, on large panels); `FALSE`: none; `"boot"` or `"cv"`: only that step |
+| `parallel` | logical or character | `TRUE` (default): bootstrap in parallel R worker processes (cross-validation too, on large panels); `FALSE`: none; `"boot"` or `"cv"`: only that step |
 | `cores` | integer | Number of R worker processes, not CPU cores (default: available cores minus 2, at most 8) |
 | `min.T0` | integer | Minimum pre-treatment periods for treated units |
 

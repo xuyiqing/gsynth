@@ -413,9 +413,9 @@ on interactive fixed effect models.}
     \code{eff.pre.equiv} (columns \code{sd}, \code{period} and
     \code{count}).}
   \item{pre.periods, proportion, tost.threshold}{settings of the
-    pre-trend tests: the event times used; the minimum share, relative
-    to the event time with the most treated observations, that an event
-    time needs to be used; and the equivalence bound.}
+    pre-trend tests: the event times used; \code{proportion}, the share
+    of the largest number of treated observations that an event time
+    must reach to enter the tests; and the equivalence bound.}
   \item{placeboTest, placebo.period}{the placebo settings used.}
   \item{att.placebo}{the ATT over the placebo periods
     (\code{placeboTest = TRUE}).}
