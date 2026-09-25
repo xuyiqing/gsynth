@@ -177,6 +177,22 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     }
 
     ##-------------------------------##
+    ## Number of factors: one r with CV searches r to 5
+    ##-------------------------------##
+
+    ## ?gsynth documents that CV = TRUE chooses the number of factors from
+    ## r to 5 (as gsynth <= 1.2.1 did). fect searches r..r for one r, so
+    ## the default call (r = 0) would fit no factors without a search.
+    ## Widen one r below 5 to c(r, 5). A range, CV = FALSE, r >= 5 and
+    ## estimator = "mc" (which has no r) pass through unchanged.
+    cv.r.end <- 5 # documented upper end of the search for one r
+    if (method %in% c("gsynth", "ife") && isTRUE(as.logical(CV)) &&
+        is.numeric(r) && length(r) == 1L && !is.na(r) &&
+        r >= 0 && r < cv.r.end) {
+        r <- c(r, cv.r.end)
+    }
+
+    ##-------------------------------##
     ## Pass-through to fect::fect()
     ##-------------------------------##
 
