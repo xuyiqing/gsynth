@@ -10,7 +10,7 @@
 #' @param period c(start, end)
 #' @param id ID of the units of interest
 #' @param plot Whether to plot the cumulative effects
-#' @return Cumulative effects
+#' @return A "fect" object: the fit with effect.est.avg and effect.est.att added (see man/effect.rd)
 #' @export
 effect <- function(x, cumu=TRUE, period=NULL, id=NULL, plot=FALSE){
   .deprecation_message(
