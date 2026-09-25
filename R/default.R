@@ -194,6 +194,22 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     }
 
     ##-------------------------------##
+    ## Weights: `weight` weights the averaged effects only
+    ##-------------------------------##
+
+    ## As documented and as in gsynth 1.2.1, `weight` is the aggregation
+    ## weight (fect's W.agg). It does not enter the model fit; W.est does.
+    if (!is.null(weight)) {
+        if (!is.null(W.agg) && !identical(weight, W.agg)) {
+            stop("`weight` and `W.agg` name different columns. `weight` sets ",
+                 "the weights for averaging treatment effects (the same role ",
+                 "as `W.agg`): give one of them, or the same column in both. ",
+                 "Use `W.est` for weights in the model fit.", call. = FALSE)
+        }
+        W.agg <- weight
+    }
+
+    ##-------------------------------##
     ## Number of factors: one r with CV searches r to 5
     ##-------------------------------##
 
@@ -227,7 +243,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
         placeboTest = placeboTest, placebo.period = placebo.period,
         parallel = parallel, cores = cores, tol = tol, seed = seed,
         min.T0 = min.T0, alpha = alpha, normalize = normalize,
-        W = weight, W.est = W.est, W.agg = W.agg,
+        W.est = W.est, W.agg = W.agg,
         keep.sims = TRUE
     )
 
