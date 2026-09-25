@@ -103,7 +103,8 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "Use fect::fect(method = \"ife\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\")."
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
+                "for migration recipes."
             )
         )
     }
@@ -116,7 +117,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "For IFE-EM, use fect::fect(method = \"ife\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\") ",
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
                 "for migration recipes."
             )
         )
@@ -129,7 +130,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "For matrix completion, use fect::fect(method = \"mc\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\") ",
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
                 "for migration recipes."
             )
         )

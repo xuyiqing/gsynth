@@ -26,6 +26,8 @@ test_that("estimator = 'ife' emits a deprecation message", {
                "soft-deprecated", fixed = FALSE)
   expect_match(paste(msg, collapse = "\n"),
                "fect::fect", fixed = TRUE)
+  expect_match(paste(msg, collapse = "\n"),
+               "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
@@ -42,6 +44,8 @@ test_that("estimator = 'mc' emits a deprecation message", {
                "soft-deprecated", fixed = FALSE)
   expect_match(paste(msg, collapse = "\n"),
                "fect::fect", fixed = TRUE)
+  expect_match(paste(msg, collapse = "\n"),
+               "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
@@ -57,6 +61,7 @@ test_that("EM = TRUE emits a deprecation message", {
   combined <- paste(msg, collapse = "\n")
   expect_match(combined, "soft-deprecated", fixed = FALSE)
   expect_match(combined, "fect::fect", fixed = TRUE)
+  expect_match(combined, "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
