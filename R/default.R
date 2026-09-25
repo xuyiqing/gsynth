@@ -253,8 +253,16 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     ## Storage
     ##-------------------------------##
 
-    output$call <- match.call()
-    output$call$vartype <- output$call$inference # Name compatible with fect
+    output$call <- match.call() # the call as typed; nothing added
+    ## The inference used is recorded in `vartype` (fect's readers, such as
+    ## effect(), read it from there), not in the call: the call then prints
+    ## as typed and update() works.
+    if (isTRUE(as.logical(se))) {
+        vt <- output$vartype # fect stores it for every se = TRUE fit
+        if (!(is.character(vt) && length(vt) == 1L)) {
+            output$vartype <- inference
+        }
+    }
     output$data <- data # Save original long-form data, to utilize panelView
     class(output) <- "gsynth"
     return(output)

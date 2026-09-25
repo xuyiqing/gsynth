@@ -32,4 +32,5 @@ print.gsynth <- function(x,
             print(x$est.beta, digits = 4)
         }
     }
+    invisible(x)
 }
