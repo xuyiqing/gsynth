@@ -188,7 +188,8 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     ## arguments. estimator = "gsynth" always uses never-treated units.
     if (isTRUE(as.logical(se)) && identical(inference, "parametric") &&
         (method == "mc" ||
-         (method == "ife" && !identical(time.component.from, "nevertreated")))) {
+         (method == "ife" &&
+          !identical(time.component.from, "nevertreated")))) {
         stop("inference = \"parametric\" is not available for ",
              "estimator = \"ife\" or \"mc\", or for EM = TRUE. ",
              "Use inference = \"nonparametric\" or \"jackknife\".",
@@ -259,7 +260,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     ## effect(), read it from there), not in the call: the call then prints
     ## as typed and update() works.
     if (isTRUE(as.logical(se))) {
-        vt <- output$vartype # fect stores it for every se = TRUE fit
+        vt <- output[["vartype"]] # fect stores it for every se = TRUE fit
         if (!(is.character(vt) && length(vt) == 1L)) {
             output$vartype <- inference
         }
