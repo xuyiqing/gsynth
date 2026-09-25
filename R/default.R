@@ -177,6 +177,21 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     }
 
     ##-------------------------------##
+    ## Number of factors: one r with CV searches r to 5
+    ##-------------------------------##
+
+    ## As documented, and as in gsynth <= 1.2.1: with CV = TRUE and a single
+    ## r below 5, cross-validation chooses from r to 5. fect treats a single
+    ## r as a one-candidate search, so pass the range. A range, CV = FALSE,
+    ## r >= 5 and estimator = "mc" (no r) pass through unchanged.
+    r.cv.upper <- 5 # top of the search when the user gives one r
+    if (method %in% c("gsynth", "ife") && isTRUE(as.logical(CV)) &&
+        is.numeric(r) && length(r) == 1L && !is.na(r) &&
+        r >= 0 && r < r.cv.upper) {
+        r <- c(r, r.cv.upper)
+    }
+
+    ##-------------------------------##
     ## Pass-through to fect::fect()
     ##-------------------------------##
 
