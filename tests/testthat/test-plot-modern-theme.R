@@ -7,7 +7,7 @@ data("gsynth", package = "gsynth")  # loads simdata and turnout
 test_that("plot(out, type = 'gap', legacy.style = TRUE) returns a plot", {
   skip_on_cran()
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = FALSE, r = 2,
+                index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                 parallel = FALSE)
   p <- plot(out, type = "gap", legacy.style = TRUE)
   expect_true(inherits(p, "ggplot") || inherits(p, "gtable") ||
@@ -17,7 +17,7 @@ test_that("plot(out, type = 'gap', legacy.style = TRUE) returns a plot", {
 test_that("plot(out, type = 'gap', legacy.style = FALSE) returns a plot", {
   skip_on_cran()
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = FALSE, r = 2,
+                index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                 parallel = FALSE)
   p <- plot(out, type = "gap", legacy.style = FALSE)
   expect_true(inherits(p, "ggplot") || inherits(p, "gtable") ||
@@ -27,7 +27,7 @@ test_that("plot(out, type = 'gap', legacy.style = FALSE) returns a plot", {
 test_that("plot(out, type = 'loading.overlap') runs without error", {
   skip_on_cran()
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = FALSE, r = 2,
+                index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                 parallel = FALSE)
   expect_error(
     plot(out, type = "loading.overlap"),
@@ -38,7 +38,7 @@ test_that("plot(out, type = 'loading.overlap') runs without error", {
 test_that("plot(out, highlight = NULL, highlight.fill = FALSE) is the default path", {
   skip_on_cran()
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = FALSE, r = 2,
+                index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                 parallel = FALSE)
   p <- plot(out, type = "gap",
             highlight = NULL, highlight.fill = FALSE)
@@ -49,7 +49,7 @@ test_that("plot(out, highlight = NULL, highlight.fill = FALSE) is the default pa
 test_that("plot(out, highlight.fill = TRUE) runs without error", {
   skip_on_cran()
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = FALSE, r = 2,
+                index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                 parallel = FALSE)
   expect_error(
     plot(out, type = "gap", highlight.fill = TRUE),

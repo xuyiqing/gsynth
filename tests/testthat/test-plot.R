@@ -7,10 +7,11 @@ skip_on_cran()
 # Shared fixtures
 out_se <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  index = c("id", "time"), se = TRUE, nboots = 50,
-                 r = 2, force = "two-way", parallel = FALSE, seed = 1234)
+                 CV = FALSE, r = 2, force = "two-way", parallel = FALSE,
+                 seed = 1234)
 
 out_nose <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                   index = c("id", "time"), se = FALSE, r = 2,
+                   index = c("id", "time"), se = FALSE, CV = FALSE, r = 2,
                    force = "two-way", parallel = FALSE)
 
 # --- fect-delegated plot types ---
