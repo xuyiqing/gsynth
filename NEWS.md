@@ -8,6 +8,7 @@ Development version, not yet on CRAN.
 * `weight` now weights only the averaged effects, as documented and as in gsynth 1.2.1. Use `W.est` to weight the model fit. Estimates change only when some control observations are missing (#101).
 * With **fect** 2.4.6 the implied weights `wgt.implied` change: they now use the formula from Xu (2017), so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual, and their rows and columns are named by unit id (#17, #82).
 * `effect()` returns the cumulative effect as the running sum of the per-period effects, as documented (from **fect** 2.4.6). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time (#75).
+* With **fect** 2.4.6, `estimator = "ife"` with `time.component.from = "nevertreated"`, `CV = FALSE` and `se = TRUE` gives the never-treated estimate and standard errors, the same as `estimator = "gsynth"`. Before, asking for standard errors silently switched to the not-yet-treated model.
 
 ## Bug fixes
 
