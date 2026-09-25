@@ -129,7 +129,7 @@ The `"missing"` plot is most useful on unbalanced panels:
 plot(out, type = "missing")
 ```
 
-White cells are missing observations; gray with red dots are observations removed due to insufficient pre-treatment periods. The matrix is also available in `out$obs.missing`, where `0` = missing, `1` = control, `2` = treated (pre), `3` = treated (post), `4` = treated (removed).
+The plot is drawn by **panelView** from the data given to `gsynth()`: white cells are missing observations, and units that `gsynth()` removed for having fewer than `min.T0` pre-treatment periods still appear. The status used in estimation is in `out$obs.missing`: `1` = under treatment, `2` = not under treatment (control units, and treated units before treatment), `3` = missing, `4` = unit removed, `5` = placebo period.
 
 ## Customizing axes and titles
 

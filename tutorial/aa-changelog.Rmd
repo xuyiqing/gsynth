@@ -2,7 +2,26 @@
 
 ## v1.5.0
 
-(2026-05-04) Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.2)`.
+[Development version, not yet on CRAN.]{.text-muted}
+
+Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.6)`.
+
+**Changes that affect results**
+
+* **Cross-validation of `r`**: one number for `r` with `CV = TRUE` (the default) now searches `r` to 5, as documented and as in v1.2.1, so default calls give different results than in v1.3.1 to v1.4.0. Pass `CV = FALSE` to keep a fixed `r`.
+* **`weight`** now weights only the averaged effects, as documented and as in v1.2.1; `W.est` weights the model fit. Estimates change only when some control observations are missing.
+* **Implied weights**: with **fect** 2.4.6, `wgt.implied` uses the formula from @Xu2017, so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual.
+* **`effect()`** returns the cumulative effect as the running sum of the per-period effects (from **fect** 2.4.6). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time.
+
+**Bug fixes**
+
+* `effect()` intervals come from the inference stored on the fit (with **fect** 2.4.6). Before, a fit with the default parametric inference gave intervals centered near zero.
+* The stored call is the call as typed, so `print()` shows it and `update()` works when `inference` was given.
+* `plot(type = "raw")` and `plot(type = "missing")` work after a `Y =`/`D =` call or with a formula stored in a variable, use `id`, and return the plot instead of drawing it.
+* `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` stops with a message in gsynth's own argument names.
+* `print()` returns the fit invisibly.
+
+**New features and other changes**
 
 * **Diagnostics**: placebo test (`placeboTest = TRUE`, `placebo.period`) and loading-overlap plot (`plot(fit, type = "loading.overlap")`). See [Chapter @sec-gsynth].
 * **Inference**: new `ci.method` argument --- `"normal"` (default; Wald) or `"basic"` ---reflected-pivot bootstrap, @DavisonHinkley1997.

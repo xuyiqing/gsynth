@@ -54,7 +54,7 @@ panelview(Y ~ D, data = simdata, index = c("id", "time"),
 
 We estimate the model using the outcome $Y$, the treatment indicator $D$, and two covariates $X_1$ and $X_2$.
 
-The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
+The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. The number of factors `r` counts factors on top of these fixed effects, so `r = 0` with `force = "two-way"` is the two-way fixed-effects model. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. A single `r` with `CV = TRUE` searches from `r` to 5, so a call without `r` also searches 0 to 5. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
 
 ```{r sim1, cache = TRUE}
 out <- gsynth(Y ~ D + X1 + X2, data = simdata,
@@ -64,7 +64,7 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               parallel = TRUE, cores = 16)
 ```
 
-The output reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation selects the `r` that minimizes MSPE.
+The output reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation picks `r` by the rule in `cv.rule`. The default, `"1se"`, picks the smallest `r` whose MSPE is within one standard error of the lowest MSPE.
 
 ```{r}
 out$est.att
@@ -140,7 +140,7 @@ The default is `nboots = 200`, sufficient for SEs and Wald (`"normal"`) CIs. For
 
 ### Parallel computing
 
-`parallel = TRUE` (default) speeds up both the bootstrap and the cross-validation. Set `cores` explicitly when running on a shared machine; if `cores = NULL`, `gsynth` selects `min(8, parallel::detectCores() - 2)`.
+`parallel = TRUE` (default) runs the bootstrap in parallel (and the cross-validation too, on large panels). Set `cores` explicitly when running on a shared machine; if `cores = NULL`, `gsynth` uses the number of available cores minus 2, at most 8. `cores` counts R worker processes, not CPU cores. With a multithreaded linear-algebra library (BLAS, such as OpenBLAS, MKL or Apple's Accelerate), each worker may also start several threads, so the workers together can ask for more threads than the machine has cores. To avoid this, set the library's thread count to 1 before starting R, for example `OPENBLAS_NUM_THREADS=1` for OpenBLAS.
 
 ```{r sim2, cache = TRUE}
 out_fast <- gsynth(Y ~ D + X1 + X2, data = simdata,
@@ -261,7 +261,7 @@ out <- gsynth(turnout ~ policy_edr + policy_mail_in + policy_motor,
 
 ### Implied weights
 
-`out$wgt.implied` (`N_co × N_tr`) stores the implied weights of all control units for each treated unit. Unlike classical synthetic control, the weights can be both positive and negative.
+`out$wgt.implied` (`N_co × N_tr`) stores the implied weights of all control units for each treated unit. Unlike classical synthetic control, the weights can be both positive and negative. It is `NULL` when cross-validation selects no factors (`r.cv = 0`).
 
 ```{r}
 dim(out$wgt.implied)
@@ -334,7 +334,7 @@ On unbalanced panels, the parametric bootstrap uses a unit-level Gaussian approx
 
 ### Missing-data plot
 
-The `"missing"` plot shows the data used in estimation. Gray cells with red dots indicate observations removed due to insufficient pre-treatment periods. The matrix is available in `out$obs.missing` (`0` = missing, `1` = control, `2` = treated pre, `3` = treated post, `4` = treated removed).
+The `"missing"` plot is drawn by **panelView** from the data given to `gsynth()`. It shows each unit's treatment status by period; white cells are missing observations. Units that `gsynth()` removed for having fewer than `min.T0` pre-treatment periods still appear in the plot. The status used in estimation is in `out$obs.missing`: `1` = under treatment, `2` = not under treatment (control units, and treated units before treatment), `3` = missing, `4` = unit removed, `5` = placebo period.
 
 ```{r turnout-ub-missing, fig.height = 10}
 plot(out, type = "missing")
@@ -344,7 +344,7 @@ Subset to treated units only:
 
 ```{r turnout-ub-missing2}
 plot(out, type = "missing", xlab = "Year", ylab = "State",
-     main = "Treatment Status", id = out$id.tr,
+     main = "Treatment Status", id = out$id[out$tr],
      xlim = c(1920, 2012), axis.adjust = TRUE)
 ```
 

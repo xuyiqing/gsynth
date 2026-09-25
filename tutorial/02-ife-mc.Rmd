@@ -195,13 +195,14 @@ fect::fect(Y ~ D + X1 + X2, data = simdata,
 | `inference = "nonparametric"` | `vartype = "bootstrap"` |
 | `inference = "bootstrap"` | `vartype = "bootstrap"` |
 | `inference = "jackknife"` | `vartype = "jackknife"` |
-| `weight = "col"` | `W = "col"` |
+| `weight = "col"` | `W.agg = "col"` |
 | `EM = TRUE` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "ife"` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "mc"` | `method = "mc"`, `time.component.from = "notyettreated"` |
 | `estimator = "gsynth"` | `method = "ife"` (or `"gsynth"`), `time.component.from = "nevertreated"` |
+| one `r` with `CV = TRUE` (the default), e.g. `r = 2` | `r = c(2, 5)`: in **fect**, one `r` is fitted as given; leaving out `r` searches 0 to 5 in both packages (**fect** 2.4.6) |
 
-Most other arguments (`CV`, `r`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name.
+Most other arguments (`CV`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name. `r` carries over when it is a range or when `CV = FALSE`.
 
 If you maintain a replication archive that depends on `gsynth(..., estimator = "ife")` or `gsynth(..., estimator = "mc")`, plan for one of two paths:
 
