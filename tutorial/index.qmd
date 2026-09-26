@@ -24,10 +24,10 @@ Starting from v1.3.0, **gsynth** becomes a wrapper of **fect**. We recommend use
 
 ## Installation
 
-**gsynth** v1.5.0 requires **fect** `>= 2.4.6`. Until both are on CRAN, install the development versions of both packages from GitHub:
+**gsynth** v1.5.0 requires **fect** `>= 2.4.7`. Until both are on CRAN, install the development versions of both packages from GitHub:
 
 ```{r install-fect-dev, eval = FALSE}
-# fect from the dev branch (>= 2.4.6)
+# fect from the dev branch (>= 2.4.7)
 devtools::install_github("xuyiqing/fect", ref = "dev")
 ```
 

@@ -22,7 +22,7 @@ on interactive fixed effect models.}
   \code{Y ~ D + X1 + X2}: the outcome, then the treatment, then any
   covariates, all as plain column names of \code{data}. Transformations
   such as \code{log(Y)}, \code{factor()} terms and interactions are not
-  allowed (\pkg{fect} 2.4.6 stops with a message). Create the column
+  allowed (\pkg{fect} 2.4.7 stops with a message). Create the column
   first, for example \code{data$logY <- log(data$Y)}, and make numeric
   dummy columns with \code{model.matrix()}. Intercept terms (\code{+ 0},
   \code{- 1}) are accepted and ignored, since the model has its own
@@ -41,14 +41,14 @@ on interactive fixed effect models.}
   constant over time within units, under unit fixed effects) or that is
   an exact linear combination of other covariates is dropped with a
   warning, and its coefficient is reported as \code{NA} (\pkg{fect}
-  2.4.6).}
+  2.4.7).}
 \item{na.rm}{a logical flag indicating whether to list-wise delete
   missing data. The algorithm will report an error if missing data
   exist.}
 \item{index}{a two-element string vector specifying the unit (group)
     and time indicators. Must be of length 2. If the time column is a
     factor, its levels are taken in their order; if it is character, it
-    must contain numbers (\pkg{fect} 2.4.6).}
+    must contain numbers (\pkg{fect} 2.4.7).}
 \item{weight}{name of a numeric, non-negative weight column used to
     average the treatment effects. It plays the same role as
     \code{W.agg} and works as in gsynth 1.2.1. It does not weight the
@@ -63,7 +63,7 @@ on interactive fixed effect models.}
   then resamples whole clusters of units instead of single units. It must
   be a single column that is constant within each unit, with at least
   two clusters. Parametric inference and the jackknife ignore it, with a
-  warning (\pkg{fect} 2.4.6). Default \code{NULL}: the bootstrap
+  warning (\pkg{fect} 2.4.7). Default \code{NULL}: the bootstrap
   resamples units.}
 \item{r}{the number of latent factors on top of the fixed effects in
   \code{force}: with \code{force = "two-way"}, \code{r = 0} is the
@@ -112,7 +112,7 @@ on interactive fixed effect models.}
   \code{r} whose error is within one fold standard error of the lowest;
   \code{"min"} picks the lowest error; \code{"1pct"} picks the smallest
   \code{r} within 1\% of the lowest. See \code{fect::fect}. For
-  \code{estimator = "gsynth"} the rule takes effect with \pkg{fect} 2.4.6
+  \code{estimator = "gsynth"} the rule takes effect with \pkg{fect} 2.4.7
   or later. New in v1.5.0.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization
   algorithm will be used (Gobillon and Magnac 2016). Soft-deprecated in
@@ -326,7 +326,7 @@ on interactive fixed effect models.}
     row per covariate requested, named by covariate. A covariate that
     \pkg{fect} dropped, because the fixed effects absorb it or because it
     is collinear with other covariates, has \code{NA} (\pkg{fect}
-    2.4.6).}
+    2.4.7).}
   \item{mu}{the grand mean.}
   \item{xi}{time fixed effects, a T x 1 matrix. Only when \code{force}
     includes time effects.}
@@ -458,7 +458,7 @@ on interactive fixed effect models.}
     the treatment matrix and the observation matrix: arrays with one
     slice per draw. Under the cluster bootstrap the draws differ in
     width, and narrower slices are padded with \code{NA} (\pkg{fect}
-    2.4.6). \code{effect()} and \code{fect::estimand()} use them.}
+    2.4.7). \code{effect()} and \code{fect::estimand()} use them.}
   \item{colnames.boot}{a list with one element per draw: the column
     positions (in \code{id}) of the units in the draw. A unit drawn
     twice appears twice.}

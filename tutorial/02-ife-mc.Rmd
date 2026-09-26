@@ -200,7 +200,7 @@ fect::fect(Y ~ D + X1 + X2, data = simdata,
 | `estimator = "ife"` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "mc"` | `method = "mc"`, `time.component.from = "notyettreated"` |
 | `estimator = "gsynth"` | `method = "ife"` (or `"gsynth"`), `time.component.from = "nevertreated"` |
-| `gsynth(..., r = 2)` with `CV = TRUE` (the default) | `fect::fect(..., r = c(2, 5))`: in **fect**, one `r` is fitted as given; leaving out `r` searches 0 to 5 in both packages (**fect** 2.4.6) |
+| `gsynth(..., r = 2)` with `CV = TRUE` (the default) | `fect::fect(..., r = c(2, 5))`: in **fect**, one `r` is fitted as given; leaving out `r` searches 0 to 5 in both packages (**fect** 2.4.7) |
 
 Most other arguments (`CV`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name. `r` carries over when it is a range or when `CV = FALSE`.
 

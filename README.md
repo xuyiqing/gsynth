@@ -41,7 +41,7 @@ install.packages('gsynth')
 ```
 
 You can also install the development version of the package from
-GitHub. gsynth 1.5.0 requires **fect** 2.4.6 or later, so install the
+GitHub. gsynth 1.5.0 requires **fect** 2.4.7 or later, so install the
 development versions of both:
 
 ``` r
