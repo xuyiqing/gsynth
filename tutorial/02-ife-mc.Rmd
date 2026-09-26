@@ -101,6 +101,8 @@ plot(out_ife_pb, main = "Placebo test --- IFE-EM on simdata")
 
 The numeric output for the placebo region is in `out_ife_pb$est.placebo`.
 
+Here the test rejects, although `simdata` has no effect before treatment: with only five treated units, the nonparametric bootstrap can reject a correct model too often, so read the test with that in mind.
+
 A note on what `gsynth()` does *not* expose: **fect** also has a `carryoverTest` argument that holds out late post-treatment periods to check whether treatment effects persist past the end of the treatment window. That test requires panels with treatment reversals, which the GSC framework does not allow, so `gsynth()` does not accept `carryoverTest`. If you have a panel with reversals and want a carryover test, use `fect::fect()` directly.
 
 ## Matrix completion on unbalanced data

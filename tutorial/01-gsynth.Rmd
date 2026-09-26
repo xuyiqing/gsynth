@@ -170,7 +170,7 @@ out_basic <- gsynth(Y ~ D + X1 + X2, data = simdata,
 head(out_basic$est.att)
 ```
 
-The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; the intervals and p-values differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution.
+The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; the intervals and p-values differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution. Under the nonparametric bootstrap, the p-values come from the percentile rule (twice the smaller share of bootstrap estimates on either side of zero), not from the basic interval, so near zero the two can disagree: at event time -15 the basic interval includes zero, but the p-value is 0.028.
 
 ## Placebo test {#sec-placebo}
 
@@ -187,7 +187,7 @@ The default `plot()` highlights the placebo region automatically when `placeboTe
 out_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  index = c("id", "time"), force = "two-way",
                  r = 2, CV = FALSE, se = TRUE,
-                 inference = "bootstrap", nboots = 500,
+                 inference = "parametric", nboots = 500,
                  placeboTest = TRUE, placebo.period = c(-2, 0),
                  parallel = TRUE, cores = 16, seed = 02139)
 ```
@@ -199,7 +199,7 @@ plot(out_pb, main = "Placebo test on simdata")
 The plot has two regions worth checking:
 
 - **Pre-placebo (event time $< -2$):** the estimated effect should fluctuate around zero. Persistent deviation here means the model is fitting noise as signal, not an overlap problem.
-- **Placebo region (event times $-2$ through $0$):** the confidence interval should cover zero. If it does, the test fails to reject pre-treatment zero, which is consistent with the parallel-trends assumption.
+- **Placebo region (event times $-2$ through $0$):** the confidence interval should cover zero. If it does, the test does not reject pre-treatment zero, which is consistent with the parallel-trends assumption.
 
 For numeric output by event time, the slot `out_pb$est.placebo` holds the placebo-region inference (point estimate, SE, CI), and `out_pb$est.att` holds the ATT estimates outside the placebo block.
 
@@ -207,7 +207,7 @@ For numeric output by event time, the slot `out_pb$est.placebo` holds the placeb
 out_pb$est.placebo
 ```
 
-A note on language: a placebo test that *fails to reject* pre-treatment zero is consistent with the assumption; it does not prove the assumption holds. Conversely, a placebo test that *rejects* pre-treatment zero is evidence against the model's pre-treatment fit, and the post-treatment ATT should then be reported with that caveat.
+A note on language: a placebo test that *does not reject* pre-treatment zero is consistent with the assumption; it does not prove the assumption holds. Conversely, a placebo test that *rejects* pre-treatment zero is evidence against the model's pre-treatment fit, and the post-treatment ATT should then be reported with that caveat.
 
 The placebo test comes back in [Chapter @sec-ife-mc] applied to the IFE-EM and matrix-completion estimators.
 
