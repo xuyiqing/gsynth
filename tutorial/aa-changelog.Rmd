@@ -13,6 +13,8 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **Implied weights**: with **fect** 2.4.7, `wgt.implied` uses the formula from @Xu2017, so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual.
 * **`effect()`** returns the cumulative effect as the running sum of the per-period effects (from **fect** 2.4.7). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time.
 * **IFE with never-treated controls**: with **fect** 2.4.7, `estimator = "ife"` with `time.component.from = "nevertreated"`, `CV = FALSE` and `se = TRUE` gives the never-treated estimate and standard errors, the same as `estimator = "gsynth"`. Before, asking for standard errors silently switched to the not-yet-treated model.
+* **`effect()` intervals**: with **fect** 2.4.7, parametric fits (the default) and jackknife fits get intervals and p-values from normal critical values, as `fit$est.att` does. Before, t critical values made the intervals slightly wider (0.6% for a parametric fit at the default `nboots = 200`).
+* **Jackknife standard errors**: with **fect** 2.4.7, `effect()` uses the same jackknife formula as `fit$est.att`. Before, its standard errors were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units), and **fect**'s `att.cumu()` gave a cumulative standard error about sqrt(N - 1) times too small.
 
 **Bug fixes**
 
