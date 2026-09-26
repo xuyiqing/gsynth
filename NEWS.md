@@ -11,6 +11,7 @@ Development version, not yet on CRAN.
 * With **fect** 2.4.7, `estimator = "ife"` with `time.component.from = "nevertreated"`, `CV = FALSE` and `se = TRUE` gives the never-treated estimate and standard errors, the same as `estimator = "gsynth"`. Before, asking for standard errors silently switched to the not-yet-treated model.
 * With **fect** 2.4.7, `effect()` builds the intervals and p-values of parametric fits (the default) and jackknife fits from normal critical values, as `fit$est.att` does. Before, it used t critical values, so its intervals are now slightly narrower: by 0.6% for a parametric fit at the default `nboots = 200` (2.5% at 50, 0.1% at 1000). The standard errors of parametric fits do not change.
 * With **fect** 2.4.7, `effect()` on jackknife fits (`inference = "jackknife"`) computes its standard errors with the same jackknife formula as `fit$est.att`. Before, they were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units). For the cumulative effect, **fect**'s `att.cumu()` gave a standard error about sqrt(N - 1) times too small; it now agrees with `effect()`.
+* With **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
 
 ## Bug fixes
 
