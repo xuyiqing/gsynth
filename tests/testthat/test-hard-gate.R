@@ -119,3 +119,90 @@ test_that("parametric + estimator = 'ife' or 'mc' with se = FALSE works", {
   expect_null(out_ife$vartype)
   expect_null(out_mc$vartype)
 })
+
+## ci.method = "basic" with the jackknife. fect refuses this pairing
+## whatever `se` is; gsynth stops first, in its own arguments, and says
+## that "normal" is the jackknife's only interval.
+
+## Evaluates `expr`, expects an error, and checks the message wording.
+.expect_jackknife_basic_error <- function(expr) {
+  err <- tryCatch(suppressPackageStartupMessages(expr),
+                  error = function(e) e)
+  expect_s3_class(err, "error")
+  msg <- if (inherits(err, "error")) conditionMessage(err) else ""
+  expect_match(msg, "ci.method = \"basic\"", fixed = TRUE)
+  expect_match(msg, "inference = \"jackknife\"", fixed = TRUE)
+  expect_match(msg, "ci.method = \"normal\" is its only interval", fixed = TRUE)
+  expect_false(grepl("vartype", msg, fixed = TRUE))
+}
+
+test_that("inference = 'jackknife' + ci.method = 'basic' errors", {
+  skip_on_cran()
+  .expect_jackknife_basic_error(
+    gsynth(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"), inference = "jackknife",
+           ci.method = "basic", se = TRUE,
+           r = 2, CV = FALSE, parallel = FALSE)
+  )
+  ## also with se = FALSE (fect refuses the pairing either way)
+  .expect_jackknife_basic_error(
+    gsynth(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"), inference = "jackknife",
+           ci.method = "basic", se = FALSE,
+           r = 2, CV = FALSE, parallel = FALSE)
+  )
+  ## and for estimator = "ife"
+  .expect_jackknife_basic_error(
+    gsynth(Y ~ D + X1 + X2, data = simdata,
+           index = c("id", "time"), estimator = "ife",
+           inference = "jackknife", ci.method = "basic", se = TRUE,
+           r = 2, CV = FALSE, parallel = FALSE)
+  )
+})
+
+test_that("the jackknife with ci.method = 'normal' works", {
+  skip_on_cran()
+  out <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                index = c("id", "time"), inference = "jackknife",
+                ci.method = "normal", se = TRUE,
+                r = 2, CV = FALSE, parallel = FALSE)
+  expect_s3_class(out, "gsynth")
+  expect_equal(out$vartype, "jackknife")
+})
+
+test_that("ci.method = 'basic' with parametric or nonparametric inference works", {
+  skip_on_cran()
+  out_par <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                    index = c("id", "time"), inference = "parametric",
+                    ci.method = "basic", se = TRUE, nboots = 20,
+                    r = 2, CV = FALSE, parallel = FALSE, seed = 1)
+  out_np <- gsynth(Y ~ D + X1 + X2, data = simdata,
+                   index = c("id", "time"), inference = "nonparametric",
+                   ci.method = "basic", se = TRUE, nboots = 20,
+                   r = 2, CV = FALSE, parallel = FALSE, seed = 1)
+  expect_s3_class(out_par, "gsynth")
+  expect_s3_class(out_np, "gsynth")
+  expect_equal(out_par$vartype, "parametric")
+  expect_equal(out_np$vartype, "bootstrap")
+})
+
+test_that("calls that stop elsewhere keep their messages", {
+  skip_on_cran()
+  d <- simdata
+  d$w <- 1 + d$id %% 3
+  d$w2 <- 1 + d$id %% 4
+  ## gsynth's weight check comes first
+  expect_error(
+    gsynth(Y ~ D + X1 + X2, data = d, index = c("id", "time"),
+           inference = "jackknife", ci.method = "basic", se = TRUE,
+           weight = "w", W.agg = "w2", r = 2, CV = FALSE, parallel = FALSE),
+    "`weight` and `W.agg` name different columns", fixed = TRUE
+  )
+  ## ci.method values other than "normal" and "basic" are fect's to reject
+  expect_error(
+    gsynth(Y ~ D + X1 + X2, data = simdata, index = c("id", "time"),
+           inference = "jackknife", ci.method = "percentile", se = TRUE,
+           r = 2, CV = FALSE, parallel = FALSE),
+    "ci.method = \"percentile\" is not supported in fect()", fixed = TRUE
+  )
+})

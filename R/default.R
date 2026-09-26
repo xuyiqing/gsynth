@@ -211,6 +211,24 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     }
 
     ##-------------------------------##
+    ## ci.method = "basic" with the jackknife
+    ##-------------------------------##
+
+    ## fect (>= 2.4.2) refuses this pairing, whatever `se` is: the jackknife
+    ## gives a standard error but no bootstrap distribution for the basic
+    ## interval to reflect. Same condition as fect's check, worded in
+    ## gsynth's arguments. Placed after gsynth's other stops, so calls that
+    ## stop there keep their messages; other ci.method values, including
+    ## invalid ones, still reach fect's own checks unchanged.
+    if (identical(inference, "jackknife") && identical(ci.method, "basic")) {
+        stop("ci.method = \"basic\" is not available for inference = \"jackknife\": ",
+             "the jackknife gives a standard error but no bootstrap ",
+             "distribution, so ci.method = \"normal\" is its only interval. ",
+             "Use ci.method = \"normal\", or inference = \"nonparametric\" ",
+             "for the basic interval.", call. = FALSE)
+    }
+
+    ##-------------------------------##
     ## Number of factors: one r with CV searches r to 5
     ##-------------------------------##
 
