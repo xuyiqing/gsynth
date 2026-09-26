@@ -198,8 +198,8 @@ on interactive fixed effect models.}
   standard error but no bootstrap distribution, so \code{"normal"} is
   its only interval. Other values stop. For percentile,
   BC and BCa intervals on alternative estimands (cumulative ATT, APTT,
-  log-ATT), set \code{class(fit) <- "fect"} and call
-  \code{\link[fect]{estimand}}; for a jackknife fit it also allows only
+  log-ATT), call \code{\link[fect]{estimand}} on the fit; for a
+  jackknife fit it also allows only
   \code{ci.method = "normal"}. New in v1.5.0 (passed to \code{fect}'s
   \code{ci.method}, added in fect v2.4.2).}
 \item{placeboTest}{a logical flag. If \code{TRUE}, a contiguous block of
