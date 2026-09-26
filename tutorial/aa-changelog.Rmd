@@ -9,6 +9,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 **Changes that affect results**
 
 * **Cross-validation of `r`**: one number for `r` with `CV = TRUE` (the default) now searches `r` to 5, as documented and as in v1.2.1, so default calls give different results than in v1.3.1 to v1.4.0. Pass `CV = FALSE` to keep a fixed `r`.
+* **Reproducible cross-validation**: cross-validation holds out randomly chosen units and periods, so the chosen number of factors can differ from run to run; pass `seed` to make the choice reproducible.
 * **`weight`** now weights only the averaged effects, as documented and as in v1.2.1; `W.est` weights the model fit. Estimates change only when some control observations are missing.
 * **Implied weights**: with **fect** 2.4.7, `wgt.implied` uses the formula from @Xu2017, so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual.
 * **`effect()`** returns the cumulative effect as the running sum of the per-period effects (from **fect** 2.4.7). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time.
@@ -17,6 +18,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **Jackknife standard errors**: with **fect** 2.4.7, `effect()` uses the same jackknife formula as `fit$est.att`. Before, its standard errors were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units), and **fect**'s `att.cumu()` gave a cumulative standard error about sqrt(N - 1) times too small.
 * **`effect()` with weights**: with **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
 * **`ci.method = "basic"` p-values**: with **fect** 2.4.7, parametric fits (the default) get valid p-values for the effects, which agree with the basic intervals. Before, they were near 1 whatever the estimate.
+* **`fect_mspe()` on gsynth fits**: with **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model. Before, it refitted **fect**'s default fixed-effects model.
 
 **Bug fixes**
 
@@ -26,7 +28,6 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` stops with a message in gsynth's own argument names.
 * `inference = "jackknife"` with `ci.method = "basic"` stops with a message in gsynth's own argument names; only `ci.method = "normal"` works with the jackknife.
 * `print()` returns the fit invisibly.
-* `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (with **fect** 2.4.7).
 
 **New features and other changes**
 
