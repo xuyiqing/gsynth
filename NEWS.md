@@ -5,7 +5,7 @@ Development version, not yet on CRAN.
 ## Changes that affect results
 
 * `gsynth()` with `CV = TRUE` (the default) and one number for `r` now chooses the number of factors by cross-validation from `r` to 5, as documented and as in gsynth 1.2.1. From 1.3.1 to 1.4.0 it fitted `r` factors (0 by default) without a search, so default calls now give different results. Pass `CV = FALSE` to keep a fixed `r` (#104; also #26, #34, #102).
-* Cross-validation, which default calls now run, holds out randomly chosen units and periods, so the chosen number of factors can differ from run to run; pass `seed` to make the choice reproducible (on `turnout`, seeds 1, 2139 and 3 choose 1, 4 and 2 factors).
+* Cross-validation, which default calls now run, holds out randomly chosen units and periods, so the chosen number of factors can differ from run to run; pass `seed` to make the choice reproducible (on `turnout` with `force = "two-way"`, seeds 1, 2139 and 3 choose 1, 4 and 2 factors).
 * `weight` now weights only the averaged effects, as documented and as in gsynth 1.2.1. Use `W.est` to weight the model fit. Estimates change only when some control observations are missing (#101).
 * With **fect** 2.4.7 the implied weights `wgt.implied` change: they now use the formula from Xu (2017), so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual, and their rows and columns are named by unit id (#17, #82).
 * `effect()` returns the cumulative effect as the running sum of the per-period effects, as documented (from **fect** 2.4.7). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time (#75).
@@ -14,7 +14,7 @@ Development version, not yet on CRAN.
 * With **fect** 2.4.7, `effect()` on jackknife fits (`inference = "jackknife"`) computes its standard errors with the same jackknife formula as `fit$est.att`. Before, they were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units). For the cumulative effect, **fect**'s `att.cumu()` gave a standard error about sqrt(N - 1) times too small; it now agrees with `effect()`.
 * With **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
 * With **fect** 2.4.7, `ci.method = "basic"` with parametric inference (the default) gives valid p-values for the effects, which agree with the basic intervals. Before, they were near 1 whatever the estimate (on `simdata`, 0.97 for an ATT of 5.54 with S.E. 0.25).
-* With **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (on `simdata`, MSPE 110.96 instead of 65.25). Before, it refitted **fect**'s default fixed-effects model, and it stopped on a fit made with a gsynth-only argument such as `inference`.
+* With **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (on `simdata` with `force = "two-way"`, MSPE 110.96 instead of 65.25). Before, it refitted **fect**'s default fixed-effects model, and it stopped on a fit made with a gsynth-only argument such as `inference`.
 
 ## Bug fixes
 
