@@ -35,7 +35,8 @@ out_ife <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), estimator = "ife",
                   force = "two-way", inference = "bootstrap",
                   se = TRUE, nboots = 500, r = c(0, 5),
-                  CV = TRUE, parallel = TRUE, cores = 16)
+                  CV = TRUE, parallel = TRUE, cores = 16,
+                  seed = 02139)
 print(out_ife)
 ```
 
@@ -53,7 +54,7 @@ out_mc <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  se = TRUE, nboots = 500, r = c(0, 5),
                  CV = TRUE, force = "two-way",
                  parallel = TRUE, cores = 16,
-                 inference = "bootstrap")
+                 inference = "bootstrap", seed = 02139)
 ```
 
 ```{r sim-mc-plot}
@@ -91,7 +92,7 @@ out_ife_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
                      se = TRUE, inference = "bootstrap",
                      nboots = 500, parallel = TRUE, cores = 16,
                      placeboTest = TRUE,
-                     placebo.period = c(-2, 0))
+                     placebo.period = c(-2, 0), seed = 02139)
 ```
 
 ```{r placebo-ife-plot}
@@ -99,6 +100,8 @@ plot(out_ife_pb, main = "Placebo test --- IFE-EM on simdata")
 ```
 
 The numeric output for the placebo region is in `out_ife_pb$est.placebo`.
+
+Here the test rejects, although `simdata` has no effect before treatment: with only five treated units, the nonparametric bootstrap can reject a correct model too often, so read the test with that in mind.
 
 A note on what `gsynth()` does *not* expose: **fect** also has a `carryoverTest` argument that holds out late post-treatment periods to check whether treatment effects persist past the end of the treatment window. That test requires panels with treatment reversals, which the GSC framework does not allow, so `gsynth()` does not accept `carryoverTest`. If you have a panel with reversals and want a carryover test, use `fect::fect()` directly.
 
@@ -195,13 +198,14 @@ fect::fect(Y ~ D + X1 + X2, data = simdata,
 | `inference = "nonparametric"` | `vartype = "bootstrap"` |
 | `inference = "bootstrap"` | `vartype = "bootstrap"` |
 | `inference = "jackknife"` | `vartype = "jackknife"` |
-| `weight = "col"` | `W = "col"` |
+| `weight = "col"` | `W.agg = "col"` |
 | `EM = TRUE` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "ife"` | `method = "ife"`, `time.component.from = "notyettreated"` |
 | `estimator = "mc"` | `method = "mc"`, `time.component.from = "notyettreated"` |
 | `estimator = "gsynth"` | `method = "ife"` (or `"gsynth"`), `time.component.from = "nevertreated"` |
+| `gsynth(..., r = 2)` with `CV = TRUE` (the default) | `fect::fect(..., r = c(2, 5))`: in **fect**, one `r` is fitted as given; leaving out `r` searches 0 to 5 in both packages (**fect** 2.4.7) |
 
-Most other arguments (`CV`, `r`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name.
+Most other arguments (`CV`, `force`, `nboots`, `parallel`, `cores`, `seed`, `min.T0`, `alpha`, `normalize`, `tol`) carry over by name. `r` carries over when it is a range or when `CV = FALSE`.
 
 If you maintain a replication archive that depends on `gsynth(..., estimator = "ife")` or `gsynth(..., estimator = "mc")`, plan for one of two paths:
 

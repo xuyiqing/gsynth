@@ -8,7 +8,7 @@ skip_on_cran()
 
 out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               index = c("id", "time"), se = TRUE, nboots = 50,
-              r = 2, force = "two-way", parallel = FALSE, seed = 1234)
+              r = 2, CV = FALSE, force = "two-way", parallel = FALSE, seed = 1234)
 
 test_that("effect() cumulative effect returns valid output", {
   eff <- effect(out, cumu = TRUE)

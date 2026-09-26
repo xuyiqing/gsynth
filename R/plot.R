@@ -32,51 +32,40 @@ plot.gsynth <- function(
     ...){
 
   if (type %in% c("raw","missing")){
-    # Implementing missing data visualization
-    # Extract data from the gsynth object
-    data <- x$data
-    index <- x$index
-    formula <- x$call$formula
-    if (type=="missing"){
-
-      # Set default main title if not provided
-      if(is.null(main)) {
-        main <- "Treatment Status and Missing Data"
-      }
-
-      # Call panelview with pre.post=TRUE to show treatment status
-      panelView::panelview(
-                    data = data,
-                    formula,
-                    index = index,
-                    pre.post = TRUE,
-                    main = main,
-                    xlab = xlab,
-                    ylab = ylab,
-                    xlim = xlim,
-                    ylim = ylim,
-                    axis.adjust = axis.adjust)
-    } else {
-
-      # Set default main title if not provided
-      if(is.null(main)) {
-        main <- "Raw Data"
-      }
-
-      # Call panelview with type="outcome" to show outcome values
-      panelView::panelview(
-                    data = data,
-                    formula,
-                    index = index,
-                    type = "outcome",
-                    main = main,
-                    xlab = xlab,
-                    ylab = ylab,
-                    xlim = xlim,
-                    ylim = ylim,
-                    legendOff = legendOff,
-                    axis.adjust = axis.adjust)
+    # Raw data / missing-data plots are drawn by panelView from the data
+    # and the variable names stored in the fit (not from x$call, which may
+    # hold Y =/D = strings, a formula in a variable, or as.formula(...)).
+    # [[ ]] matches names exactly (the fit also has "data.long", and a
+    # second "Y"/"D" element holding the T x N matrices).
+    if (is.null(x[["data"]]) || !is.character(x[["Y"]]) ||
+        !is.character(x[["D"]]) || is.null(x[["index"]])) {
+      stop("This fit does not store the data needed for type = \"raw\" or \"missing\".",
+           call. = FALSE)
     }
+    pv.args <- list(data = x[["data"]], Y = x[["Y"]], D = x[["D"]],
+                    X = x[["X"]], index = x[["index"]],
+                    xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim,
+                    axis.adjust = axis.adjust, id = id)
+    if (type == "missing") {
+      pv.args$main <- if (is.null(main)) "Treatment Status and Missing Data" else main
+      pv.args$pre.post <- TRUE # show treatment status
+    } else {
+      pv.args$main <- if (is.null(main)) "Raw Data" else main
+      pv.args$type <- "outcome"
+      pv.args$legendOff <- legendOff
+    }
+    # panelview() prints its plot before returning it. Send that print to
+    # a throwaway device, then restore the user's devices, so the plot is
+    # drawn once, when the returned object is printed (#58).
+    old.dev <- grDevices::dev.cur()
+    grDevices::pdf(file = NULL)
+    tmp.dev <- grDevices::dev.cur()
+    on.exit({
+      if (tmp.dev %in% grDevices::dev.list()) grDevices::dev.off(tmp.dev)
+      if (old.dev > 1L && old.dev %in% grDevices::dev.list()) grDevices::dev.set(old.dev)
+    }, add = TRUE)
+    p <- do.call(panelView::panelview, pv.args)
+    return(p)
   } else {
     class(x) <- "fect"
     p <- fect::plot.fect(x=x,
