@@ -104,4 +104,9 @@ test_that("effect() emits a deprecation message pointing to estimand()", {
   combined <- paste(msg, collapse = "\n")
   expect_match(combined, "soft-deprecated", fixed = FALSE)
   expect_match(combined, "estimand", fixed = TRUE)
+  ## fect::estimand() works on a gsynth fit as it is: no class change
+  expect_match(combined,
+               "fect::estimand(fit, \"att.cumu\", ...) on the gsynth fit directly",
+               fixed = TRUE)
+  expect_false(grepl("class-munge", combined, fixed = TRUE))
 })

@@ -4,8 +4,8 @@
 \description{Calculates cumulative or sub-group treatment effects.
 
   \strong{Soft-deprecated in v1.5.0}: for cumulative or sub-group
-  estimands, use \code{\link[fect]{estimand}} from \pkg{fect} (v2.4.0+).
-  After class-munging the gsynth fit to \code{"fect"}, call
+  estimands, use \code{\link[fect]{estimand}} from \pkg{fect} (v2.4.0+)
+  on the gsynth fit directly:
   \code{fect::estimand(fit, "att.cumu", ...)}. Each call to
   \code{effect()} emits a one-time-per-session message. Removal not
   before gsynth v2.0.0.
