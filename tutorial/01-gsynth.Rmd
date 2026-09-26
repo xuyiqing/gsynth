@@ -163,7 +163,7 @@ out_basic <- gsynth(Y ~ D + X1 + X2, data = simdata,
 head(out_basic$est.att)
 ```
 
-The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; only the CI columns differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution.
+The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; the intervals and p-values differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution.
 
 ## Placebo test {#sec-placebo}
 
