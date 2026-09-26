@@ -64,7 +64,14 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               parallel = TRUE, cores = 16)
 ```
 
-The output reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error). Cross-validation picks `r` by the rule in `cv.rule`. The default, `"1se"`, picks the smallest `r` whose MSPE is within one standard error of the lowest MSPE.
+The cross-validation results are stored in `out$CV.out`, with one row for each number of factors tried. It reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error), among other measures. `out$r.cv` is the number of factors chosen.
+
+```{r sim1-cv}
+out$CV.out[, c("r", "sigma2", "IC", "MSPE")]
+out$r.cv
+```
+
+Cross-validation picks `r` by the rule in `cv.rule`. The default, `"1se"`, picks the smallest `r` whose MSPE is within one standard error of the lowest MSPE.
 
 ```{r}
 out$est.att
