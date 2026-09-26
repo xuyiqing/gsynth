@@ -16,6 +16,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **`effect()` intervals**: with **fect** 2.4.7, parametric fits (the default) and jackknife fits get intervals and p-values from normal critical values, as `fit$est.att` does. Before, t critical values made the intervals slightly wider (0.6% for a parametric fit at the default `nboots = 200`).
 * **Jackknife standard errors**: with **fect** 2.4.7, `effect()` uses the same jackknife formula as `fit$est.att`. Before, its standard errors were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units), and **fect**'s `att.cumu()` gave a cumulative standard error about sqrt(N - 1) times too small.
 * **`effect()` with weights**: with **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
+* **`ci.method = "basic"` p-values**: with **fect** 2.4.7, parametric fits (the default) get valid p-values for the effects, which agree with the basic intervals. Before, they were near 1 whatever the estimate.
 
 **Bug fixes**
 
@@ -29,7 +30,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 **New features and other changes**
 
 * **Diagnostics**: placebo test (`placeboTest = TRUE`, `placebo.period`) and loading-overlap plot (`plot(fit, type = "loading.overlap")`). See [Chapter @sec-gsynth].
-* **Inference**: new `ci.method` argument --- `"normal"` (default; Wald) or `"basic"` ---reflected-pivot bootstrap, @DavisonHinkley1997.
+* **Inference**: new `ci.method` argument: `"normal"` (default; Wald) or `"basic"` (reflected-pivot bootstrap, @DavisonHinkley1997). `"basic"` works with parametric and nonparametric inference, not with the jackknife.
 * **Plot recipe**: modern visual style from **fect** v2.3.x, with new arguments `legacy.style`, `highlight`, `highlight.fill`. See [Chapter @sec-plots].
 * **CV defaults**: rolling-window (`cv.method = "rolling"`, `cv.prop = 0.1`, `cv.buffer = 1`); default `k` is now 20.
 * **CV settings**: new `cv.rule` (`"1se"` default, `"min"`, `"1pct"`) for choosing the number of factors, and `cv.nobs` and `cv.donut` for block cross-validation, all passed to **fect**. With `estimator = "gsynth"`, `cv.rule` takes effect with **fect** 2.4.7 or later.

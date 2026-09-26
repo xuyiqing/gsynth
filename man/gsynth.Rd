@@ -190,13 +190,13 @@ on interactive fixed effect models.}
   intervals (\eqn{\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}})
   and works with every \code{inference}. \code{"basic"} uses the
   reflected-pivot bootstrap interval (Davison and Hinkley 1997, Sec.
-  5.2.1); use it with \code{inference = "nonparametric"}. With
+  5.2.1) and works with \code{inference = "parametric"} and
+  \code{"nonparametric"}. With parametric inference, its p-values
+  compare the estimate with the draws simulated under no effect, so
+  they agree with the basic interval (\pkg{fect} 2.4.7). With
   \code{inference = "jackknife"} it stops: the jackknife gives a
   standard error but no bootstrap distribution, so \code{"normal"} is
-  its only interval. With \code{inference = "parametric"} it runs, but
-  the p-values of the effects (in \code{est.att}, \code{est.avg} and
-  \code{est.placebo}) are not valid: they stay near 1 even for a clear
-  effect. Use \code{"normal"} there. Other values stop. For percentile,
+  its only interval. Other values stop. For percentile,
   BC and BCa intervals on alternative estimands (cumulative ATT, APTT,
   log-ATT), set \code{class(fit) <- "fect"} and call
   \code{\link[fect]{estimand}}; for a jackknife fit it also allows only
