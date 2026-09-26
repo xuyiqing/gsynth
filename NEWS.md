@@ -14,7 +14,7 @@ Development version, not yet on CRAN.
 * With **fect** 2.4.7, `effect()` on jackknife fits (`inference = "jackknife"`) computes its standard errors with the same jackknife formula as `fit$est.att`. Before, they were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units). For the cumulative effect, **fect**'s `att.cumu()` gave a standard error about sqrt(N - 1) times too small; it now agrees with `effect()`.
 * With **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
 * With **fect** 2.4.7, `ci.method = "basic"` with parametric inference (the default) gives valid p-values for the effects, which agree with the basic intervals. Before, they were near 1 whatever the estimate (on `simdata`, 0.97 for an ATT of 5.54 with S.E. 0.25).
-* With **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (on `simdata` with `force = "two-way"`, MSPE 110.96 instead of 65.25). Before, it refitted **fect**'s default fixed-effects model, and it stopped on a fit made with a gsynth-only argument such as `inference`.
+* With **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (on `simdata` with `force = "two-way"` and `seed = 1` in both `gsynth()` and `fect_mspe()`, MSPE 110.96 instead of 65.25). Before, it refitted **fect**'s default fixed-effects model, and it stopped on a fit made with a gsynth-only argument such as `inference`.
 
 ## Bug fixes
 
