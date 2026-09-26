@@ -20,6 +20,7 @@ Development version, not yet on CRAN.
 * `plot(type = "raw")` and `plot(type = "missing")` now work after a `Y =`/`D =` call or with a formula stored in a variable, use `id`, and return the plot instead of drawing it (#58, #26).
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` now stops with a message in gsynth's own argument names (#47).
 * `print()` returns the fit invisibly.
+* `fect::fect_mspe()` now refits a gsynth fit with `gsynth()`, so it scores the fit's own model (with **fect** 2.4.7). Before, it refitted **fect**'s default fixed-effects model, and it stopped on a fit made with a gsynth-only argument such as `inference`.
 
 ## New features and other changes
 

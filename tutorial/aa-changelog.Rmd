@@ -24,6 +24,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * `plot(type = "raw")` and `plot(type = "missing")` work after a `Y =`/`D =` call or with a formula stored in a variable, use `id`, and return the plot instead of drawing it.
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` stops with a message in gsynth's own argument names.
 * `print()` returns the fit invisibly.
+* `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model (with **fect** 2.4.7).
 
 **New features and other changes**
 
