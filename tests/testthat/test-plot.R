@@ -27,7 +27,7 @@ test_that("plot.gsynth() type = 'ct' with SE works", {
   expect_no_error(plot(out_se, type = "ct"))
 })
 
-# Needs fect >= 2.4.6 with the counterfactual-plot fix (fect run B6): fect
+# Needs fect >= 2.4.7 with the counterfactual-plot fix (fect run B6): fect
 # dev 412d7ae stops here with "argument is of length zero" (x$vartype is
 # NULL when se = FALSE).
 test_that("plot.gsynth() type = 'ct' without SE works", {

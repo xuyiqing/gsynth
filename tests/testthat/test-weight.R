@@ -72,7 +72,7 @@ test_that("`weight` and a different `W.agg` stop; the same column runs", {
   expect_equal(f_same$beta, f_weight$beta)
 })
 
-## Needs fect >= 2.4.6 with the cross-validation weight fix (fect run B4):
+## Needs fect >= 2.4.7 with the cross-validation weight fix (fect run B4):
 ## with fect dev 412d7ae, CV fits the model with the averaging weight.
 test_that("`weight` stays out of the model fit under cross-validation", {
   f_u <- .fit_w(r = c(2, 2), CV = TRUE, se = FALSE)
@@ -81,7 +81,7 @@ test_that("`weight` stays out of the model fit under cross-validation", {
   expect_equal(f_weight$att.avg, .weighted_att(f_u, .wdata, "w"))
 })
 
-## Needs fect >= 2.4.6 with the parametric-bootstrap weight fix (fect run
+## Needs fect >= 2.4.7 with the parametric-bootstrap weight fix (fect run
 ## A4): with fect dev 412d7ae, weights + parametric inference stop with
 ## "number of items to replace is not a multiple of replacement length".
 test_that("`weight` works with se = TRUE and parametric inference", {

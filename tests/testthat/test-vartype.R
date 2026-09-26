@@ -104,7 +104,7 @@ test_that("print() shows the call as typed and returns the fit invisibly", {
   expect_identical(res_nose$value, f_nose_typed)
 })
 
-## Needs fect >= 2.4.6 with the effect() fix (it reads the inference from
+## Needs fect >= 2.4.7 with the effect() fix (it reads the inference from
 ## fit$vartype). With fect dev 412d7ae, effect() still reads call$vartype
 ## and this block fails, before and after the gsynth fix.
 test_that("effect() intervals cover the ATT after a default-inference fit", {

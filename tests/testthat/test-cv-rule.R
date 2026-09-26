@@ -25,8 +25,8 @@ skip_on_cran()
 }
 
 test_that("gsynth() passes cv.rule to fect", {
-  skip_if(utils::packageVersion("fect") < "2.4.6",
-          "fect < 2.4.6 ignores cv.rule for never-treated CV")
+  skip_if(utils::packageVersion("fect") < "2.4.7",
+          "fect < 2.4.7 ignores cv.rule for never-treated CV")
   d <- .rule_panel(2)
   g_min <- .fit_g(d, cv.rule = "min")
   g_1se <- .fit_g(d, cv.rule = "1se")
