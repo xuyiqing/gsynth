@@ -22,7 +22,7 @@ out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               index = c("id", "time"), force = "two-way",
               r = 2, CV = FALSE, se = TRUE,
               inference = "parametric", nboots = 200,
-              parallel = FALSE)
+              parallel = FALSE, seed = 02139)
 ```
 
 ## Modern vs legacy visual recipe

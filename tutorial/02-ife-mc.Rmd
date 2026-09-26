@@ -35,7 +35,8 @@ out_ife <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), estimator = "ife",
                   force = "two-way", inference = "bootstrap",
                   se = TRUE, nboots = 500, r = c(0, 5),
-                  CV = TRUE, parallel = TRUE, cores = 16)
+                  CV = TRUE, parallel = TRUE, cores = 16,
+                  seed = 02139)
 print(out_ife)
 ```
 
@@ -53,7 +54,7 @@ out_mc <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  se = TRUE, nboots = 500, r = c(0, 5),
                  CV = TRUE, force = "two-way",
                  parallel = TRUE, cores = 16,
-                 inference = "bootstrap")
+                 inference = "bootstrap", seed = 02139)
 ```
 
 ```{r sim-mc-plot}
@@ -91,7 +92,7 @@ out_ife_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
                      se = TRUE, inference = "bootstrap",
                      nboots = 500, parallel = TRUE, cores = 16,
                      placeboTest = TRUE,
-                     placebo.period = c(-2, 0))
+                     placebo.period = c(-2, 0), seed = 02139)
 ```
 
 ```{r placebo-ife-plot}

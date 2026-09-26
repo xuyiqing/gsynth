@@ -54,14 +54,14 @@ panelview(Y ~ D, data = simdata, index = c("id", "time"),
 
 We estimate the model using the outcome $Y$, the treatment indicator $D$, and two covariates $X_1$ and $X_2$.
 
-The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. The number of factors `r` counts factors on top of these fixed effects, so with `force = "two-way"`, setting `r` to 0 gives the two-way fixed-effects model. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. A single `r` with `CV = TRUE` searches from `r` to 5, so a call without `r` also searches 0 to 5. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly.
+The `force` option specifies fixed effects: `"none"`, `"unit"`, `"time"`, or `"two-way"`. The number of factors `r` counts factors on top of these fixed effects, so with `force = "two-way"`, setting `r` to 0 gives the two-way fixed-effects model. Cross-validation (`CV = TRUE`) selects the number of factors within the range specified by `c(0, 5)`. A single `r` with `CV = TRUE` searches from `r` to 5, so a call without `r` also searches 0 to 5. From v1.5.0 the CV default is rolling-window with `k = 20` folds, `cv.prop = 0.1`, `cv.buffer = 1`. To reproduce the pre-v1.5.0 block-CV behavior in existing code, set `cv.method = "block"` and `k = 5` explicitly. Cross-validation and the bootstrap use random draws; `seed` fixes them, so rerunning the code in this manual gives the same results.
 
 ```{r sim1, cache = TRUE}
 out <- gsynth(Y ~ D + X1 + X2, data = simdata,
               index = c("id", "time"), force = "two-way",
               CV = TRUE, r = c(0, 5), se = TRUE,
               inference = "parametric", nboots = 1000,
-              parallel = TRUE, cores = 16)
+              parallel = TRUE, cores = 16, seed = 02139)
 ```
 
 The cross-validation results are stored in `out$CV.out`, with one row for each number of factors tried. It reports `sigma2` (error variance), `IC` (information criterion), and `MSPE` (mean squared prediction error), among other measures. `out$r.cv` is the number of factors chosen.
@@ -100,7 +100,7 @@ out_r2 <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  parallel = FALSE)
 ```
 
-`type = "factors"` plots the estimated time-varying factors (one curve per factor), and `type = "loadings"` shows the distribution of unit-level loadings on each factor:
+`type = "factors"` plots the estimated time-varying factors, one curve per factor, and `type = "loadings"` shows the distribution of unit-level loadings on each factor. With `force = "two-way"`, as here, both plots also show the fixed effects: the time effects as the curve labeled 0, and the unit effects in the panel labeled FE (`include.FE = FALSE` leaves them out):
 
 ```{r sim-factors, results='hide'}
 plot(out_r2, type = "factors", xlab = "Time")
@@ -154,7 +154,7 @@ out_fast <- gsynth(Y ~ D + X1 + X2, data = simdata,
                    index = c("id", "time"), force = "two-way",
                    CV = TRUE, r = c(0, 5), se = TRUE,
                    inference = "parametric", nboots = 1000,
-                   parallel = TRUE, cores = 16)
+                   parallel = TRUE, cores = 16, seed = 02139)
 print(out_fast)
 ```
 
@@ -166,7 +166,7 @@ out_basic <- gsynth(Y ~ D + X1 + X2, data = simdata,
                     CV = TRUE, r = c(0, 5), se = TRUE,
                     inference = "bootstrap", nboots = 1000,
                     ci.method = "basic",
-                    parallel = TRUE, cores = 16)
+                    parallel = TRUE, cores = 16, seed = 02139)
 head(out_basic$est.att)
 ```
 
@@ -189,7 +189,7 @@ out_pb <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  r = 2, CV = FALSE, se = TRUE,
                  inference = "bootstrap", nboots = 500,
                  placeboTest = TRUE, placebo.period = c(-2, 0),
-                 parallel = TRUE, cores = 16)
+                 parallel = TRUE, cores = 16, seed = 02139)
 ```
 
 ```{r placebo-intro-plot}
