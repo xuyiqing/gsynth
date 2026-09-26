@@ -187,13 +187,20 @@ on interactive fixed effect models.}
   same as \code{weight}. From \code{fect} v2.3.1; new in gsynth v1.5.0.}
 \item{ci.method}{a string controlling the confidence-interval method
   used for the \code{est.*} slots. \code{"normal"} (default) uses Wald
-  intervals (\eqn{\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}});
-  \code{"basic"} uses the reflected-pivot bootstrap interval (Davison and
-  Hinkley 1997, Sec. 5.2.1) when \code{inference = "bootstrap"} or
-  \code{"jackknife"}. For percentile, BC, and BCa intervals on
-  alternative estimands (cumulative ATT, APTT, log-ATT), call
-  \code{\link[fect]{estimand}} on the fit object after class-munging
-  to \code{"fect"}. New in v1.5.0 (passed to \code{fect}'s
+  intervals (\eqn{\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}})
+  and works with every \code{inference}. \code{"basic"} uses the
+  reflected-pivot bootstrap interval (Davison and Hinkley 1997, Sec.
+  5.2.1); use it with \code{inference = "nonparametric"}. With
+  \code{inference = "jackknife"} it stops: the jackknife gives a
+  standard error but no bootstrap distribution, so \code{"normal"} is
+  its only interval. With \code{inference = "parametric"} it runs, but
+  the p-values of the effects (in \code{est.att}, \code{est.avg} and
+  \code{est.placebo}) are not valid: they stay near 1 even for a clear
+  effect. Use \code{"normal"} there. Other values stop. For percentile,
+  BC and BCa intervals on alternative estimands (cumulative ATT, APTT,
+  log-ATT), set \code{class(fit) <- "fect"} and call
+  \code{\link[fect]{estimand}}; for a jackknife fit it also allows only
+  \code{ci.method = "normal"}. New in v1.5.0 (passed to \code{fect}'s
   \code{ci.method}, added in fect v2.4.2).}
 \item{placeboTest}{a logical flag. If \code{TRUE}, a contiguous block of
   pre-treatment periods specified by \code{placebo.period} is held out

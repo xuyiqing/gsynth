@@ -129,10 +129,10 @@ When all treated points fall inside the shaded control hull, the GSC counterfact
 
 New in v1.5.0. The `ci.method` argument controls how the confidence intervals stored in the `est.*` slots (e.g. `out$est.att`) are formed:
 
-- `ci.method = "normal"` (default): Wald intervals, $\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}$. Symmetric around the point estimate.
-- `ci.method = "basic"`: reflected-pivot bootstrap interval (@DavisonHinkley1997, Sec. 5.2.1). Asymmetric; reads tail quantiles of the bootstrap distribution. Requires `inference = "bootstrap"` or `"jackknife"`. With $B < 1000$ replications the tail-quantile endpoints can be unstable; **fect** emits a warning and recommends `nboots = 1000` for publication-grade CIs.
+- `ci.method = "normal"` (default): Wald intervals, $\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}$. Symmetric around the point estimate. Works with every `inference`, and it is the only interval for `inference = "jackknife"`.
+- `ci.method = "basic"`: reflected-pivot bootstrap interval (@DavisonHinkley1997, Sec. 5.2.1). Asymmetric; reads tail quantiles of the bootstrap distribution. Use it with `inference = "bootstrap"`. With `inference = "jackknife"`, `gsynth()` stops, because the jackknife gives a standard error but no bootstrap distribution. With `inference = "parametric"` it runs, but the p-values of the effects are not valid (they stay near 1 even for a clear effect), so use `"normal"` there. With $B < 1000$ replications the tail-quantile endpoints can be unstable; **fect** emits a warning and recommends `nboots = 1000` for publication-grade CIs.
 
-For percentile, BC, and BCa intervals on the alternative estimands (`att.cumu`, `aptt`, `log.att`), call `estimand(fit, type, ci.method = ...)` post-fit.
+`gsynth()` accepts only these two values. For percentile, BC, and BCa intervals on the alternative estimands (`att.cumu`, `aptt`, `log.att`), call `estimand(fit, type, ci.method = ...)` post-fit. For a jackknife fit, `estimand()` also allows only `ci.method = "normal"`, and you must give it for `att.cumu`, `aptt` and `log.att`, whose defaults are other methods.
 
 ### Number of bootstrap replicates (`nboots`)
 
