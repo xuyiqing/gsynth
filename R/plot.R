@@ -42,6 +42,17 @@ plot.gsynth <- function(
       stop("This fit does not store the data needed for type = \"raw\" or \"missing\".",
            call. = FALSE)
     }
+    # An `id` that is not a unit of the data: stop here, naming it (panelView
+    # drops such ids with a note that they were "removed from dataset", and
+    # fails when no unit is left).
+    if (!is.null(id)) {
+      unit.ids <- unique(x[["data"]][[x[["index"]][1]]])
+      unknown <- setdiff(as.character(id), as.character(unit.ids))
+      if (length(unknown) > 0) {
+        stop("Unit(s) not in the data: ", paste(unknown, collapse = ", "),
+             ".", call. = FALSE)
+      }
+    }
     pv.args <- list(data = x[["data"]], Y = x[["Y"]], D = x[["D"]],
                     X = x[["X"]], index = x[["index"]],
                     xlab = xlab, ylab = ylab, xlim = xlim, ylim = ylim,
