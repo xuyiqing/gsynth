@@ -101,6 +101,12 @@ plot(out, type = "counterfactual", id = 105,
      raw = "all", legendOff = TRUE)
 ```
 
+With `id`, the gap plot shows one treated unit's own gap (its outcome minus its estimated counterfactual) by time relative to its treatment start, or, with several ids, their unweighted average. It shows point estimates only. The interval for unit 102 is in its counterfactual plot above.
+
+```{r gap-unit}
+plot(out, type = "gap", id = 102)
+```
+
 ## Factors and loadings
 
 ```{r factors, results='hide'}
