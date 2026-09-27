@@ -18,7 +18,10 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **Jackknife standard errors**: with **fect** 2.4.7, `effect()` uses the same jackknife formula as `fit$est.att`. Before, its standard errors were too large by the factor sqrt(N/(N - 1)) for N units (1% with 50 units), and **fect**'s `att.cumu()` gave a cumulative standard error about sqrt(N - 1) times too small.
 * **`effect()` with weights**: with **fect** 2.4.7, `effect()` on fits with `weight` (or `W.agg`) uses those weights in the estimates and standard errors, so its per-period effects equal `fit$att`. Before, it used equal weights.
 * **`ci.method = "basic"` p-values**: with **fect** 2.4.7, parametric fits (the default) get valid p-values for the effects, which agree with the basic intervals. Before, they were near 1 whatever the estimate.
-* **`fect_mspe()` on gsynth fits**: with **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model. Before, it refitted **fect**'s default fixed-effects model.
+* **Nonparametric `ci.method = "basic"` p-values**: with **fect** 2.4.7, they agree with the basic intervals: a p-value is below `alpha` exactly when the interval excludes zero. Before, they came from the percentile rule, which can disagree with the interval.
+* **`fect_mspe()` on gsynth fits**: with **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model, and it scores the model's full prediction at each held-out cell. Before, it refitted **fect**'s default fixed-effects model, and its prediction left out part of the model, so the scores were far too large.
+* **`att.avg.unit`**: with **fect** 2.4.7, each treated unit's average effect is taken over its observed cells under treatment. Before, a treated unit with any missing observation was left out, and the result was `NaN` when every treated unit had one.
+* **`normalize = TRUE`**: with **fect** 2.4.7, `Y.dat` is on the outcome's scale, and so are the counterfactual plot, `fect::imputed_outcomes()` and the APTT and log ATT of `fect::estimand()`. Before, `Y.dat` stayed divided by the standard deviation of the outcome. The estimated effects do not change.
 
 **Bug fixes**
 
@@ -29,6 +32,10 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` stops with a message in gsynth's own argument names.
 * `inference = "jackknife"` with `ci.method = "basic"` stops with a message in gsynth's own argument names; only `ci.method = "normal"` works with the jackknife.
 * `print()` returns the fit invisibly.
+* With **fect** 2.4.7, a jackknife fit with `weight` and `placeboTest = TRUE` works when the model has covariates, and its `est.placebo` has the 90% interval.
+* With **fect** 2.4.7, `fect::estimand()` on a jackknife fit uses `ci.method = "normal"` by default for every type. Before, `"att.cumu"`, `"aptt"` and `"log.att"` stopped unless it was given.
+* With **fect** 2.4.7, `fect::estimand(fit, "att.cumu", "overall", window = c(k, k))` works for a one-period window, and the first row of `fect::att.cumu()` follows the rule of its other rows.
+* With **fect** 2.4.7, `fect::estimand(fit, "att.cumu", cells = ...)` stops and points to `window`. Before, `cells` was ignored.
 
 **New features and other changes**
 

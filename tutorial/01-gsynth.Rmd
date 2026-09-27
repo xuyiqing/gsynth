@@ -137,9 +137,9 @@ When all treated points fall inside the shaded control hull, the GSC counterfact
 New in v1.5.0. The `ci.method` argument controls how the confidence intervals stored in the `est.*` slots (e.g. `out$est.att`) are formed:
 
 - `ci.method = "normal"` (default): Wald intervals, $\hat{\theta} \pm z_{1-\alpha/2}\,\widehat{\mathrm{SE}}$. Symmetric around the point estimate. Works with every `inference`, and it is the only interval for `inference = "jackknife"`.
-- `ci.method = "basic"`: reflected-pivot bootstrap interval (@DavisonHinkley1997, Sec. 5.2.1). Asymmetric; reads tail quantiles of the bootstrap distribution. Works with `inference = "parametric"` and `"bootstrap"`. With parametric inference, its p-values compare the estimate with the draws simulated under no effect, so they agree with the basic interval (**fect** 2.4.7). With `inference = "jackknife"`, `gsynth()` stops, because the jackknife gives a standard error but no bootstrap distribution. With $B < 1000$ replications the tail-quantile endpoints can be unstable; **fect** emits a warning and recommends `nboots = 1000` for publication-grade CIs.
+- `ci.method = "basic"`: reflected-pivot bootstrap interval (@DavisonHinkley1997, Sec. 5.2.1). Asymmetric; reads tail quantiles of the bootstrap distribution. Works with `inference = "parametric"` and `"bootstrap"`. Its p-values agree with the basic interval (**fect** 2.4.7): under the bootstrap, a p-value is below `alpha` exactly when the interval excludes zero; with parametric inference, the p-values compare the estimate with the draws simulated under no effect. With `inference = "jackknife"`, `gsynth()` stops, because the jackknife gives a standard error but no bootstrap distribution. With $B < 1000$ replications the tail-quantile endpoints can be unstable; **fect** emits a warning and recommends `nboots = 1000` for publication-grade CIs.
 
-`gsynth()` accepts only these two values. For percentile, BC, and BCa intervals on the alternative estimands (`att.cumu`, `aptt`, `log.att`), call `estimand(fit, type, ci.method = ...)` post-fit. For a jackknife fit, `estimand()` also allows only `ci.method = "normal"`, and you must give it for `att.cumu`, `aptt` and `log.att`, whose defaults are other methods.
+`gsynth()` accepts only these two values. For percentile, BC, and BCa intervals on the alternative estimands (`att.cumu`, `aptt`, `log.att`), call `estimand(fit, type, ci.method = ...)` post-fit. For a jackknife fit, `estimand()` also allows only `ci.method = "normal"`, which is its default for such fits (**fect** 2.4.7).
 
 ### Number of bootstrap replicates (`nboots`)
 
@@ -170,7 +170,7 @@ out_basic <- gsynth(Y ~ D + X1 + X2, data = simdata,
 head(out_basic$est.att)
 ```
 
-The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; the intervals and p-values differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution. With `ci.method = "basic"` under the nonparametric bootstrap, the p-values come from the percentile rule (twice the smaller share of bootstrap estimates on either side of zero), not from the basic interval, so near zero the two can disagree: at event time -15 the basic interval includes zero, but the p-value is 0.028.
+The point estimate and SE are identical to a `ci.method = "normal"` fit on the same bootstrap replicates; the intervals and p-values differ. Asymmetry of the basic interval relative to the Wald interval signals skewness in the bootstrap distribution. With `ci.method = "basic"`, the p-values go with the basic interval (**fect** 2.4.7): a p-value is below 0.05 exactly when the 95% basic interval excludes zero. At event time -15, for example, the basic interval includes zero and the p-value is above 0.05.
 
 ## Placebo test {#sec-placebo}
 

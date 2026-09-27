@@ -191,16 +191,19 @@ on interactive fixed effect models.}
   and works with every \code{inference}. \code{"basic"} uses the
   reflected-pivot bootstrap interval (Davison and Hinkley 1997, Sec.
   5.2.1) and works with \code{inference = "parametric"} and
-  \code{"nonparametric"}. With parametric inference, its p-values
-  compare the estimate with the draws simulated under no effect, so
-  they agree with the basic interval (\pkg{fect} 2.4.7). With
+  \code{"nonparametric"}. Its p-values agree with the basic interval
+  (\pkg{fect} 2.4.7): with nonparametric inference, a p-value is below
+  \code{alpha} exactly when the interval excludes zero; with parametric
+  inference, the p-values compare the estimate with the draws simulated
+  under no effect. With
   \code{inference = "jackknife"} it stops: the jackknife gives a
   standard error but no bootstrap distribution, so \code{"normal"} is
   its only interval. Other values stop. For percentile,
   BC and BCa intervals on alternative estimands (cumulative ATT, APTT,
   log-ATT), call \code{\link[fect]{estimand}} on the fit; for a
   jackknife fit it also allows only
-  \code{ci.method = "normal"}. New in v1.5.0 (passed to \code{fect}'s
+  \code{ci.method = "normal"}, its default for such fits (\pkg{fect}
+  2.4.7). New in v1.5.0 (passed to \code{fect}'s
   \code{ci.method}, added in fect v2.4.2).}
 \item{placeboTest}{a logical flag. If \code{TRUE}, a contiguous block of
   pre-treatment periods specified by \code{placebo.period} is held out
@@ -408,7 +411,8 @@ on interactive fixed effect models.}
     of \code{eff} over all cells under treatment, weighted by
     \code{weight} (or \code{W.agg}) if given.}
   \item{att.avg.unit}{the average of each treated unit's own average
-    effect, so that every treated unit counts once.}
+    effect, so that every treated unit counts once. Each unit's average
+    is over its observed cells under treatment (\pkg{fect} 2.4.7).}
   \item{eff.calendar, eff.calendar.fit, N.calendar}{the ATT by calendar
     period (columns \code{ATT-calendar} and \code{count}); the same with
     a loess-smoothed column \code{Fitted}; and the number of treated
