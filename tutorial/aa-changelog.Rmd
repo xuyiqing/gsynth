@@ -25,6 +25,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * `effect()` intervals come from the inference stored on the fit (with **fect** 2.4.7). Before, a fit with the default parametric inference gave intervals centered near zero.
 * The stored call is the call as typed, so `print()` shows it and `update()` works when `inference` was given.
 * `plot(type = "raw")` and `plot(type = "missing")` work after a `Y =`/`D =` call or with a formula stored in a variable, use `id`, and return the plot instead of drawing it.
+* `plot(type = "raw")` and `plot(type = "missing")` stop with a message that names an `id` that is not a unit of the data.
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` stops with a message in gsynth's own argument names.
 * `inference = "jackknife"` with `ci.method = "basic"` stops with a message in gsynth's own argument names; only `ci.method = "normal"` works with the jackknife.
 * `print()` returns the fit invisibly.

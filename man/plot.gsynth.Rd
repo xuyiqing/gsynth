@@ -41,8 +41,9 @@
   \item{nfactors}{a positive integer: the number of factors whose
     loadings are shown in the "loadings" plot. Default
     \code{min(r.cv, 4)}. The "factors" plot shows all factors.}
-  \item{id}{unit id(s). For "raw" and "missing", the units to show. For
-    "counterfactual", the treated unit(s) to show: with one unit, its
+  \item{id}{unit id(s). For "raw" and "missing", the units to show; an
+    id that is not a unit of the data stops with a message naming it.
+    For "counterfactual", the treated unit(s) to show: with one unit, its
     outcome and counterfactual; with several, their averages. Ignored by
     the other types; the "gap" plot always shows the average effect over
     all treated units.}

@@ -21,6 +21,7 @@ Development version, not yet on CRAN.
 * `effect()` gave confidence intervals centered near zero after a fit with the default (parametric) inference. With **fect** 2.4.7 its intervals come from the inference stored on the fit, `fit$vartype` (#37, #60, #75).
 * The stored call no longer gets an extra `vartype` argument, so `print()` shows the call as typed and `update()` works when `inference` was given.
 * `plot(type = "raw")` and `plot(type = "missing")` now work after a `Y =`/`D =` call or with a formula stored in a variable, use `id`, and return the plot instead of drawing it (#58, #26).
+* `plot(type = "raw")` and `plot(type = "missing")` with an `id` that is not a unit of the data now stop with a message that names it (for example "Unit(s) not in the data: 999."). Before, **panelView** stopped with "dim(X) must have a positive length", or, when the other ids were units of the data, drew the plot without the unknown one (#107).
 * `inference = "parametric"` with `estimator = "ife"`/`"mc"` or `EM = TRUE` now stops with a message in gsynth's own argument names (#47).
 * `inference = "jackknife"` with `ci.method = "basic"` now stops with a message in gsynth's own argument names; only `ci.method = "normal"` works with the jackknife. Before, **fect** stopped the call with a message about its own argument `vartype`.
 * `print()` returns the fit invisibly.
