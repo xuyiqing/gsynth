@@ -22,6 +22,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **`fect_mspe()` on gsynth fits**: with **fect** 2.4.7, `fect::fect_mspe()` refits a gsynth fit with `gsynth()`, so it scores the fit's own model, and it scores the model's full prediction at each held-out cell. Before, it refitted **fect**'s default fixed-effects model, and its prediction left out part of the model, so the scores were far too large.
 * **`att.avg.unit`**: with **fect** 2.4.7, each treated unit's average effect is taken over its observed cells under treatment. Before, a treated unit with any missing observation was left out, and the result was `NaN` when every treated unit had one.
 * **`normalize = TRUE`**: with **fect** 2.4.7, `Y.dat` is on the outcome's scale, and so are the counterfactual plot, `fect::imputed_outcomes()` and the APTT and log ATT of `fect::estimand()`. Before, `Y.dat` stayed divided by the standard deviation of the outcome. The estimated effects do not change.
+* **`att.cumu()` first row**: with **fect** 2.4.7, the first row of `fect::att.cumu()` follows the rule of its other rows, so it equals the first row of `effect()`. The interval of nonparametric fits changes; parametric fits (the default) do not.
 
 **Bug fixes**
 
@@ -34,7 +35,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * `print()` returns the fit invisibly.
 * With **fect** 2.4.7, a jackknife fit with `weight` and `placeboTest = TRUE` works when the model has covariates, and its `est.placebo` has the 90% interval.
 * With **fect** 2.4.7, `fect::estimand()` on a jackknife fit uses `ci.method = "normal"` by default for every type. Before, `"att.cumu"`, `"aptt"` and `"log.att"` stopped unless it was given.
-* With **fect** 2.4.7, `fect::estimand(fit, "att.cumu", "overall", window = c(k, k))` works for a one-period window, and the first row of `fect::att.cumu()` follows the rule of its other rows.
+* With **fect** 2.4.7, `fect::estimand(fit, "att.cumu", "overall", window = c(k, k))` works for a one-period window.
 * With **fect** 2.4.7, `fect::estimand(fit, "att.cumu", cells = ...)` stops and points to `window`. Before, `cells` was ignored.
 
 **New features and other changes**
