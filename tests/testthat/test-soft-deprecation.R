@@ -19,13 +19,15 @@ test_that("estimator = 'ife' emits a deprecation message", {
   msg <- capture.output(
     out <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), estimator = "ife",
-                  se = FALSE, r = 2, parallel = FALSE),
+                  se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   expect_match(paste(msg, collapse = "\n"),
                "soft-deprecated", fixed = FALSE)
   expect_match(paste(msg, collapse = "\n"),
                "fect::fect", fixed = TRUE)
+  expect_match(paste(msg, collapse = "\n"),
+               "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
@@ -42,6 +44,8 @@ test_that("estimator = 'mc' emits a deprecation message", {
                "soft-deprecated", fixed = FALSE)
   expect_match(paste(msg, collapse = "\n"),
                "fect::fect", fixed = TRUE)
+  expect_match(paste(msg, collapse = "\n"),
+               "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
@@ -51,12 +55,13 @@ test_that("EM = TRUE emits a deprecation message", {
   msg <- capture.output(
     out <- gsynth(Y ~ D + X1 + X2, data = simdata,
                   index = c("id", "time"), EM = TRUE,
-                  se = FALSE, r = 2, parallel = FALSE),
+                  se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   combined <- paste(msg, collapse = "\n")
   expect_match(combined, "soft-deprecated", fixed = FALSE)
   expect_match(combined, "fect::fect", fixed = TRUE)
+  expect_match(combined, "https://yiqingxu.org/packages/gsynth/02-ife-mc.html", fixed = TRUE)
   expect_s3_class(out, "gsynth")
 })
 
@@ -68,14 +73,14 @@ test_that("deprecation message fires only once per session per key", {
   msg1 <- capture.output(
     gsynth(Y ~ D + X1 + X2, data = simdata,
            index = c("id", "time"), estimator = "ife",
-           se = FALSE, r = 2, parallel = FALSE),
+           se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
   ## Second call: message should NOT fire again
   msg2 <- capture.output(
     gsynth(Y ~ D + X1 + X2, data = simdata,
            index = c("id", "time"), estimator = "ife",
-           se = FALSE, r = 2, parallel = FALSE),
+           se = FALSE, r = 2, CV = FALSE, parallel = FALSE),
     type = "message"
   )
 
@@ -89,7 +94,7 @@ test_that("effect() emits a deprecation message pointing to estimand()", {
 
   ## fect::effect() requires bootstrap/jackknife results; fit with se = TRUE.
   out <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                index = c("id", "time"), se = TRUE, nboots = 50, r = 2,
+                index = c("id", "time"), se = TRUE, nboots = 50, r = 2, CV = FALSE,
                 parallel = FALSE)
 
   msg <- capture.output(
@@ -99,4 +104,9 @@ test_that("effect() emits a deprecation message pointing to estimand()", {
   combined <- paste(msg, collapse = "\n")
   expect_match(combined, "soft-deprecated", fixed = FALSE)
   expect_match(combined, "estimand", fixed = TRUE)
+  ## fect::estimand() works on a gsynth fit as it is: no class change
+  expect_match(combined,
+               "fect::estimand(fit, \"att.cumu\", ...) on the gsynth fit directly",
+               fixed = TRUE)
+  expect_false(grepl("class-munge", combined, fixed = TRUE))
 })

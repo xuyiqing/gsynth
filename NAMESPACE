@@ -8,6 +8,7 @@ importFrom("ggplot2", "geom_boxplot", "geom_density", "geom_tile",
            "guide_legend", "margin", "guides","xlab","ylab","element_rect")
 importFrom("fect", "fect", "effect", "plot.fect")
 importFrom("panelView", "panelview")
+importFrom("grDevices", "pdf", "dev.cur", "dev.list", "dev.off", "dev.set")
 export(gsynth)
 export(effect)
 S3method(plot, gsynth)

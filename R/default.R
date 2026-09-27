@@ -103,7 +103,8 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "Use fect::fect(method = \"ife\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\")."
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
+                "for migration recipes."
             )
         )
     }
@@ -116,7 +117,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "For IFE-EM, use fect::fect(method = \"ife\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\") ",
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
                 "for migration recipes."
             )
         )
@@ -129,7 +130,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                 "removal in v2.0.0. ",
                 "For matrix completion, use fect::fect(method = \"mc\", ",
                 "time.component.from = \"notyettreated\", ...) directly. ",
-                "See vignette(\"02-ife-mc\", package = \"gsynth\") ",
+                "See https://yiqingxu.org/packages/gsynth/02-ife-mc.html ",
                 "for migration recipes."
             )
         )
@@ -141,7 +142,8 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
 
     ## v1.5.0 behavior: do NOT silently coerce inference = "parametric"
     ## to "bootstrap" for IFE-EM / MC. fect's hard gate (v2.2.0+) errors
-    ## on this combination, and the wrapper passes the error through.
+    ## on this combination; gsynth stops first, with the same condition
+    ## and a message in gsynth's argument names (see below).
     ##
     ## Public commitment: gsynth-note (Xu 2026), Appendix A.5 ("Hard gate
     ## on IFE-EM + parametric") states that this combination must error
@@ -177,6 +179,72 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     }
 
     ##-------------------------------##
+    ## Hard gate: parametric inference with IFE-EM / MC
+    ##-------------------------------##
+
+    ## Same condition as fect's gate (so the same calls stop), checked
+    ## before any fitting and worded in gsynth's arguments. fect allows
+    ## estimator = "ife" with time.component.from = "nevertreated", and
+    ## estimator = "gsynth" (always never-treated controls).
+    if (isTRUE(as.logical(se)) && identical(inference, "parametric") &&
+        (method == "mc" ||
+         (method == "ife" && !identical(time.component.from, "nevertreated")))) {
+        stop("inference = \"parametric\" is not available for estimator = \"ife\" ",
+             "or \"mc\", or for EM = TRUE. ",
+             "Use inference = \"nonparametric\" or \"jackknife\".", call. = FALSE)
+    }
+
+    ##-------------------------------##
+    ## Weights: `weight` weights the averaged effects only
+    ##-------------------------------##
+
+    ## As documented and as in gsynth 1.2.1, `weight` is the aggregation
+    ## weight (fect's W.agg). It does not enter the model fit; W.est does.
+    if (!is.null(weight)) {
+        if (!is.null(W.agg) && !identical(weight, W.agg)) {
+            stop("`weight` and `W.agg` name different columns. `weight` sets ",
+                 "the weights for averaging treatment effects (the same role ",
+                 "as `W.agg`): give one of them, or the same column in both. ",
+                 "Use `W.est` for weights in the model fit.", call. = FALSE)
+        }
+        W.agg <- weight
+    }
+
+    ##-------------------------------##
+    ## ci.method = "basic" with the jackknife
+    ##-------------------------------##
+
+    ## fect (>= 2.4.2) refuses this pairing, whatever `se` is: the jackknife
+    ## gives a standard error but no bootstrap distribution for the basic
+    ## interval to reflect. Same condition as fect's check, worded in
+    ## gsynth's arguments. Placed after gsynth's other stops, so calls that
+    ## stop there keep their messages; other ci.method values, including
+    ## invalid ones, still reach fect's own checks unchanged.
+    if (identical(inference, "jackknife") && identical(ci.method, "basic")) {
+        stop("ci.method = \"basic\" is not available for inference = \"jackknife\": ",
+             "the jackknife gives a standard error but no bootstrap ",
+             "distribution, so ci.method = \"normal\" is its only interval. ",
+             "Use ci.method = \"normal\", or inference = \"nonparametric\" ",
+             "for the basic interval.", call. = FALSE)
+    }
+
+    ##-------------------------------##
+    ## Number of factors: one r with CV searches r to 5
+    ##-------------------------------##
+
+    ## ?gsynth documents that CV = TRUE chooses the number of factors from
+    ## r to 5 (as gsynth <= 1.2.1 did). fect searches r..r for one r, so
+    ## the default call (r = 0) would fit no factors without a search.
+    ## Widen one r below 5 to c(r, 5). A range, CV = FALSE, r >= 5 and
+    ## estimator = "mc" (which has no r) pass through unchanged.
+    cv.r.end <- 5 # documented upper end of the search for one r
+    if (method %in% c("gsynth", "ife") && isTRUE(as.logical(CV)) &&
+        is.numeric(r) && length(r) == 1L && !is.na(r) &&
+        r >= 0 && r < cv.r.end) {
+        r <- c(r, cv.r.end)
+    }
+
+    ##-------------------------------##
     ## Pass-through to fect::fect()
     ##-------------------------------##
 
@@ -194,7 +262,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
         placeboTest = placeboTest, placebo.period = placebo.period,
         parallel = parallel, cores = cores, tol = tol, seed = seed,
         min.T0 = min.T0, alpha = alpha, normalize = normalize,
-        W = weight, W.est = W.est, W.agg = W.agg,
+        W.est = W.est, W.agg = W.agg,
         keep.sims = TRUE
     )
 
@@ -202,8 +270,14 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
     ## Storage
     ##-------------------------------##
 
+    ## The call is stored as typed (print() and update() use it). The
+    ## inference actually used is recorded in output$vartype, which fect
+    ## sets for every se = TRUE fit and its readers (effect(), plots) use.
     output$call <- match.call()
-    output$call$vartype <- output$call$inference # Name compatible with fect
+    if (isTRUE(as.logical(se))) {
+        vt <- output$vartype
+        if (!(is.character(vt) && length(vt) == 1L)) output$vartype <- inference
+    }
     output$data <- data # Save original long-form data, to utilize panelView
     class(output) <- "gsynth"
     return(output)

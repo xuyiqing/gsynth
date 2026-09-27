@@ -27,7 +27,7 @@ BugReports: https://github.com/xuyiqing/gsynth/issues
 NeedsCompilation: no
 Encoding: UTF-8
 License: MIT + file LICENSE
-Imports: ggplot2 (>= 2.1.0), fect (>= 2.4.2), panelView (>= 1.1.17)
+Imports: ggplot2 (>= 2.1.0), fect (>= 2.4.7), panelView (>= 1.1.17), grDevices
 Suggests: testthat (>= 3.0.0)
 Depends: R (>= 2.10)
 LazyData: true

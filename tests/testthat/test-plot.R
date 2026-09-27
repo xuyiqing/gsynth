@@ -7,10 +7,10 @@ skip_on_cran()
 # Shared fixtures
 out_se <- gsynth(Y ~ D + X1 + X2, data = simdata,
                  index = c("id", "time"), se = TRUE, nboots = 50,
-                 r = 2, force = "two-way", parallel = FALSE, seed = 1234)
+                 r = 2, CV = FALSE, force = "two-way", parallel = FALSE, seed = 1234)
 
 out_nose <- gsynth(Y ~ D + X1 + X2, data = simdata,
-                   index = c("id", "time"), se = FALSE, r = 2,
+                   index = c("id", "time"), se = FALSE, r = 2, CV = FALSE,
                    force = "two-way", parallel = FALSE)
 
 # --- fect-delegated plot types ---
@@ -27,10 +27,11 @@ test_that("plot.gsynth() type = 'ct' with SE works", {
   expect_no_error(plot(out_se, type = "ct"))
 })
 
-test_that("plot.gsynth() type = 'ct' without SE triggers known fect bug", {
-  # Known upstream bug: fect's plot.R checks x$vartype which is NULL when se=FALSE
-  # This will be fixed in a future fect release
-  expect_error(plot(out_nose, type = "ct"))
+# Needs fect >= 2.4.7 with the counterfactual-plot fix (fect run B6): fect
+# dev 412d7ae stops here with "argument is of length zero" (x$vartype is
+# NULL when se = FALSE).
+test_that("plot.gsynth() type = 'ct' without SE works", {
+  expect_no_error(plot(out_nose, type = "ct"))
 })
 
 test_that("plot.gsynth() type = 'factors' works", {

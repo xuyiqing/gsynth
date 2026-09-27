@@ -7,8 +7,14 @@
   \item{x}{a \code{\link{gsynth}} object.}
   \item{\dots}{other argv.}
 }
+\value{
+  The object \code{x}, invisibly. The function is called for its side
+  effect: it prints the call as typed, the average treatment effect, the
+  effects by period and, with covariates, their coefficients, with
+  uncertainty estimates when the fit has them.
+}
 \author{
-  Yiqing Xu <yiqingxu@stanfprd.edu>, Stanford University
+  Yiqing Xu <yiqingxu@stanford.edu>, Stanford University
 }
 \references{Yiqing Xu. 2017. "Generalized Synthetic Control Method: Causal Inference
   with Interactive Fixed Effects Models." Political Analysis, Vol. 25,
