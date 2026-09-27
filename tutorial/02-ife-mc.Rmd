@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 
 `estimator = "ife"` (IFE-EM, @Gobillon2016), `estimator = "mc"` (matrix completion, @Athey2021), and the legacy `EM = TRUE` flag are soft-deprecated in `gsynth` v1.5.0 and will be **removed in v2.0.0** (target: late 2026).
 
-Each call to one of these paths emits a one-time-per-session console message. Behavior is unchanged from v1.4.0 --- the deprecation is a signal, not a break.
+Each call to one of these paths emits a one-time-per-session console message. The deprecation itself does not change results. Other changes in v1.5.0 can, as listed under "Changes that affect results" in the [Changelog](aa-changelog.Rmd). Also, `inference = "parametric"` now stops for these estimators (see below).
 
 For new code, use [`fect::fect()`](https://yiqingxu.org/packages/fect/) directly. The **gsynth** package is built around the GSC estimator (@Xu2017); IFE-EM and matrix completion are now documented and maintained in **fect**. Migration recipes are in @sec-migration below.
 
@@ -65,7 +65,7 @@ plot(out_mc, main = "Estimated ATT (MC)")
 
 ## Hard gate on parametric × IFE-EM (breaking change in v1.5.0)
 
-In v1.4.0, `inference = "parametric"` combined with `estimator = "ife"` or `"mc"` was silently coerced to bootstrap inference with a warning. **In v1.5.0 this combination errors instead.**
+In v1.4.0, `inference = "parametric"` combined with `estimator = "ife"` or `"mc"` was coerced to bootstrap inference with a warning. **In v1.5.0 this combination errors instead.**
 
 ```{r hard-gate, eval = FALSE}
 ## v1.4.0 (worked, with a warning):

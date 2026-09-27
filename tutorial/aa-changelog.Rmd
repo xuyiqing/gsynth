@@ -11,7 +11,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **Cross-validation of `r`**: one number for `r` with `CV = TRUE` (the default) now searches `r` to 5, as documented and as in v1.2.1, so default calls give different results than in v1.3.1 to v1.4.0. Pass `CV = FALSE` to keep a fixed `r`.
 * **Reproducible cross-validation**: cross-validation holds out randomly chosen units and periods, so the chosen number of factors can differ from run to run; pass `seed` to make the choice reproducible.
 * **`weight`** now weights only the averaged effects, as documented and as in v1.2.1; `W.est` weights the model fit. Estimates change only when some control observations are missing.
-* **Implied weights**: with **fect** 2.4.7, `wgt.implied` uses the formula from @Xu2017, so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual.
+* **Implied weights**: with **fect** 2.4.7, `wgt.implied` uses the formula from @Xu2017, so the weighted control outcomes rebuild the factor part of each treated unit's counterfactual. Rows and columns are named by unit id.
 * **`effect()`** returns the cumulative effect as the running sum of the per-period effects (from **fect** 2.4.7). Before, it was k times the average effect over periods 1 to k, which differs when the number of treated units changes over time.
 * **IFE with never-treated controls**: with **fect** 2.4.7, `estimator = "ife"` with `time.component.from = "nevertreated"`, `CV = FALSE` and `se = TRUE` gives the never-treated estimate and standard errors, the same as `estimator = "gsynth"`. Before, asking for standard errors silently switched to the not-yet-treated model.
 * **`effect()` intervals**: with **fect** 2.4.7, parametric fits (the default) and jackknife fits get intervals and p-values from normal critical values, as `fit$est.att` does. Before, t critical values made the intervals slightly wider (0.6% for a parametric fit at the default `nboots = 200`).
@@ -43,10 +43,11 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 * **Diagnostics**: placebo test (`placeboTest = TRUE`, `placebo.period`) and loading-overlap plot (`plot(fit, type = "loading.overlap")`). See [Chapter @sec-gsynth].
 * **Inference**: new `ci.method` argument: `"normal"` (default; Wald) or `"basic"` (reflected-pivot bootstrap, @DavisonHinkley1997). `"basic"` works with parametric and nonparametric inference, not with the jackknife.
 * **Plot recipe**: modern visual style from **fect** v2.3.x, with new arguments `legacy.style`, `highlight`, `highlight.fill`. See [Chapter @sec-plots].
+* **Weights**: new `W.est` (weights for the model fit) and `W.agg` (weights for the averaged effects), from **fect** 2.3.1. `weight` is the same as `W.agg`.
 * **CV defaults**: rolling-window (`cv.method = "rolling"`, `cv.prop = 0.1`, `cv.buffer = 1`); default `k` is now 20.
 * **CV settings**: new `cv.rule` (`"1se"` default, `"min"`, `"1pct"`) for choosing the number of factors, and `cv.nobs` and `cv.donut` for block cross-validation, all passed to **fect**. With `estimator = "gsynth"`, `cv.rule` takes effect with **fect** 2.4.7 or later.
 * **Soft-deprecated paths**: `estimator = "ife"`, `estimator = "mc"`, `EM = TRUE`, and `effect()`. For these methods --- and for post-hoc estimands (cumulative ATT, APTT, log-ATT) --- use `fect::fect()` and `fect::estimand()` directly. Migration recipes in [Chapter @sec-ife-mc].
-* **Guardrail**: `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of silently falling back to nonparametric bootstrap.
+* **Guardrail**: `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of falling back to nonparametric bootstrap with a warning.
 
 ## v1.4.0
 

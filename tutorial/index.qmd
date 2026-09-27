@@ -18,7 +18,7 @@ Starting from v1.3.0, **gsynth** becomes a wrapper of **fect**. We recommend use
 - **Soft-deprecated paths.** 
   - `estimator = "ife"` (IFE-EM), `estimator = "mc"` (matrix completion), `EM = TRUE`, and `effect()`. Each emits a one-time-per-session deprecation message. 
   - For IFE-EM, matrix completion, and post-hoc estimands (cumulative ATT, APTT, log-ATT), use [`fect::fect()`](https://yiqingxu.org/packages/fect/) and `fect::estimand()` directly. 
-- **Breaking change.** `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of silently coercing to bootstrap. See [Chapter @sec-ife-mc].
+- **Breaking change.** `inference = "parametric"` with `estimator = "ife"` or `"mc"` now errors instead of switching to bootstrap with a warning. See [Chapter @sec-ife-mc].
 
 :::
 
@@ -74,7 +74,7 @@ The legacy `EM = TRUE` parameter is also soft-deprecated and equivalent to `esti
 | `estimator` | character | `"gsynth"` (recommended); `"ife"` / `"mc"` soft-deprecated |
 | `force` | character | `"none"` / `"unit"` / `"time"` / `"two-way"` |
 | `r` | integer | Number of factors on top of the fixed effects: one number (with `CV = TRUE`, the search runs from `r` to 5) or a range `c(r.min, r.max)` |
-| `CV` | logical | Cross-validation to select number of factors |
+| `CV` | logical | Cross-validation to select the number of factors (default `TRUE`) |
 | `cv.method` | character | `"rolling"` (default) or `"block"` |
 | `cv.prop` | numeric | Per-fold unit-sampling fraction (default 0.1) |
 | `cv.buffer` | integer | Past-side buffer for rolling CV (default 1) |
