@@ -13,7 +13,7 @@
   \item{x}{a \code{\link{gsynth}} object.}
   \item{type}{a string that specifies the type of the plot. Must be one
     of the following: "gap" (plotting the average treatment effect on
-    the treated, or the effects of the units in \code{id}); "raw"
+    the treated, or the gaps of the units in \code{id}); "raw"
     (plotting the raw data); "counterfactual", or "ct" for short,
     (plotting predicted Y(0)'s); "factors" (plotting estimated factors);
     "loadings" (plotting the distribution of estimated factor
@@ -42,18 +42,21 @@
   \item{nfactors}{a positive integer: the number of factors whose
     loadings are shown in the "loadings" plot. Default
     \code{min(r.cv, 4)}. The "factors" plot shows all factors.}
-  \item{id}{unit id(s). For "gap", the treated unit(s) whose effects are
+  \item{id}{unit id(s). For "gap", the treated unit(s) whose gaps are
     shown instead of the average over all treated units: with one unit,
     its gap (outcome minus estimated counterfactual) by time relative to
     its treatment start, as in gsynth 1.2.x; with several, their
-    unweighted average at each relative time. On a fit made with
-    \code{se = TRUE} and parametric inference (the default for
-    \code{estimator = "gsynth"}), the plot also draws a band for these
-    effects from the units' bootstrap draws, with the fit's
-    \code{ci.method} and \code{alpha}; a band for one unit is usually wider
-    than the band of the average, and it assumes that the unit's errors look
-    like those of the control units. With the nonparametric bootstrap or
-    the jackknife, the plot shows point estimates only. A control unit, or
+    unweighted average at each relative time. A unit's gap includes its
+    idiosyncratic error in that period, which does not shrink with more
+    data, so the gap is a noisy estimate of the unit's effect, and that
+    effect is not identified. On a fit made with \code{se = TRUE} and
+    parametric inference (the default for \code{estimator = "gsynth"}),
+    the plot also draws a band around these gaps from the units' bootstrap
+    draws, with the fit's \code{ci.method} and \code{alpha}. The band
+    describes this error under the assumption that the unit's errors are
+    distributed like those of the control units; a band for one unit is
+    usually wider than the band of the average. With the nonparametric
+    bootstrap or the jackknife, the plot shows point estimates only. A control unit, or
     an id not in the data, stops with a message naming it. For "raw" and "missing", the
     units to show; an id that is not a unit of the data stops with a
     message naming it. For "counterfactual", the treated unit(s) to show:
