@@ -101,7 +101,7 @@ plot(out, type = "counterfactual", id = 105,
      raw = "all", legendOff = TRUE)
 ```
 
-With `id`, the gap plot shows one treated unit's own gap (its outcome minus its estimated counterfactual) by time relative to its treatment start, or, with several ids, their unweighted average. With parametric inference, as here, it adds a band from the unit's bootstrap draws. A band for one unit is wider than the band of the average, and it assumes that the unit's errors look like those of the control units. With the nonparametric bootstrap or the jackknife, the plot shows point estimates only.
+With `id`, the gap plot shows one treated unit's own gap (its outcome minus its estimated counterfactual) by time relative to its treatment start, or, with several ids, their unweighted average. With parametric inference, as here, it adds a band from the unit's bootstrap draws. A band for one unit is usually wider than the band of the average, and it assumes that the unit's errors look like those of the control units. With the nonparametric bootstrap or the jackknife, the plot shows point estimates only.
 
 ```{r gap-unit}
 plot(out, type = "gap", id = 102)

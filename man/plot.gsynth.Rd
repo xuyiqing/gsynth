@@ -50,8 +50,8 @@
     \code{se = TRUE} and parametric inference (the default for
     \code{estimator = "gsynth"}), the plot also draws a band for these
     effects from the units' bootstrap draws, with the fit's
-    \code{ci.method} and \code{alpha}; a band for one unit is wider than
-    the band of the average, and it assumes that the unit's errors look
+    \code{ci.method} and \code{alpha}; a band for one unit is usually wider
+    than the band of the average, and it assumes that the unit's errors look
     like those of the control units. With the nonparametric bootstrap or
     the jackknife, the plot shows point estimates only. A control unit, or
     an id not in the data, stops with a message naming it. For "raw" and "missing", the
