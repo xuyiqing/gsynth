@@ -40,6 +40,7 @@ Catch-up release for **fect** v2.4.x. Requires `fect (>= 2.4.7)`.
 
 **New features and other changes**
 
+* **Gap plot of chosen units**: with **fect** 2.4.7, `plot(fit, type = "gap", id = ...)` again draws the chosen treated unit's own gap by time relative to its treatment start, as in v1.2.1, and with several ids their unweighted average. With parametric inference (the default), it adds a band from the units' bootstrap draws; with the nonparametric bootstrap or the jackknife, it shows point estimates only. One unit's gap in one period is a noisy estimate of its effect, which is not identified. A control unit, or an id not in the data, stops with a message naming it. See [Chapter @sec-plots].
 * **Diagnostics**: placebo test (`placeboTest = TRUE`, `placebo.period`) and loading-overlap plot (`plot(fit, type = "loading.overlap")`). See [Chapter @sec-gsynth].
 * **Inference**: new `ci.method` argument: `"normal"` (default; Wald) or `"basic"` (reflected-pivot bootstrap, @DavisonHinkley1997). `"basic"` works with parametric and nonparametric inference, not with the jackknife.
 * **Plot recipe**: modern visual style from **fect** v2.3.x, with new arguments `legacy.style`, `highlight`, `highlight.fill`. See [Chapter @sec-plots].

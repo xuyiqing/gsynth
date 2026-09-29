@@ -101,6 +101,12 @@ plot(out, type = "counterfactual", id = 105,
      raw = "all", legendOff = TRUE)
 ```
 
+With `id`, the gap plot shows one treated unit's gap (its outcome minus its estimated counterfactual) by time relative to its treatment start, or, with several ids, their unweighted average. A unit's gap is a noisy estimate of its treatment effect because it includes the unit's idiosyncratic error in each period, which more data do not remove. The effect of a single unit in a single period is not identified; averages over treated units, such as the ATT, are. With parametric inference, as here, the plot adds a band from the chosen units' bootstrap draws, averaged within each replication when several units are chosen. The band works like a prediction interval for the unit's effect and shows how far the unit's idiosyncratic errors can move its gap away from that effect, assuming that the unit's errors are distributed like those of the control units. A band for one unit is usually wider than the band of the average. With the nonparametric bootstrap or the jackknife, the plot shows point estimates only.
+
+```{r gap-unit}
+plot(out, type = "gap", id = 102)
+```
+
 ## Factors and loadings
 
 ```{r factors, results='hide'}
