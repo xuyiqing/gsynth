@@ -2,7 +2,8 @@
 # as gsynth 1.2.x did for one unit (gsynth #106). plot.gsynth() passes `id`
 # to fect's plot.fect(), which draws this plot from fect 2.4.7 on (fect
 # #162). Before, `id` was ignored and the gap plot showed the average effect
-# over all treated units.
+# over all treated units. With parametric inference (the default for
+# estimator = "gsynth") the plot draws a band from the unit's draws.
 
 ## The estimates the plot draws: x, y, ymin and ymax of its point-range
 ## layers, sorted by x.
@@ -48,8 +49,8 @@ test_that("G14: the gap plot with a treated id draws that unit's effects, as in 
   expect_equal(round(pts$y[pts$x %in% 1:3], 3), c(0.342, 4.332, 4.308))
   expect_true(all(is.na(pts$ymin)))
   expect_identical(p$labels$title, "id = 101")
-  expect_length(msgs, 1)
-  expect_match(msgs, "Unit-level uncertainty is not shown", fixed = TRUE)
+  ## a fit without SEs: the same message as the average gap plot
+  expect_identical(msgs, "Uncertainty estimates not available.\n\n")
   ## the default type of plot.gsynth() is "gap"
   expect_equal(.gg_points(suppressMessages(plot(fit, id = 101))), pts)
   ## several ids: their average at each relative time
@@ -64,7 +65,7 @@ test_that("G14: the gap plot with a treated id draws that unit's effects, as in 
   expect_identical(p0$labels$title, "Estimated Dynamic Treatment Effects")
 })
 
-test_that("G15: with SEs the gap plot for an id draws no interval; control and unknown ids stop", {
+test_that("G15: with SEs from parametric inference the gap plot for an id draws a band; control and unknown ids stop", {
   skip_on_cran()
   e <- new.env()
   utils::data("gsynth", package = "gsynth", envir = e)
@@ -72,11 +73,40 @@ test_that("G15: with SEs the gap plot for an id draws no interval; control and u
                                  index = c("id", "time"), force = "two-way",
                                  r = 2, CV = FALSE, se = TRUE, nboots = 20,
                                  seed = 1, parallel = FALSE))
-  ## the average gap plot has intervals, the plot for one unit none
+  expect_identical(fit$vartype, "parametric")
   expect_true(all(is.finite(.gg_points(suppressMessages(plot(fit, type = "gap")))$ymin)))
-  pts <- .gg_points(suppressMessages(plot(fit, type = "gap", id = 102)))
-  expect_equal(pts$y, as.numeric(fit$eff[, fit$id == 102]), tolerance = 1e-12)
-  expect_true(all(is.na(pts$ymin)) && all(is.na(pts$ymax)))
+  ## parametric inference (the default for estimator = "gsynth") keeps the
+  ## draws, so the plot for one unit draws a band, as gsynth 1.2.x did: the
+  ## effect -/+ qnorm(0.975) times the sd of the unit's draws (fit$eff.boot
+  ## keeps the treated units first, in fit$tr order)
+  msgs <- character(0)
+  p <- withCallingHandlers(plot(fit, type = "gap", id = 102),
+                           message = function(m) {
+                             msgs <<- c(msgs, conditionMessage(m))
+                             invokeRestart("muffleMessage")
+                           })
+  pts <- .gg_points(p)
+  j <- which(fit$id == 102)
+  h <- qnorm(0.975) * apply(fit$eff.boot[, match(j, fit$tr), ], 1, sd)
+  expect_equal(pts$y, as.numeric(fit$eff[, j]), tolerance = 1e-12)
+  expect_equal(pts$ymin, as.numeric(fit$eff[, j]) - h, tolerance = 1e-10)
+  expect_equal(pts$ymax, as.numeric(fit$eff[, j]) + h, tolerance = 1e-10)
+  expect_length(msgs, 0)
+  ## the jackknife cannot measure one unit's noise: estimates only, and a
+  ## message that names parametric inference
+  fit_j <- suppressMessages(gsynth(Y ~ D + X1 + X2, data = e$simdata,
+                                   index = c("id", "time"), force = "two-way",
+                                   r = 2, CV = FALSE, se = TRUE,
+                                   inference = "jackknife", parallel = FALSE))
+  msgs <- character(0)
+  p <- withCallingHandlers(plot(fit_j, type = "gap", id = 102),
+                           message = function(m) {
+                             msgs <<- c(msgs, conditionMessage(m))
+                             invokeRestart("muffleMessage")
+                           })
+  expect_true(all(is.na(.gg_points(p)$ymin)))
+  expect_length(msgs, 1)
+  expect_match(msgs, "inference = \"parametric\"", fixed = TRUE)
   expect_error(plot(fit, type = "gap", id = 106),
                "Unit(s) in \"id\" never treated (control units): 106.", fixed = TRUE)
   expect_error(plot(fit, type = "gap", id = 999),

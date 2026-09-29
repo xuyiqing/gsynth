@@ -46,12 +46,15 @@
     shown instead of the average over all treated units: with one unit,
     its gap (outcome minus estimated counterfactual) by time relative to
     its treatment start, as in gsynth 1.2.x; with several, their
-    unweighted average at each relative time. This plot shows point
-    estimates only, without a confidence band. For an interval around a
-    unit's counterfactual, use the "counterfactual" plot on a fit made
-    with \code{se = TRUE} and parametric inference (the default for
-    \code{estimator = "gsynth"}). A control unit, or an id not in the
-    data, stops with a message naming it. For "raw" and "missing", the
+    unweighted average at each relative time. On a fit made with
+    \code{se = TRUE} and parametric inference (the default for
+    \code{estimator = "gsynth"}), the plot also draws a band for these
+    effects from the units' bootstrap draws, with the fit's
+    \code{ci.method} and \code{alpha}; a band for one unit is wider than
+    the band of the average, and it assumes that the unit's errors look
+    like those of the control units. With the nonparametric bootstrap or
+    the jackknife, the plot shows point estimates only. A control unit, or
+    an id not in the data, stops with a message naming it. For "raw" and "missing", the
     units to show; an id that is not a unit of the data stops with a
     message naming it. For "counterfactual", the treated unit(s) to show:
     with one unit, its outcome and counterfactual; with several, their
