@@ -77,7 +77,7 @@ out$CV.out[, c("r", "sigma2", "IC", "MSPE")]
 out$r.cv
 ```
 
-Cross-validation picks `r` by the rule in `cv.rule`. The default, `"1se"`, picks the smallest `r` whose MSPE is within one standard error of the lowest MSPE.
+Cross-validation picks `r` by the rule in `cv.rule`. The default, `"min"`, picks the `r` with the lowest MSPE. The one-standard-error rule, `"1se"`, is available but under-selects factors, because fold errors are heavy-tailed.
 
 ```{r}
 out$est.att
