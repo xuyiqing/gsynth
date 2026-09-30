@@ -27,14 +27,16 @@ skip_on_cran()
 test_that("gsynth() passes cv.rule to fect", {
   skip_if(utils::packageVersion("fect") < "2.4.7",
           "fect < 2.4.7 ignores cv.rule for never-treated CV")
-  d <- .rule_panel(2)
+  expect_identical(formals(gsynth)$cv.rule, "min")  # the default since 1.5.0
+  ## panel 5 separates the rules under fect 2.4.7's anchors (min picks r = 1,
+  ## 1se r = 0); panel 2 no longer does
+  d <- .rule_panel(5)
   g_min <- .fit_g(d, cv.rule = "min")
   g_1se <- .fit_g(d, cv.rule = "1se")
   r_argmin <- unname(g_min$CV.out[which.min(g_min$CV.out[, "MSPE"]), "r"])
   skip_if(r_argmin == g_1se$r.cv, "this panel no longer separates the rules")
   expect_equal(g_min$r.cv, r_argmin)
   expect_equal(.fit_g(d)$r.cv, g_min$r.cv)  # "min" is the default since 1.5.0
-  expect_identical(formals(gsynth)$cv.rule, "min")
 })
 
 test_that("gsynth() passes cv.nobs and cv.donut to block CV", {
