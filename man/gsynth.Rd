@@ -7,7 +7,7 @@ on interactive fixed effect models.}
        index, weight = NULL, force = "unit", cl = NULL, r = 0,
        lambda = NULL, nlambda = 10, CV = TRUE, criterion = "mspe",
        k = 20, cv.method = "rolling", cv.prop = 0.1, cv.buffer = 1,
-       cv.nobs = 3, cv.donut = 1, cv.rule = "1se",
+       cv.nobs = 3, cv.donut = 1, cv.rule = "min",
        EM = FALSE, estimator = "gsynth", time.component.from = NULL,
        se = FALSE, nboots = 200,
        inference = NULL, parallel = TRUE,
@@ -83,8 +83,8 @@ on interactive fixed effect models.}
 \item{CV}{a logical flag: whether to choose the number of factors (for
   \code{estimator = "mc"}, the penalty \code{lambda}) by
   cross-validation. Default \code{TRUE}. The rule for picking is
-  \code{cv.rule}: the default \code{"1se"} picks the smallest \code{r}
-  whose error is within one standard error of the lowest.}
+  \code{cv.rule}: the default \code{"min"} picks the \code{r} with the
+  lowest error.}
 \item{criterion}{a string specifying the criteria used for determining the number
   of factors. Choose from \code{c("mspe", "pc")}. "mspe" stands for the mean squared
   prediction error obtained through the loocv procedure, and "pc" stands for a kind
@@ -108,10 +108,13 @@ on interactive fixed effect models.}
   periods at each end of a held-out run that are not scored; \code{2 * cv.donut}
   must be smaller than \code{cv.nobs}. Default \code{1}. New in v1.5.0.}
 \item{cv.rule}{a string: the rule for choosing the number of factors from
-  the cross-validation errors. \code{"1se"} (default) picks the smallest
-  \code{r} whose error is within one fold standard error of the lowest;
-  \code{"min"} picks the lowest error; \code{"1pct"} picks the smallest
-  \code{r} within 1\% of the lowest. See \code{fect::fect}. For
+  the cross-validation errors. \code{"min"} (default) picks the lowest
+  error; \code{"1se"} picks the smallest \code{r} whose error is within
+  one fold standard error of the lowest, which under-selects factors
+  because fold errors are heavy-tailed (a simulation study with fect 2.4.7:
+  lower rank recovery and higher ATT error than \code{"min"} in every
+  design); \code{"1pct"} picks the smallest \code{r} within 1\% of the
+  lowest. See \code{fect::fect}. For
   \code{estimator = "gsynth"} the rule takes effect with \pkg{fect} 2.4.7
   or later. New in v1.5.0.}
 \item{EM}{a logical flag indicating whether an Expectation Maximization

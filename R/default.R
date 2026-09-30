@@ -59,7 +59,7 @@ gsynth <- function(formula = NULL, data, # a data frame (long-form)
                            cv.buffer = 1, # NEW: past-side buffer for rolling CV
                            cv.nobs = 3, # block CV: consecutive periods per held-out run
                            cv.donut = 1, # block CV: unscored periods at each end of a run
-                           cv.rule = "1se", # rule for picking r from the CV errors
+                           cv.rule = "min", # rule for picking r from the CV errors (was "1se" before 1.5.0)
                            EM = FALSE, # legacy; use estimator = "ife" instead
                            estimator = "gsynth", # gsynth/ife/mc method
                            time.component.from = NULL, # NEW: NULL lets fect dispatch by estimator
