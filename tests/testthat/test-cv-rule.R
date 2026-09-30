@@ -33,7 +33,8 @@ test_that("gsynth() passes cv.rule to fect", {
   r_argmin <- unname(g_min$CV.out[which.min(g_min$CV.out[, "MSPE"]), "r"])
   skip_if(r_argmin == g_1se$r.cv, "this panel no longer separates the rules")
   expect_equal(g_min$r.cv, r_argmin)
-  expect_equal(.fit_g(d)$r.cv, g_1se$r.cv)  # "1se" is the default
+  expect_equal(.fit_g(d)$r.cv, g_min$r.cv)  # "min" is the default since 1.5.0
+  expect_identical(formals(gsynth)$cv.rule, "min")
 })
 
 test_that("gsynth() passes cv.nobs and cv.donut to block CV", {
