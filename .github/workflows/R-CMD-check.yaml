@@ -3,6 +3,7 @@
 # NOT_CRAN is passed to the check as "false" (CRAN-like): setup-r-dependencies writes NOT_CRAN=true
 # into the job environment, so the value is set through rcmdcheck's env= instead (as in fect).
 # gsynth 1.5.0 needs fect >= 2.4.7, which is not on CRAN yet, so fect comes from its dev branch.
+# fect needs HonestDiDFEct, which is on GitHub only (fect's own workflow installs it the same way).
 # Switch this to any::fect once fect 2.4.8 is on CRAN.
 name: R-CMD-check
 
@@ -45,6 +46,7 @@ jobs:
         with:
           extra-packages: |
             any::rcmdcheck
+            github::lzy318/HonestDiDFEct
             github::xuyiqing/fect@dev
           needs: check
 
