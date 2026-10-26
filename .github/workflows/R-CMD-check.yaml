@@ -1,0 +1,68 @@
+# R CMD check --as-cran on every push and pull request to master and dev.
+# Pull requests run on Ubuntu only (fast feedback); pushes and manual runs use Ubuntu, macOS and Windows.
+# NOT_CRAN is passed to the check as "false" (CRAN-like): setup-r-dependencies writes NOT_CRAN=true
+# into the job environment, so the value is set through rcmdcheck's env= instead (as in fect).
+# gsynth 1.5.0 needs fect >= 2.4.7, which is not on CRAN yet, so fect comes from its dev branch.
+# fect needs HonestDiDFEct, which is on GitHub only (fect's own workflow installs it the same way).
+# Switch this to any::fect once fect 2.4.8 is on CRAN.
+name: R-CMD-check
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  R-CMD-check:
+    name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ${{ fromJSON(github.event_name == 'pull_request' && '[{"os":"ubuntu-latest","r":"release"}]' || '[{"os":"ubuntu-latest","r":"release"},{"os":"macos-latest","r":"release"},{"os":"windows-latest","r":"release"}]') }}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      _R_CHECK_FORCE_SUGGESTS_: false
+      RGL_USE_NULL: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::rcmdcheck
+            github::lzy318/HonestDiDFEct
+            github::xuyiqing/fect@dev
+          needs: check
+
+      - name: Check (CRAN-like)
+        shell: Rscript {0}
+        run: |
+          rcmdcheck::rcmdcheck(
+            args = c("--no-manual", "--as-cran"),
+            error_on = "error",
+            check_dir = "check",
+            env = c(NOT_CRAN = "false")
+          )
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-r${{ matrix.config.r }}-check
+          path: check
